@@ -53,5 +53,3 @@ if (!require("doRNG", quietly = TRUE)){
   install.packages('doRNG')
   
 }
-
-#devtools::install_github("saezlab/CARNIVAL"))
