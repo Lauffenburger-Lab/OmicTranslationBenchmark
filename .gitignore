@@ -10,5 +10,11 @@ data/geneinfo_beta.txt
 data/level5_beta_trt_cp_n720216x12328.gctx
 data/siginfo_beta.txt
 data/compoundinfo_beta.txt
+results/deepcellstate_results/models/*
+results/my_results/models/*
+results/my_results/embs/train/*
+results/my_results/embs/validation/*
+results/MI_results/embs/*
+results/MI_results/models/*
 learning/.ipynb_checkpoints
 .Rproj.user
