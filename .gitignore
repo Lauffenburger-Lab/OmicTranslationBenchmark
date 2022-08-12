@@ -18,5 +18,6 @@ results/MI_results/embs/*
 results/MI_results/models/*
 results/Importance_results/important_scores_*
 results/trained_models/*.pth
+results/trained_embs_all/*.csv
 learning/.ipynb_checkpoints
 .Rproj.user
