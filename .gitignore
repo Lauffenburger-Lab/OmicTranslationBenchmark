@@ -16,5 +16,6 @@ results/my_results/embs/train/*
 results/my_results/embs/validation/*
 results/MI_results/embs/*
 results/MI_results/models/*
+results/Importance_results/important_scores_*
 learning/.ipynb_checkpoints
 .Rproj.user
