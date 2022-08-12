@@ -1,5 +1,7 @@
 preprocessing/.Rhistory
 preprocessing/.Rproj.user/
+preprocessing/preprocessed_data/cmap_*
+preprocessing/preprocessed_data/all_cmap_*
 postprocessing/.Rhistory
 postprocessing/.Rproj.user/
 figures/.Rhistory
