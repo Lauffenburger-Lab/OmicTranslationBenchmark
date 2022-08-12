@@ -8,6 +8,8 @@
 7. evaluationUtils.py: Contains functions for evaluation of the models.
 8. trainingUtils.py: Contains function to train an autoencoder.
 9. TranslationalAutoencoder_CPA.py: Contains code to train an autoencoder with the CPA approach[^6]
+10. CellLineSpecificAnalysis.ipynb: Implement cell-line specific analysis (train machine learing models like random forest and ANN-classifier or perform PCA and t-SNE analysis of raw data and pre-trained embeddings)
+11. implementFIT.ipynb :Implement FIT approach[^7].  
 
 ## References
 [^1]: Umarov, Ramzan, Yu Li, and Erik Arner. "DeepCellState: An autoencoder-based framework for predicting cell type specific transcriptional states induced by drug treatment." PLoS Computational Biology 17.10 (2021): e1009465.
@@ -16,4 +18,6 @@
 [^4]: Sundararajan, Mukund, Ankur Taly, and Qiqi Yan. "Axiomatic attribution for deep networks." International conference on machine learning. PMLR, 2017.
 [^5]: Kokhlikyan, Narine, et al. "Captum: A unified and generic model interpretability library for pytorch." arXiv preprint arXiv:2009.07896 (2020).
 [^6]: Lotfollahi, Mohammad, et al. "Compositional perturbation autoencoder for single-cell response modeling." BioRxiv (2021).
+[^7]: Normand R, Du W, Briller M, Gaujoux R, Starosvetsky E, Ziv-Kenet A, Shalev-Malul G, Tibshirani RJ, Shen-Orr SS. Found In Translation: a machine learning model for mouse-to-human inference. Nat Methods. 2018 Dec;15(12):1067-1073. doi: 10.1038/s41592-018-0214-9. Epub 2018 Nov 26. PMID: 30478323.
+
 
