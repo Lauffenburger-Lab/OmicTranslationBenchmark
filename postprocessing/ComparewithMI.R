@@ -218,7 +218,7 @@ visualize_embeddings_distribution <- function(embs,all=FALSE){
 }
 
 # Load samples info
-sigInfo <- read.delim('../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
 sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
 sigInfo <- sigInfo %>% filter(pert_type=='trt_cp')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
@@ -234,17 +234,17 @@ plotList <- NULL
 distrList <- NULL
 for (i in 0:9){
   # Load train, validation info
-  trainInfo <- rbind(data.table::fread(paste0('10fold_validation_spit/train_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
-                     data.table::fread(paste0('10fold_validation_spit/train_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
-  trainPaired = data.table::fread(paste0('10fold_validation_spit/train_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+  trainInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
+                     data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
+  trainPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
   trainInfo <- rbind(trainInfo,
                      trainPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
                      trainPaired %>% select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
   trainInfo <- trainInfo %>% unique()
   trainInfo <- trainInfo %>% select(sig_id,conditionId,cell_iname)
   
-  valInfo <- rbind(data.table::fread(paste0('10fold_validation_spit/val_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
-                   data.table::fread(paste0('10fold_validation_spit/val_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
+  valInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
+                   data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
   valPaired = data.table::fread(paste0('10fold_validation_spit/val_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
   valInfo <- rbind(valInfo,
                    valPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
@@ -253,18 +253,18 @@ for (i in 0:9){
   valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
   
   # Load embeddings of pre-trained
-  embs_train_mi <- rbind(data.table::fread(paste0('MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
-                         data.table::fread(paste0('MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_train_mi <- rbind(data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
+                         data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_test_mi <- rbind(data.table::fread(paste0('MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
-                        data.table::fread(paste0('MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_test_mi <- rbind(data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
+                        data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
   
-  embs_train <- rbind(data.table::fread(paste0('my_results//embs/train/trainEmbs_',i,'_a375.csv'),header = T),
-                      data.table::fread(paste0('my_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_train <- rbind(data.table::fread(paste0('../results/my_results//embs/train/trainEmbs_',i,'_a375.csv'),header = T),
+                      data.table::fread(paste0('../results/my_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_test <- rbind(data.table::fread(paste0('my_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
-                     data.table::fread(paste0('my_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_test <- rbind(data.table::fread(paste0('../results/my_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
+                     data.table::fread(paste0('../results/my_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
   
   embs_proc_train_mi <- process_embeddings(embs_train_mi,sigInfo,trainInfo)
@@ -320,21 +320,21 @@ for (i in 0:9){
   #distrList[[i+1]]<-visualize_embeddings_distribution2(rbind(embs_test_mi%>%gather('key','value')%>%mutate(key='Autoencoder MI'),
   #                                                     embs_test%>%gather('key','value')%>%mutate(key='Autoencoder Simple')))
   
-  png(paste0('MI_results/compare_pca/pca_2d_cells_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  png(paste0('../figures/MI_results/compare_pca/pca_2d_cells_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
   pca_test_mi <- cell_line_pca_visualize(embs_test_mi,embs_proc_test_mi,dim=2,show_plot = F)
   print(pca_test_mi)
   dev.off()
   
-  png(paste0('MI_results/compare_pca/pca_2d_cells_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  png(paste0('../figures/MI_results/compare_pca/pca_2d_cells_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
   pca_test <- cell_line_pca_visualize(embs_test,embs_proc_test,dim=2,show_plot = F)
   print(pca_test)
   dev.off()  
   
-  png(paste0('MI_results/compare_latent_distr/latent_distr_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  png(paste0('../figures/MI_results/compare_latent_distr/latent_distr_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
   visualize_embeddings_distribution(embs_test_mi)
   dev.off()
   
-  png(paste0('MI_results/compare_latent_distr/latent_distr_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  png(paste0('../figures/MI_results/compare_latent_distr/latent_distr_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
   visualize_embeddings_distribution(embs_test)
   dev.off()
   
@@ -343,7 +343,7 @@ for (i in 0:9){
 }
 
 library(ggpubr)
-png(file="MI_results/samecell_vs_random_cosine_embs_comparison_valonly.png",width=10,height=16,units = "in",res=600)
+png(file="../figures/MI_results/samecell_vs_random_cosine_embs_comparison_valonly.png",width=10,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',10),seq(1,10)),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),

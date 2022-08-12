@@ -153,7 +153,7 @@ visualize_projection_results <- function(embs_reduced,processed_embbedings,
   
 }
 # Load samples info----
-sigInfo <- read.delim('../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
 sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
 sigInfo <- sigInfo %>% filter(pert_type=='trt_cp')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
@@ -166,12 +166,12 @@ sigInfo <- sigInfo %>% group_by(duplIdentifier) %>% mutate(dupl_counts = n()) %>
 sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
 
 # Load train, validation info
-trainInfo <- data.table::fread('MI_results/trainInfo.csv',header = T) %>% column_to_rownames('V1')
-valInfo <- data.table::fread('MI_results/valInfo.csv',header = T) %>% column_to_rownames('V1')
+trainInfo <- data.table::fread('../results/MI_results/trainInfo.csv',header = T) %>% column_to_rownames('V1')
+valInfo <- data.table::fread('../results/MI_results/valInfo.csv',header = T) %>% column_to_rownames('V1')
 
 # Load embeddings of pre-trained----
-embs_train <- data.table::fread('MI_results/embs_train.csv',header = T) %>% column_to_rownames('V1')
-embs_test <- data.table::fread('MI_results/embs_val.csv',header = T) %>% column_to_rownames('V1')
+embs_train <- data.table::fread('../results/MI_results/embs_train.csv',header = T) %>% column_to_rownames('V1')
+embs_test <- data.table::fread('../results/MI_results/embs_val.csv',header = T) %>% column_to_rownames('V1')
 
 embs_proc_train <- process_embeddings(embs_train,sigInfo,trainInfo)
 embs_proc_test <- process_embeddings(embs_test,sigInfo,valInfo)
@@ -224,7 +224,7 @@ df_pca_test <- as.data.frame(df_pca_test)
 #   scale_size_discrete(range = c(0.5,1))+
 #   ggtitle('PCA plot of duplicate samples') + xlab(paste0(dim_label,'1'))+ ylab(paste0(dim_label,'2'))+
 #   theme(text = element_text(size=15))+guides(alpha = "none",size="none")
-png(file="pca_plot_samecondition_test.png",width=24,height=18,units = "in",res=300)
+png(file="../figures/pca_plot_samecondition_test.png",width=24,height=18,units = "in",res=300)
 pca_plot_test <- visualize_projection_results(df_pca_test,embs_proc_test,
                                               compare_level='equivalent condition',method='PCA')
 annotate_figure(pca_plot_test, 
@@ -236,7 +236,7 @@ pca_train <- prcomp(embs_train,scale=F)
 fviz_eig(pca_train,ncp=30)
 df_pca_train<- pca_train$x[,1:2]
 df_pca_train <- as.data.frame(df_pca_train)
-png(file="pca_plot_samecondition_train.png",width=24,height=18,units = "in",res=300)
+png(file="../figures/pca_plot_samecondition_train.png",width=24,height=18,units = "in",res=300)
 pca_plot_train <- visualize_projection_results(df_pca_train,embs_proc_train,
                                                compare_level='equivalent condition',method='PCA')
 annotate_figure(pca_plot_train, 
@@ -258,7 +258,7 @@ df_tsne_train <- data.frame(V1 = tsne_all$Y[,1], V2 =tsne_all$Y[,2])
 rownames(df_tsne_train) <- rownames(embs_train)
 
 
-png(file="tsne_plot_samecondition_train.png",width=24,height=18,units = "in",res=300)
+png(file="../figures/tsne_plot_samecondition_train.png",width=24,height=18,units = "in",res=300)
 tsne_plot_train <- visualize_projection_results(df_tsne_train,embs_proc_train,
                                                 compare_level='equivalent condition',method='t-SNE')
 annotate_figure(tsne_plot_train, 
@@ -303,7 +303,7 @@ rownames(df_tsne_test) <- rownames(embs_test)
 #   ggtitle('t-SNE plot of duplicate samples') + xlab(paste0('Dim 1'))+ ylab(paste0(dim_label,'Dim 2'))+
 #   theme(text = element_text(size=15))+guides(alpha = "none",size="none")
 
-png(file="tsne_plot_samecondition_test.png",width=24,height=18,units = "in",res=300)
+png(file="../figures/tsne_plot_samecondition_test.png",width=24,height=18,units = "in",res=300)
 tsne_plot_test <- visualize_projection_results(df_tsne_test,embs_proc_test,
                                                 compare_level='equivalent condition',method='t-SNE')
 annotate_figure(tsne_plot_test, 

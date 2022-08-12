@@ -1,7 +1,7 @@
 library(tidyverse)
 
-# df <- read.csv('Importance_results/important_scores_a375_to_ht29_allgenes.csv') %>% column_to_rownames('X')
-df <- read.csv('Importance_results/important_scores_pc3_to_ha1e_per_sample_allgenes.csv')
+# df <- read.csv('../results/Importance_results/important_scores_a375_to_ht29_allgenes.csv') %>% column_to_rownames('X')
+df <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_per_sample_allgenes.csv')
 df <- df %>% unique()
 rownames( df ) <- NULL
 df <- df %>% column_to_rownames('X')
@@ -11,16 +11,16 @@ df_ranked <- df_ranked/nrow(df)
 df_aggragated <- apply(df_ranked,1,median)
 top1000 <- names(df_aggragated[order(df_aggragated)])[1:1000]
 #top1000 <- str_remove_all(top1000,'X')
-df_lands <- read.csv('Importance_results/important_scores_a375_to_ht29_lands.csv')  %>% column_to_rownames('X')
+df_lands <- read.csv('../results/Importance_results/important_scores_a375_to_ht29_lands.csv')  %>% column_to_rownames('X')
 #df_ranked <- apply(-abs(df),2,rank)
 #df_ranked <- df_ranked/nrow(df)
-#png('ranks_of_self_a375_translate_allgenes.png',width=16,height=8,units = "in",res=300)
+#png('../figures/ranks_of_self_a375_translate_allgenes.png',width=16,height=8,units = "in",res=300)
 #hist(diag(df_ranked*100),breaks = 40,main= 'Distribution of self-gene ranks in ~10k genes',xlab='Percentage rank (%)')
 #axis(side=1, at=seq(0,100, 10), labels=seq(0,100, 10))
 #dev.off()
 #plot(ecdf(diag(df_ranked*100)),main='Cumulative probability distribution',xlab='Percentage rank (%)')
 
-geneInfo <- read.delim('../L1000_2021_11_23/geneinfo_beta.txt')
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 lands <- geneInfo %>% filter(feature_space=='landmark')
 lands <- as.character(lands$gene_id)
 
@@ -38,7 +38,7 @@ for (j in 1:ncol(df_ranked)){
 
 print(length(which(lands %in% top1000))/length(lands))
 
-png('percentage_of_lands_in_1000important_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/percentage_of_lands_in_1000important_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
 hist(percentage_of_lands_in_important*100,breaks = 40,
      main= 'Percentages of landmark genes present in top 1000 important genes',xlab='Percentage (%)')
 dev.off()
@@ -51,7 +51,7 @@ library(ggplot2)
 x <- list('Top 1000 important genes' = top1000, 'Landmark genes' = lands)
 
 # 2D Venn diagram
-png('venn_lands_top1000_to_translate_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/venn_lands_top1000_to_translate_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
 ggVennDiagram(x, color = 1, lwd = 0.7) + 
   scale_fill_gradient(low = "#F4FAFE", high = "#4981BF")+
   theme(legend.position = "none")
@@ -64,8 +64,8 @@ FindPercentageIntersection <- function(grdRanks,DeXs,no_top=1000){
   percentage <- length(which(top1000 %in% DeXs))/length(top1000)
   return(percentage)
 }
-cmap <- data.table::fread('cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
-sample_paired <- data.table::fread('10fold_validation_spit/alldata/paired_pc3_ha1e.csv',header=T) %>% column_to_rownames('V1')
+cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
+sample_paired <- data.table::fread('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_pc3_ha1e.csv',header=T) %>% column_to_rownames('V1')
 cmap <- cmap[sample_paired$sig_id.x,]
 cmap <- as.matrix(abs(cmap))
 genes_regulated <- NULL
@@ -74,7 +74,7 @@ sd_perc <- NULL
 
 #### Use per sample analysis
 for (i in 1:nrow(cmap)){
-  #gradients <- data.table::fread(paste0('ImportantGenesResults/gradient_scores_allgenes_a375_to_ht29_pairedsample',
+  #gradients <- data.table::fread(paste0('../results/ImportantGenesResults/gradient_scores_allgenes_a375_to_ht29_pairedsample',
   #                                      i,'.csv'),header=T) %>% column_to_rownames('V1')
   #grad_rank <- apply(-abs(grad_rank),2,rank)
   #grad_rank <- grad_rank/nrow(gradients)
@@ -93,17 +93,17 @@ for (i in 1:nrow(cmap)){
 #   percentage_of_importants_in_top_regulated[j] <- length(which(top1000 %in% genes_regulated))/length(top1000)
 # }
 
-png('mean_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/mean_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
 hist(mean_perc*100,breaks = 40,
      main= 'Average percentages of top 1000 important genes per sample present in top 1000 expressed genes',xlab='Percentage (%)')
 dev.off()
 
-png('std_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/std_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
 hist(sd_perc*100,breaks = 40,
      main= 'Percentages s.d. of top 1000 important genes per sample present in top 1000 expressed genes',xlab='Percentage (%)')
 dev.off()
 
-png('cv_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/cv_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
 hist(100*sd_perc/mean_perc,breaks = 40,
      main= 'Coefficent of variation of number of top 1000 important genes in most expressed genes',xlab='CV (%)')
 dev.off()
@@ -111,7 +111,7 @@ dev.off()
 ## Check correlation between genes and see if genes not in important
 # are correlated with some important
 # Here I use the the genes genes importance summed accross all samples
-gex <- data.table::fread('cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
+gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
 GeneCorr <- cor(gex)
 GeneCorr <- GeneCorr[top1000,lands] #lands[which(!(lands %in% top1000))]
 
@@ -129,20 +129,20 @@ dev.off()
 ## Check correlation of important landamarks to non-important
 GeneCorr <- GeneCorr[lands[which((lands %in% top1000))],lands[which(!(lands %in% top1000))]]
 
-png('corr_of_lands_to_lands_pc3_to_ha1e.png',width=12,height=8,units = "in",res=300)
+png('../figures/corr_of_lands_to_lands_pc3_to_ha1e.png',width=12,height=8,units = "in",res=300)
 hist(GeneCorr,breaks = 50, freq = T,
      main = 'Pearson correlation between model-important and non-important landmark genes',xlab='Pearson`s r')
 dev.off()
 
 col <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
-png('corrHeat_of_lands_to_lands_pc3_to_ha1e.png',width=12,height=8,units = "in",res=300)
+png('../figures/corrHeat_of_lands_to_lands_pc3_to_ha1e.png',width=12,height=8,units = "in",res=300)
 heatmap(GeneCorr,scale = "none",col=col)
 dev.off()
 
 ### Perform pathway analysis in important----
 
 # Per sample analysis
-df_per_sample <- read.csv('Importance_results/important_scores_ha1e_to_pc3_per_sample_allgenes.csv')
+df_per_sample <- read.csv('../results/Importance_results/important_scores_ha1e_to_pc3_per_sample_allgenes.csv')
 df_per_sample <- df_per_sample %>% unique()
 rownames( df_per_sample ) <- NULL
 df_per_sample <- df_per_sample %>% column_to_rownames('X')
@@ -216,12 +216,12 @@ kegg_paths <- paths[[2]]
 library(tidyverse)
 library(ggVennDiagram)
 library(ggplot2)
-gex <- data.table::fread('cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
-scores_1 <- data.table::fread('Importance_results/important_scores_pc3_encode_per_sample_allgenes.csv',header = T) 
+gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
+scores_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_encode_per_sample_allgenes.csv',header = T) 
 scores_1 <- distinct(scores_1)
 rownames( scores_1 ) <- NULL
 scores_1 <- scores_1 %>% column_to_rownames('V1')
-scores_2 <- data.table::fread('Importance_results/important_scores_ha1e_encode_per_sample_allgenes.csv',header = T) 
+scores_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_encode_per_sample_allgenes.csv',header = T) 
 scores_2 <- distinct(scores_2)
 rownames( scores_2 ) <- NULL
 scores_2 <- scores_2 %>% column_to_rownames('V1')
@@ -259,7 +259,7 @@ important1 <- important1[which(!(names(important1) %in% common))]
 important2 <- important2[which(!(names(important2) %in% common))]
 
 ### t-SNE with all features and only the good ones
-gex <- data.table::fread('cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
+gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
 library(Rtsne)
 perpl = DescTools::RoundTo(sqrt(nrow(gex)), multiple = 5, FUN = round)
 #Use the above formula to calculate perplexity (perpl). But if perplexity is too large for the number of data you have define manually
@@ -286,7 +286,7 @@ tsne_plot_allgenes <- ggplot(df_tsne_allgenes,aes(Dim1,Dim2)) +geom_point(aes(co
   ggtitle('t-SNE plot of transcriptomic data for 2 cell-lines') + xlab('Dim 1')+ ylab('Dim 2')+
   theme(text = element_text(size=13))
 print(tsne_plot_allgenes)
-png(paste0('tsne_pc3_ha1e_gex.png'),width=10,height = 10,units = "in",res=300)
+png(paste0('../figures/tsne_pc3_ha1e_gex.png'),width=10,height = 10,units = "in",res=300)
 print(tsne_plot_allgenes)
 dev.off()
 
@@ -301,7 +301,7 @@ pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=cell))+
   ggtitle('PCA plot of transcriptomic data for 2 cell-lines') + xlab('PC1')+ ylab('PC2')+
   theme(text = element_text(size=13))
 print(pca_plot)
-png(paste0('pca_pc3_ha1e_gex.png'),width=10,height = 10,units = "in",res=300)
+png(paste0('../figures/pca_pc3_ha1e_gex.png'),width=10,height = 10,units = "in",res=300)
 print(pca_plot)
 dev.off()
 
@@ -334,7 +334,7 @@ print(tsne_plot)
 
 
 ## Build classifier only using those genes
-gex <- data.table::fread('cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
+gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
 gex <- gex[,c(names(important1),names(important2))]
 ind1 <- grep('PC3',rownames(gex))
 ind2 <- grep('HA1E',rownames(gex))
@@ -365,9 +365,9 @@ print(p)
 
 
 ## Build classifier only using latent space embeddings
-emb1 <- distinct(data.table::fread('AllEmbs_MI_pc3.csv',header = T)) %>% column_to_rownames('V1')
+emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_pc3.csv',header = T)) %>% column_to_rownames('V1')
 emb1 <- emb1 %>% mutate(cell='PC3')
-emb2 <- distinct(data.table::fread('AllEmbs_MI_ha1e.csv',header = T)) %>% column_to_rownames('V1')
+emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_ha1e.csv',header = T)) %>% column_to_rownames('V1')
 emb2 <- emb2 %>% mutate(cell='HA1E')
 
 all_embs <- rbind(emb1,emb2)
@@ -396,8 +396,8 @@ p <- ggplot(all_embs,aes(x=`z307`,y=`z992`,col=label)) + geom_point()+
 print(p)
 
 ### Find important genes to encode into each latent variable important for classification
-importance_class_1 <- data.table::fread('important_scores_to_classify_as_pc3.csv',header=T) %>% column_to_rownames('V1')
-importance_class_2 <- data.table::fread('important_scores_to_classify_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
+importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_pc3.csv',header=T) %>% column_to_rownames('V1')
+importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
 
 importance_class_1 <- apply(importance_class_1,2,mean)
 importance_class_2 <- apply(importance_class_2,2,mean)
@@ -416,9 +416,9 @@ ggplot(df2,aes(x=Genes2,y=scores_2)) + geom_bar(stat='identity')
 var_1 <- names(importance_class_1)[top10_1[1:10]]
 var_2 <- names(importance_class_2)[top10_2[1:10]]
 
-emb1 <- distinct(data.table::fread('AllEmbs_MI_pc3_withclass.csv',header = T)) %>% column_to_rownames('V1')
+emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_pc3_withclass.csv',header = T)) %>% column_to_rownames('V1')
 emb1 <- emb1 %>% mutate(cell='PC3')
-emb2 <- distinct(data.table::fread('AllEmbs_MI_ha1e_withclass.csv',header = T)) %>% column_to_rownames('V1')
+emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_ha1e_withclass.csv',header = T)) %>% column_to_rownames('V1')
 emb2 <- emb2 %>% mutate(cell='HA1E')
 all_embs <- rbind(emb1,emb2)
 
@@ -426,15 +426,15 @@ ggplot(all_embs,aes(x=`z1009`,y=`z263`)) + geom_point(aes(color=cell)) +
   ggtitle('Scatter plot using only 2 latent variable') +theme(text = element_text(family = "serif",size = 14))
 
 # Load importance to encode
-imp_enc_1 <- data.table::fread('important_scores_pc3_encode_allgenes_withclass_noabs.csv') %>%
+imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_encode_allgenes_withclass_noabs.csv') %>%
   select(c('Gene_1'='V1'),all_of(var_1[1:2])) %>% column_to_rownames('Gene_1')
 imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
-imp_enc_2 <- data.table::fread('important_scores_ha1e_encode_allgenes_withclass_noabs.csv')%>%
+imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_encode_allgenes_withclass_noabs.csv')%>%
   select(c('Gene_2'='V1'),all_of(var_2[1:2])) %>% column_to_rownames('Gene_2')
 imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
 
 
-gex <- data.table::fread('cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
+gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
 ind1 <- grep('PC3',rownames(gex))
 ind2 <- grep('HA1E',rownames(gex))
 gex <- gex %>% mutate(cell='None')
@@ -445,7 +445,7 @@ p <- ggplot(gex,aes(x=`23636`,y=`1465`)) + geom_point(aes(color=cell))+
   ggtitle('Scatter plot of transcriptomic data for 2 cell-lines') +
   theme(text = element_text(size=13))
 print(p)
-png('2dscatterplot_pc3_ha1e_gex_withclass.png',width=10,height = 10,units = "in",res=300)
+png('../figures/2dscatterplot_pc3_ha1e_gex_withclass.png',width=10,height = 10,units = "in",res=300)
 print(p)
 dev.off()
 
@@ -473,7 +473,7 @@ pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=cell))+
 print(pca_plot)
 
 
-#png(paste0('pca_pc3_ha1e_gex_filtered.png'),width=10,height = 10,units = "in",res=300)
+#png(paste0('../figures/pca_pc3_ha1e_gex_filtered.png'),width=10,height = 10,units = "in",res=300)
 #print(tsne_plot_allgenes)
 #dev.off()
 
@@ -504,7 +504,7 @@ ctrl <- trainControl(method = "cv", number = 10)
 train_gex <- sample_n(gex_filtered,1742)
 test_gex <- gex_filtered[which(!(rownames(gex_filtered) %in% rownames(train_gex))),]
 mdl <- train(cell ~ ., data = train_gex, method = "rf", trControl = ctrl,trace=T)
-#saveRDS(mdl,'rf_model_with_importants.rds')
+#saveRDS(mdl,'../../rf_model_with_importants.rds')
 #mdl$results$Accuracy
 mean(mdl[["resample"]][["Accuracy"]])
 #summary(mdl)
@@ -524,8 +524,8 @@ fig <- fig %>% add_markers(size=1)
 fig
 
 ## Important genes from direct ANN classifier
-importance_class_1 <- data.table::fread('important_scores_to_classify_gex_as_pc3.csv',header=T) %>% column_to_rownames('V1')
-importance_class_2 <- data.table::fread('important_scores_to_classify_gex_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
+importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_gex_as_pc3.csv',header=T) %>% column_to_rownames('V1')
+importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_gex_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
 
 importance_class_1 <- apply(importance_class_1,2,mean)
 importance_class_2 <- apply(importance_class_2,2,mean)
@@ -560,9 +560,9 @@ library(ggplot2)
 library(ggpubr)
 plotList <- NULL
 for (i in 0:9){
-  importance_class_1 <- data.table::fread(paste0('MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/scores_class_validation/important_scores_to_classify_as_pc3_val_',
+  importance_class_1 <- data.table::fread(paste0('../results/MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/scores_class_validation/important_scores_to_classify_as_pc3_val_',
                                           i,'.csv'),header=T) %>% column_to_rownames('V1')
-  importance_class_2 <- data.table::fread(paste0('MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/scores_class_validation/important_scores_to_classify_as_ha1e_val_',
+  importance_class_2 <- data.table::fread(paste0('../results/MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/scores_class_validation/important_scores_to_classify_as_ha1e_val_',
                                           i,'.csv'),header=T) %>% column_to_rownames('V1')
   
   importance_class_1 <- apply(importance_class_1,2,mean)
@@ -582,11 +582,11 @@ for (i in 0:9){
   var_1 <- names(importance_class_1)[top10_1[1]]
   var_2 <- names(importance_class_2)[top10_1[2]]
   
-  emb1 <- distinct(data.table::fread(paste0('MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/validation/valEmbs_',i,'_pc3.csv'),
+  emb1 <- distinct(data.table::fread(paste0('../results/MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/validation/valEmbs_',i,'_pc3.csv'),
                                      header = T)) %>% column_to_rownames('V1')
   colnames(emb1) <- paste0('z',seq(0,ncol(emb1)-1))
   emb1 <- emb1 %>% mutate(cell='PC3')
-  emb2 <- distinct(data.table::fread(paste0('MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/validation/valEmbs_',i,'_ha1e.csv'),
+  emb2 <- distinct(data.table::fread(paste0('../results/MI_results/embs/TwoEncoders_TwoDecoders_PC3_HA1E_withclass/validation/valEmbs_',i,'_ha1e.csv'),
                                      header = T)) %>% column_to_rownames('V1')
   colnames(emb2) <- paste0('z',seq(0,ncol(emb2)-1))
   emb2 <- emb2 %>% mutate(cell='HA1E')
@@ -600,7 +600,7 @@ for (i in 0:9){
           legend.text = element_text(size=25,face='plain',family='serif'))
   plotList[[i+1]] <- p
 }
-png(file="MI_results/validation_latent_separation.png",width=11,height=16,units = "in",res=600)
+png(file="../figures/MI_results/validation_latent_separation.png",width=11,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',10),seq(1,10)),
                font.label = list(size = 8, color = "black", face = "bold", family = NULL),

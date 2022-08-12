@@ -50,10 +50,10 @@ def seed_everything(seed=42):
     torch.backends.cudnn.benchmark = False
     
 # Read data
-#cmap = pd.read_csv('cmap_landmarks_HT29_A375.csv',index_col = 0)
-# cmap = pd.read_csv('cmap_landmarks_HA1E_PC3.csv',index_col = 0)
-cmap = pd.read_csv('cmap_HT29_A375.csv',index_col = 0)
-#cmap_tf = pd.read_csv('../L1000_2021_11_23/cmap_compounds_tfs_repq1_tas03.tsv',
+#cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_landmarks_HT29_A375.csv',index_col = 0)
+# cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_landmarks_HA1E_PC3.csv',index_col = 0)
+cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_HT29_A375.csv',index_col = 0)
+#cmap_tf = pd.read_csv('../../../L1000_2021_11_23/cmap_compounds_tfs_repq1_tas03.tsv',
 #                       sep='\t', low_memory=False, index_col=0)
 
 gene_size = len(cmap.columns)
@@ -61,7 +61,7 @@ samples = cmap.index.values
 # gene_size = len(cmap_tf.columns)
 # samples = cmap_tf.index.values
 
-# sampleInfo = pd.read_csv('conditions_HT29_A375.csv',index_col = 0)
+# sampleInfo = pd.read_csv('../preprocessing/preprocessed_data/conditions_HT29_A375.csv',index_col = 0)
 
 
 # In[4]:
@@ -156,13 +156,13 @@ for i in range(10):
                                     drop_in=0.5,
                                     drop=0.3).to(device)
     
-    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
-    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
-    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
     
-    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
-    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
-    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+    valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
     
     N_paired = len(trainInfo_paired)
     N_1 = len(trainInfo_1)
@@ -322,8 +322,8 @@ for i in range(10):
     print('Classification accuracy: %s'%class_acc)
     print('Classification F1 score: %s'%f1)
     
-    torch.save(encoder,'MI_results/models/CPA_approach/pre_trained_master_encoder_%s.pt'%i)
-    torch.save(adverse_classifier,'MI_results/models/CPA_approach/pre_trained_classifier_adverse_%s.pt'%i)
+    torch.save(encoder,'../results/MI_results/models/CPA_approach/pre_trained_master_encoder_%s.pt'%i)
+    torch.save(adverse_classifier,'../results/MI_results/models/CPA_approach/pre_trained_classifier_adverse_%s.pt'%i)
 
 
 # ### Train the whole model
@@ -392,7 +392,7 @@ valClassAcc = []
 
 for i in range(10):
     # Network
-    #encoder = torch.load('MI_results/models/CPA_approach/pre_trained_master_encoder_2.pt')
+    #encoder = torch.load('../results/MI_results/models/CPA_approach/pre_trained_master_encoder_2.pt')
     #master_encoder = SimpleEncoder(gene_size,[640,384],292,dropRate=0.1, activation=torch.nn.ELU())#.to(device)
     decoder_1 = Decoder(model_params['latent_dim'],model_params['decoder_1_hiddens'],gene_size,
                         dropRate=model_params['dropout_decoder'], 
@@ -421,18 +421,18 @@ for i in range(10):
                                     num_classes=model_params['no_adv_class'],
                                     drop_in=model_params['adv_class_drop_in'],
                                     drop=model_params['adv_class_drop']).to(device)
-    pretrained_adv_class = torch.load('MI_results/models/CPA_approach/pre_trained_classifier_adverse_0.pt')
+    pretrained_adv_class = torch.load('../results/MI_results/models/CPA_approach/pre_trained_classifier_adverse_0.pt')
     adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
     
     Vsp = SpeciesCovariate(2,model_params['latent_dim'],dropRate=model_params['V_dropout']).to(device)
     
-    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
-    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
-    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
     
-    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
-    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
-    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+    valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
 
     #trainInfo_2 = pd.concat((trainInfo_2,
     #                         valInfo_2,
@@ -816,15 +816,15 @@ for i in range(10):
     valSpearDirect.append(spearDirect)
     valAccDirect.append([accDirect_2,accDirect_1])
     
-    torch.save(decoder_1,'MI_results/models/CPA_approach/decoder_a375_%s.pt'%i)
-    torch.save(decoder_2,'MI_results/models/CPA_approach/decoder_ht29_%s.pt'%i)
-    torch.save(prior_d,'MI_results/models/CPA_approach/priorDiscr_%s.pt'%i)
-    torch.save(local_d,'MI_results/models/CPA_approach/localDiscr_%s.pt'%i)
-    torch.save(encoder_1,'MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
-    torch.save(encoder_2,'MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
-    torch.save(classifier,'MI_results/models/CPA_approach/classifier_%s.pt'%i)
-    torch.save(Vsp,'MI_results/models/CPA_approach/Vspecies2_%s.pt'%i)
-    torch.save(adverse_classifier,'MI_results/models/CPA_approach/classifier_adverse_%s.pt'%i)
+    torch.save(decoder_1,'../results/MI_results/models/CPA_approach/decoder_a375_%s.pt'%i)
+    torch.save(decoder_2,'../results/MI_results/models/CPA_approach/decoder_ht29_%s.pt'%i)
+    torch.save(prior_d,'../results/MI_results/models/CPA_approach/priorDiscr_%s.pt'%i)
+    torch.save(local_d,'../results/MI_results/models/CPA_approach/localDiscr_%s.pt'%i)
+    torch.save(encoder_1,'../results/MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
+    torch.save(encoder_2,'../results/MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
+    torch.save(classifier,'../results/MI_results/models/CPA_approach/classifier_%s.pt'%i)
+    torch.save(Vsp,'../results/MI_results/models/CPA_approach/Vspecies2_%s.pt'%i)
+    torch.save(adverse_classifier,'../results/MI_results/models/CPA_approach/classifier_adverse_%s.pt'%i)
 
 
 # In[12]:
@@ -849,10 +849,10 @@ for i in range(10):
 # In[16]:
 
 
-# torch.save(autoencoder_a375,'my_results/vae_a375.pt')
-# torch.save(autoencoder_ht29,'my_results/vae_ht29.pt')
-# #torch.save(decoder_a375,'my_results/decoder_a375.pt')
-# #torch.save(decoder_ht29,'my_results/decoder_ht29.pt')
+# torch.save(autoencoder_a375,'../results/my_results/vae_a375.pt')
+# torch.save(autoencoder_ht29,'../results/my_results/vae_ht29.pt')
+# #torch.save(decoder_a375,'../results/my_results/decoder_a375.pt')
+# #torch.save(decoder_ht29,'../results/my_results/decoder_ht29.pt')
 
 
 # In[17]:
@@ -924,7 +924,7 @@ df_result = pd.DataFrame({'F1_score':valF1,'ClassAccuracy':valClassAcc,
 # In[24]:
 
 
-df_result.to_csv('MI_results/allgenes_10foldvalidation_withCPA_1000ep512bs_a375_ht29.csv')
+df_result.to_csv('../results/MI_results/allgenes_10foldvalidation_withCPA_1000ep512bs_a375_ht29.csv')
 
 
 # ## Evaluate embeddings
@@ -934,20 +934,20 @@ df_result.to_csv('MI_results/allgenes_10foldvalidation_withCPA_1000ep512bs_a375_
 
 for i in range(10):
     # Network
-    encoder_1 = torch.load('MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
-    encoder_2 = torch.load('MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
-    Vsp = torch.load('MI_results/models/CPA_approach/Vspecies_%s.pt'%i)
+    encoder_1 = torch.load('../results/MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
+    encoder_2 = torch.load('../results/MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
+    Vsp = torch.load('../results/MI_results/models/CPA_approach/Vspecies_%s.pt'%i)
     
     #autoencoder_a375 = torch.load('my_results/models/notvae/autoencoder_mmd_a375_%s.pt'%i)
     #autoencoder_ht29 = torch.load('my_results/models/notvae/autoencoder_mmd_ht29_%s.pt'%i)
     
-    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
-    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
-    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
     
-    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
-    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
-    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+    valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
     
     encoder_1.eval()
     encoder_2.eval()
@@ -1009,15 +1009,15 @@ for i in range(10):
     trainEmbs_base_2 = pd.DataFrame(z_base_2.detach().cpu().numpy())
     trainEmbs_base_2.index = np.concatenate((trainInfo_paired['sig_id.y'].values,trainInfo_2.sig_id.values))
     
-    valEmbs_1.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_%s_a375.csv'%i)
-    valEmbs_2.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_%s_ht29.csv'%i)
-    trainEmbs_1.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_%s_a375.csv'%i)
-    trainEmbs_2.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_%s_ht29.csv'%i)
+    valEmbs_1.to_csv('../results/MI_results/embs/CPA_approach/validation/valEmbs_%s_a375.csv'%i)
+    valEmbs_2.to_csv('../results/MI_results/embs/CPA_approach/validation/valEmbs_%s_ht29.csv'%i)
+    trainEmbs_1.to_csv('../results/MI_results/embs/CPA_approach/train/trainEmbs_%s_a375.csv'%i)
+    trainEmbs_2.to_csv('../results/MI_results/embs/CPA_approach/train/trainEmbs_%s_ht29.csv'%i)
     
-    valEmbs_base_1.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_base_%s_a375.csv'%i)
-    valEmbs_base_2.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_base_%s_ht29.csv'%i)
-    trainEmbs_base_1.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_base_%s_a375.csv'%i)
-    trainEmbs_base_2.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_base_%s_ht29.csv'%i)
+    valEmbs_base_1.to_csv('../results/MI_results/embs/CPA_approach/validation/valEmbs_base_%s_a375.csv'%i)
+    valEmbs_base_2.to_csv('../results/MI_results/embs/CPA_approach/validation/valEmbs_base_%s_ht29.csv'%i)
+    trainEmbs_base_1.to_csv('../results/MI_results/embs/CPA_approach/train/trainEmbs_base_%s_a375.csv'%i)
+    trainEmbs_base_2.to_csv('../results/MI_results/embs/CPA_approach/train/trainEmbs_base_%s_ht29.csv'%i)
 
 
 # ## Train on all data
@@ -1283,12 +1283,12 @@ for i in range(10):
 #     prior_d.eval()
 #     local_d.eval()
     
-#     torch.save(decoder_a375,'MI_results/models/AllData_Model/decoder_pc3.pt')
-#     torch.save(decoder_ht29,'MI_results/models/AllData_Model/decoder_ha1e.pt')
-#     torch.save(prior_d,'MI_results/models/AllData_Model/priorDiscr.pt')
-#     torch.save(local_d,'MI_results/models/AllData_Model/localDiscr.pt')
-#     torch.save(encoder_a375,'MI_results/models/AllData_Model/encoder_pc3.pt')
-#     torch.save(encoder_ht29,'MI_results/models/AllData_Model/encoder_ha1e.pt')
+#     torch.save(decoder_a375,'../results/MI_results/models/AllData_Model/decoder_pc3.pt')
+#     torch.save(decoder_ht29,'../results/MI_results/models/AllData_Model/decoder_ha1e.pt')
+#     torch.save(prior_d,'../results/MI_results/models/AllData_Model/priorDiscr.pt')
+#     torch.save(local_d,'../results/MI_results/models/AllData_Model/localDiscr.pt')
+#     torch.save(encoder_a375,'../results/MI_results/models/AllData_Model/encoder_pc3.pt')
+#     torch.save(encoder_ht29,'../results/MI_results/models/AllData_Model/encoder_ha1e.pt')
 
 
 # In[ ]:

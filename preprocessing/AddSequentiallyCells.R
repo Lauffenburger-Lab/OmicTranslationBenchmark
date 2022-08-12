@@ -11,13 +11,13 @@ plan(multiprocess,workers = cores)
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
 ### Load data and keep only well-inferred and landmark genes----------------------------------------------------
-geneInfo <- read.delim('../L1000_2021_11_23/geneinfo_beta.txt')
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
 # Keep only protein-coding genes
 geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
 
 # Load signature info and split data to high quality replicates and low quality replicates
-sigInfo <- read.delim('../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
 sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
 sigInfo <- sigInfo %>% filter(pert_type=='trt_cp')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
@@ -66,29 +66,29 @@ a375 <- sigInfo %>% filter(cell_iname=='A375') %>% select(conditionId,sig_id,cel
 ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 pc3 <- sigInfo %>% filter(cell_iname==cell3) %>% select(conditionId,sig_id,cell_iname) %>% unique()
 mcf7 <- sigInfo %>% filter(cell_iname==cell4) %>% select(conditionId,sig_id,cell_iname) %>% unique()
-paired <- read.csv('10fold_validation_spit/alldata/paired_a375_ht29.csv',row.names = 'X') 
+paired <- read.csv('preprocessed_data/10fold_validation_spit/alldata/paired_a375_ht29.csv',row.names = 'X') 
 paired_with_pc3 <- merge(paired,pc3,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y) & !is.na(sig_id))) %>% unique()
 
 ## Load all validation sets and add to them pc3 data
 for (i in 1:10){
-  valPaired <- read.csv(paste0('10fold_validation_spit/val_paired_',i-1,'.csv'),row.names = 'X')
+  valPaired <- read.csv(paste0('preprocessed_data/10fold_validation_spit/val_paired_',i-1,'.csv'),row.names = 'X')
   val_paired_with_pc3 <- left_join(valPaired,paired_with_pc3,
                                    by=c("conditionId","sig_id.x","sig_id.y","cell_iname.x","cell_iname.y")) %>% 
     filter(!is.na(sig_id))
   print(nrow(val_paired_with_pc3))
-  write.csv(val_paired_with_pc3,paste0('10fold_validation_spit/add_pc3/val_paired_',i-1,'.csv'))
+  write.csv(val_paired_with_pc3,paste0('preprocessed_data/10fold_validation_spit/add_pc3/val_paired_',i-1,'.csv'))
   paired_with_pc3 <- anti_join(paired_with_pc3,valPaired,
                                by=c("conditionId","sig_id.x","sig_id.y","cell_iname.x","cell_iname.y"))
 }
-paired <- read.csv('10fold_validation_spit/alldata/paired_a375_ht29.csv',row.names = 'X') 
+paired <- read.csv('preprocessed_data/10fold_validation_spit/alldata/paired_a375_ht29.csv',row.names = 'X') 
 paired <- merge(paired,pc3,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y) & !is.na(sig_id))) %>% unique()
 
 
 #MAKE PAIRED TRAIN SETS SEPERATELY FOR HT29-PC3 AND A375-PC3
 potential_sig_ids <- unique(pc3$sig_id)
 for (i in 1:10){
-  val_paired_with_pc3 <- read.csv(paste0('10fold_validation_spit/add_pc3/val_paired_',i-1,'.csv'),row.names='X')
-  valPaired <- read.csv(paste0('10fold_validation_spit/val_paired_',i-1,'.csv'),row.names = 'X')
+  val_paired_with_pc3 <- read.csv(paste0('preprocessed_data/10fold_validation_spit/add_pc3/val_paired_',i-1,'.csv'),row.names='X')
+  valPaired <- read.csv(paste0('preprocessed_data/10fold_validation_spit/val_paired_',i-1,'.csv'),row.names = 'X')
   pc3_train <- pc3 %>% filter(!(sig_id %in% val_paired_with_pc3$sig_id))
   
   paired_a375 <- merge(a375,pc3_train,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y))) %>% unique()
@@ -111,11 +111,11 @@ for (i in 1:10){
   
   print(c(nrow(pc3_upaired_train),nrow(pc3_upaired_val)))
   
-  write.csv(paired_a375,paste0('10fold_validation_spit/add_pc3/train_paired_a375_',i-1,'.csv'))
-  write.csv(paired_ht29,paste0('10fold_validation_spit/add_pc3/train_paired_ht29_',i-1,'.csv'))
+  write.csv(paired_a375,paste0('preprocessed_data/10fold_validation_spit/add_pc3/train_paired_a375_',i-1,'.csv'))
+  write.csv(paired_ht29,paste0('preprocessed_data/10fold_validation_spit/add_pc3/train_paired_ht29_',i-1,'.csv'))
   
-  write.csv(pc3_upaired_train,paste0('10fold_validation_spit/add_pc3/train_pc3_',i-1,'.csv'))
-  write.csv(pc3_upaired_val,paste0('10fold_validation_spit/add_pc3/val_pc3_',i-1,'.csv'))
+  write.csv(pc3_upaired_train,paste0('preprocessed_data/10fold_validation_spit/add_pc3/train_pc3_',i-1,'.csv'))
+  write.csv(pc3_upaired_val,paste0('preprocessed_data/10fold_validation_spit/add_pc3/val_pc3_',i-1,'.csv'))
 }
 
 ### Load gene expression data -----------------------------------------------------------------------------------
@@ -135,5 +135,5 @@ cmap_gctx <- foreach(sigs = sigList) %dopar% {
   parse_gctx_parallel(ds_path ,rid = unique(as.character(geneInfo$gene_id)),cid = sigs)
 }
 cmap <-do.call(cbind,cmap_gctx)
-#write.table(t(cmap), file = 'cmap_HT29_A375.tsv', quote=FALSE, sep = "\t", row.names = TRUE, col.names = NA)
-write.csv(t(cmap), 'cmap_PC3_MCF7_landmarks.csv')
+#write.table(t(cmap), file = 'preprocessed_data/cmap_HT29_A375.tsv', quote=FALSE, sep = "\t", row.names = TRUE, col.names = NA)
+write.csv(t(cmap), 'preprocessed_data/cmap_PC3_MCF7_landmarks.csv')

@@ -11,13 +11,13 @@ plan(multiprocess,workers = cores)
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
 ### Load data and keep only well-inferred and landmark genes----------------------------------------------------
-geneInfo <- read.delim('../L1000_2021_11_23/geneinfo_beta.txt')
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
 # Keep only protein-coding genes
 geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
 
 # Load signature info and split data to high quality replicates and low quality replicates
-sigInfo <- read.delim('../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
 sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
 sigInfo <- sigInfo %>% filter(pert_type=='trt_cp')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
@@ -32,7 +32,7 @@ sigInfo <- sigInfo %>% group_by(duplIdentifier) %>% mutate(dupl_counts = n()) %>
 # Drug condition information
 sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
 conditions <- sigInfo %>%  group_by(cell_iname) %>% summarise(conditions_per_cell = n_distinct(conditionId)) %>% ungroup()
-write.csv(sigInfo %>% select(sig_id,conditionId,cell_iname) %>% unique(),'all_conditions_tas03.csv')
+write.csv(sigInfo %>% select(sig_id,conditionId,cell_iname) %>% unique(),'preprocessed_data/all_conditions_tas03.csv')
 # Take top 5 cell-lines and keep the two with the most common data
 #cells <-conditions$cell_iname[order(conditions$conditions_per_cell,decreasing = T)][1:100] 
 #print(cells)
@@ -70,16 +70,16 @@ sigInfo <- sigInfo %>% filter(cell_iname==cell1 | cell_iname==cell2 | cell_iname
 a375 <- sigInfo %>% filter(cell_iname=='A375') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 paired <- merge(a375,ht29,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y))) %>% unique()
-#write.csv(paired,'10fold_validation_spit/alldata/paired_pc3_ha1e.csv')
+#write.csv(paired,'preprocessed_data/10fold_validation_spit/alldata/paired_pc3_ha1e.csv')
 
 sigInfo <- sigInfo %>% select(sig_id,cell_iname,conditionId) %>% unique() %>%
   filter(!(sig_id %in% unique(c(paired$sig_id.x,paired$sig_id.y)))) %>% unique()
 a375 <- sigInfo %>% filter(cell_iname=='A375') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
 ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
-#write.csv(a375,'10fold_validation_spit/alldata/a375_unpaired.csv')
-#write.csv(ht29,'10fold_validation_spit/alldata/ht29_unpaired.csv')
+#write.csv(a375,'preprocessed_data/10fold_validation_spit/alldata/a375_unpaired.csv')
+#write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired.csv')
 
-#write.csv(sigInfo,'conditions_HT29_A375.csv')
+#write.csv(sigInfo,'preprocessed_data/conditions_HT29_A375.csv')
 
 ### Load gene expression data -----------------------------------------------------------------------------------
 
@@ -98,5 +98,5 @@ cmap_gctx <- foreach(sigs = sigList) %dopar% {
   parse_gctx_parallel(ds_path ,rid = unique(as.character(geneInfo$gene_id)),cid = sigs)
 }
 cmap <-do.call(cbind,cmap_gctx)
-#write.table(t(cmap), file = 'cmap_HT29_A375.tsv', quote=FALSE, sep = "\t", row.names = TRUE, col.names = NA)
-write.csv(t(cmap), 'cmap_landmarks_HT29_A375.csv')
+#write.table(t(cmap), file = 'preprocessed_data/cmap_HT29_A375.tsv', quote=FALSE, sep = "\t", row.names = TRUE, col.names = NA)
+write.csv(t(cmap), 'preprocessed_data/cmap_landmarks_HT29_A375.csv')

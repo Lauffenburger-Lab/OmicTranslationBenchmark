@@ -13,13 +13,13 @@ plan(multiprocess,workers = cores)
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
 ### Load data and keep only well-inferred and landmark genes----------------------------------------------------
-geneInfo <- read.delim('../L1000_2021_11_23/geneinfo_beta.txt')
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
 # Keep only protein-coding genes
 geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
 
 # Load signature info and split data to high quality replicates and low quality replicates
-sigInfo <- read.delim('../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
 sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(qc_pass==1 & nsample>=3,1,0)) # no exempler controls so I just remove that constraint
 sigInfo <- sigInfo %>% filter(pert_type=='ctl_untrt')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
@@ -52,7 +52,7 @@ cmap_gctx <- foreach(sigs = sigList) %dopar% {
   parse_gctx_parallel(ds_path ,rid = unique(as.character(geneInfo$gene_id)),cid = sigs)
 }
 cmap <-do.call(cbind,cmap_gctx)
-#saveRDS(cmap,'cmap_all_controls_untreated_q1.rds')
+#saveRDS(cmap,'preprocessed_data/cmap_all_controls_untreated_q1.rds')
 
 ### Check correlation of TAS with duplicates correlation and noise-------------------------------------------------
 # Calculate gsea distances 
@@ -71,7 +71,7 @@ mean_dist <- apply(distance, c(1,2), mean, na.rm = TRUE)
 colnames(mean_dist) <- colnames(cmap)
 rownames(mean_dist) <- colnames(cmap)
 print('Begin saving GSEA distance...')
-#saveRDS(mean_dist,'cmap_mean_dist_controls_untreated.rds')
+#saveRDS(mean_dist,'preprocessed_data/cmap_mean_dist_controls_untreated.rds')
 
 ### Convert matrix into data frame
 # Keep only unique (non-self) pairs
@@ -163,8 +163,8 @@ p.adj <- p.adjust(p_vals,"bonferroni")
 hist(p.adj)
 
 ## Clean save conditions ------
-cmap <- readRDS('cmap_all_controls_untreated_q1.rds')
-write.csv(t(cmap), 'cmap_untreated_tas03.csv')
+cmap <- readRDS('preprocessed_data/cmap_all_controls_untreated_q1.rds')
+write.csv(t(cmap), 'preprocessed_data/cmap_untreated_tas03.csv')
 
 # Drug condition information
 sigInfo <- sigInfo  %>% filter(tas>=0.3)
@@ -206,20 +206,20 @@ sigInfo <- sigInfo %>% filter(cell_iname=='A375' | cell_iname=='HT29')
 a375 <- sigInfo %>% filter(cell_iname=='A375') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 paired <- merge(a375,ht29,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y))) %>% unique()
-write.csv(paired,'10fold_validation_spit/alldata/paired_untreated_a375_ht29.csv')
+write.csv(paired,'preprocessed_data/10fold_validation_spit/alldata/paired_untreated_a375_ht29.csv')
 
 sigInfo <- sigInfo %>% select(sig_id,cell_iname,conditionId) %>% unique() %>%
   filter(!(sig_id %in% unique(c(paired$sig_id.x,paired$sig_id.y)))) %>% unique()
 a375 <- sigInfo %>% filter(cell_iname=='A375') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
 ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
-write.csv(a375,'10fold_validation_spit/alldata/a375_unpaired_untreated.csv')
-#write.csv(ht29,'10fold_validation_spit/alldata/ht29_unpaired_untreated.csv') #zero
+write.csv(a375,'preprocessed_data/10fold_validation_spit/alldata/a375_unpaired_untreated.csv')
+#write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired_untreated.csv') #zero
 
-#write.csv(sigInfo,'conditions_HT29_A375.csv')
+#write.csv(sigInfo,'preprocessed_data/conditions_HT29_A375.csv')
 
 # Check correlations in baseline-----
-cmap <- readRDS('cmap_all_controls_untreated_q1.rds')
-paired <- read.csv('10fold_validation_spit/alldata/paired_untreated_a375_ht29.csv') %>% column_to_rownames('X')
+cmap <- readRDS('preprocessed_data/cmap_all_controls_untreated_q1.rds')
+paired <- read.csv('preprocessed_data/10fold_validation_spit/alldata/paired_untreated_a375_ht29.csv') %>% column_to_rownames('X')
 
 a375_untreated <- cmap[,paired$sig_id.x]
 ht29_untreated <- cmap[,paired$sig_id.y]
