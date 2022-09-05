@@ -10,24 +10,36 @@ plan(multiprocess,workers = cores)
 
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
-### Load data and keep only well-inferred and landmark genes----------------------------------------------------
+# Check L1000 documentation for information.
 geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
 # Keep only protein-coding genes
 geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
 
-# Load signature info and split data to high quality replicates and low quality replicates
+#Load signature info and split data to high quality replicates and low quality replicates
 sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
-sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
+
+# Create a proxy for quality of replicates
+# Keep only samples with at least 3 replicates and that satisfy specific conditions.
+# Check the LINCS2020 Release Metadata Field Definitions.xlsx file for 
+# a complete description of each argument. It can be accessed online 
+# or in the data folder.
+
+sigInfo <- sigInfo %>% 
+  mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
+
+# Filter drugs
 sigInfo <- sigInfo %>% filter(pert_type=='trt_cp')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
-
-# Filter based on TAS
 sigInfo <- sigInfo %>% filter(tas>=0.3)
 
-# Duplicate information
-sigInfo <- sigInfo %>% mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
-sigInfo <- sigInfo %>% group_by(duplIdentifier) %>% mutate(dupl_counts = n()) %>% ungroup()
+# Create identifier to signify duplicate
+# signatures: meaning same drug, same dose,
+# same time duration, same cell-type
+sigInfo <- sigInfo %>% 
+  mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
+sigInfo <- sigInfo %>% group_by(duplIdentifier) %>%
+  mutate(dupl_counts = n()) %>% ungroup()
 
 # Drug condition information
 sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
@@ -54,6 +66,180 @@ common <- reshape2::melt(common)
 common <- common %>% filter(!is.na(value))
 common <- common %>% filter(Var1!=Var2)
 
+### Load CCLE data----
+ccle <- t(data.table::fread('../data/CCLE/CCLE_expression.csv') %>% column_to_rownames('V1'))
+ccle <- as.data.frame(ccle) %>% rownames_to_column('V1') %>% separate(V1,c('gene_id','useless'),sep=" ") %>%
+  dplyr::select(-useless) %>% column_to_rownames('gene_id')
+ccle <- as.data.frame(t(ccle)) %>% rownames_to_column('DepMap_ID')
+sample_info <- data.table::fread('../data/CCLE/sample_info.csv') %>% dplyr::select(DepMap_ID,stripped_cell_line_name) %>%
+  unique()
+ccle <- left_join(ccle,sample_info) %>% dplyr::select(-DepMap_ID) %>%
+  column_to_rownames('stripped_cell_line_name')
+ccle <- ccle[which(rownames(ccle) %in% unique(sigInfo$cell_iname)),]
+
+### Load GeX for the above filtered pairs of cell-lines----
+sigInfo <- sigInfo %>% filter(cell_iname %in% unique(c(common$Var1,common$Var2)))
+# rid is the gene entrez_id to find the gene in the data
+# cid is the sig_id, meaning the sampe id
+# path is the path to the data
+parse_gctx_parallel <- function(path ,rid,cid){
+  gctx_file <- parse_gctx(path ,rid = rid,cid = cid)
+  return(gctx_file@mat)
+}
+
+# Read GeX for drugs
+# Split sig_ids to run in parallel
+sigIds <- unique(sigInfo$sig_id)
+sigList <-  split(sigIds, 
+                  ceiling(seq_along(sigIds)/ceiling(length(sigIds)/cores)))
+
+# Parallelize parse_gctx function
+
+# Path to raw data
+ds_path <- '../../../L1000_2021_11_23/level5_beta_trt_cp_n720216x12328.gctx'
+
+# Parse the data file in parallel
+cmap_gctx <- foreach(sigs = sigList) %dopar% {
+  parse_gctx_parallel(ds_path ,
+                      rid = unique(as.character(geneInfo$gene_id)),
+                      cid = sigs)
+}
+gc()
+cmap <-do.call(cbind,cmap_gctx)
+#cmap_cor_all <- cor(cmap)
+
+#Cell-line based similarity----
+#common <- common %>% filter(Var1 %in% rownames(ccle) & Var2 %in% rownames(ccle))
+ccle_cor  <- cor(t(ccle))
+fold_change <- function(x,y){
+  return(x/y)
+}
+
+ccle_fc <- NULL
+for (i in 1:nrow(ccle)){
+  k <- 1
+  for (j in i:nrow(ccle)){
+    if (k==1){
+      mat <- ccle[i,]/ccle[j,]
+    }else{
+      mat <- rbind(mat,ccle[i,]/ccle[j,])
+    }
+    k <- k+1
+  }
+  mat <- as.matrix(mat)
+  rownames(mat) <-  rownames(ccle)[i:nrow(ccle)] 
+  mat[which(is.na(mat) | mat==Inf)] <- 0
+  ccle_fc[[i]] <- mat
+}
+print('Finished FC')
+#saveRDS(ccle_fc,'../results/ccle_fc.rds')
+ccle_fc <- readRDS('../results/ccle_fc.rds')
+
+### ADD CCLE GSEA DISTANCE
+library(doRNG)
+# Specify the thresholds to check
+# bottom and top regulated genes
+thresholds <- c(30,50,100,200,300,400,
+                500,600,700,800,900,1000)
+
+# Initialize empty list for the results:
+# Each element of the list (for each threshold)
+# contains an NxN matrix with comparing all these
+# samples. Each element of the matrix is the
+# GSEA distance.
+dist_all_ccle <- NULL
+### SOS:
+### RUN FIRST THE distance_scores.R
+### SCRIPT TO LOAD THE FUNCTION!!!
+### calculate distances: SEE distance_scores.R
+# for information about the function inputs
+dist_all_ccle <- foreach(thres = thresholds) %dorng% {
+  distance_scores(num_table = t(ccle) ,
+                  threshold_count = thres,names = colnames(t(ccle)))
+}
+# Transform list to array
+distance <- do.call(cbind,dist_all_ccle)
+distance <- array(distance,
+                  c(dim=dim(dist_all_ccle[[1]]),length(dist_all_ccle)))
+# Get the average distance across thresholds
+mean_dist <- apply(distance, c(1,2), mean, na.rm = TRUE)
+colnames(mean_dist) <- colnames(t(ccle))
+rownames(mean_dist) <- colnames(t(ccle))
+### Convert matrix into data frame
+# Keep only unique (non-self) pairs
+mean_dist[lower.tri(mean_dist,diag = T)] <- -100
+dist <- reshape2::melt(mean_dist)
+dist <- dist %>% filter(value != -100)
+colnames(dist)[3] <- 'ccle_gsea'
+
+dist <- left_join(dist,duplicateSigs,by = c("Var1"="sig_id"))
+dist <- left_join(dist,duplicateSigs,by = c("Var2"="sig_id"))
+dist <- dist %>% mutate(is_duplicate = (duplIdentifier.x==duplIdentifier.y))
+
+gc()
+common <- common %>% filter(value>0)
+common <- left_join(common,dist,by=c('Var1','Var2'))
+common$ccle_gsea <- 1 - common$ccle_gsea
+common$cmap_cor <- 0
+common$ccle_cor <- 0
+common$ccle_avg_fc <- 0
+for (i in 1:nrow(common)){
+  cell1 <- common$Var1[i]
+  cell2 <- common$Var2[i]
+  cell_info1 <- sigInfo %>% filter(cell_iname==cell1)
+  cell_info2 <- sigInfo %>% filter(cell_iname==cell2)
+  sig1 <- unique(cell_info1$sig_id)
+  sig2 <- unique(cell_info2$sig_id)
+  ind1 <- which(rownames(ccle_cor)==cell1)
+  ind2 <- which(rownames(ccle_cor)==cell2)
+  
+  #cmap_cor <- cmap_cor_all[sig1,sig2]
+  
+  paired <- left_join(cell_info1 %>% select(c('sig_id.x'='sig_id'),conditionId) %>% unique(), 
+                      cell_info2 %>% select(c('sig_id.y'='sig_id'),conditionId) %>% unique()) %>% 
+    filter(!is.na(sig_id.x) & !is.na(sig_id.y)) %>% unique()
+  
+  cmap1 <- t(cmap[,paired$sig_id.x])
+  cmap2 <- t(cmap[,paired$sig_id.y])
+  
+  #cmap_cor <- cmap_cor[paired$sig_id.x,paired$sig_id.y]
+  
+  if (is_empty(ind1) | is_empty(ind2)){
+    common$ccle_cor[i] <- NA
+    common$ccle_avg_fc[i] <- NA
+  } else{
+    ccle_cor_pair <- ccle_cor[ind1,ind2]
+    
+    fc <- ccle_fc[[ind1]]
+    ind2 <- which(rownames(fc)==cell2)
+    fc <- fc[ind2,]
+    
+    common$ccle_cor[i] <- ccle_cor_pair
+    common$ccle_avg_fc[i] <- mean(fc)
+  }
+  
+  common$cmap_cor[i] <- cor(c(cmap1),c(cmap2))
+  
+  print(paste0('Finished:',i))
+  
+}
+saveRDS(common,'../results/cell_pairs_similarity.rds')
+
+
+common_filtered <- common %>% filter(!is.na(ccle_gsea))
+ggplot(common_filtered,aes(cmap_cor,ccle_gsea)) + geom_point()  + ylim(c(0,1)) + geom_smooth()
+cor(common_filtered$ccle_gsea,common_filtered$cmap_cor)
+
+### For the pair with the most common datasets split it in smaller datasets to see the effect of training size----
+ind <- which(common$value==max(common$value))
+cell1 <- as.character(common$Var1[ind])
+cell2 <- as.character(common$Var2[ind])
+
+
+### Create multiple datasets of pairs of 2 cell-lines-----
+
+
+### These next is for only 2 hand-picked cell-lines------
 ind <- which(common$value==max(common$value))
 cell1 <- as.character(common$Var1[ind])
 cell2 <- as.character(common$Var2[ind])
