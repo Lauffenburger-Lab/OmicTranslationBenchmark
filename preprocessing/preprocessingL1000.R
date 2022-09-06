@@ -225,19 +225,92 @@ for (i in 1:nrow(common)){
 }
 saveRDS(common,'../results/cell_pairs_similarity.rds')
 
-
+common <- readRDS('../results/cell_pairs_similarity.rds')
 common_filtered <- common %>% filter(!is.na(ccle_gsea))
 ggplot(common_filtered,aes(cmap_cor,ccle_gsea)) + geom_point()  + ylim(c(0,1)) + geom_smooth()
 cor(common_filtered$ccle_gsea,common_filtered$cmap_cor)
 
 ### For the pair with the most common datasets split it in smaller datasets to see the effect of training size----
+### Then do it for other 2 pairs of cells too.
 ind <- which(common$value==max(common$value))
 cell1 <- as.character(common$Var1[ind])
 cell2 <- as.character(common$Var2[ind])
 
+### We need to sample diverse conditions.
+### Basicaly, we sample a number of drugs (n1) and randomly then select conditions (n1) for these drugs
+### Then find the corresponding condition in each cell-line.
+### We randomly select conditions (n2) and other conditons from the same drugs (n3) 
+### such as that n1+n2+n3=n the number of paired samples.
+### Finally each time we sample conditions with the minimum GeX correlation.
+sigInfo <- sigInfo %>% filter(cell_iname %in% unique(c(common$Var1,common$Var2)))
+drugs <- unique(sigInfo$cmap_name)
+pairedInfo <- left_join(sigInfo %>% filter(cell_iname=='A375') %>% 
+                          select(c('sig_id.x'='sig_id'),conditionId,cmap_name) %>% unique(), 
+                        sigInfo %>% filter(cell_iname=='HT29') %>% 
+                          select(c('sig_id.y'='sig_id'),conditionId,cmap_name) %>% unique()) %>% 
+  filter(!is.na(sig_id.x) & !is.na(sig_id.y)) %>% 
+  mutate(pair_id=paste0(sig_id.x,'_',sig_id.y))%>% unique()
+conditionInfo <- sigInfo %>% select(cmap_name,conditionId) %>% unique()
 
-### Create multiple datasets of pairs of 2 cell-lines-----
+# Lets assume for now that since the maximum percentage of paired conditions in each cell-line is <40%.
+# That n1 is 40% of n and n2,n3 are 40%,20%.
+max_n1 <- nrow(pairedInfo)
+n <- c(seq(50,250,50),400,500,750,1000) # the number of samples per cell-line
+n1 <- sapply(0.4*n,ceiling)
+n2 <- sapply(0.4*n,ceiling)
+n3 <- sapply(0.2*n,ceiling)
+print(paste0('The sum of n1+n2+n3 is equal to n: ',all(n1+n2+n3==n)))
 
+
+cmap_cor <- cor(cmap)
+gc()
+cmap_cor <- reshape2::melt(cmap_cor)
+gc()
+cmap_cor <- cmap_cor %>% filter(Var1!=Var2)
+gc()
+
+for (i in 1:length(n)) {
+  sampled_conditions <- createSample(sigInfo,pairedInfo,n1[i],2*n2[i],2*n3[i],c('A375','HT29'),cmap_cor,maxIter=100)
+  saveRDS(sampled_conditions,paste0('preprocessed_data/sampledDatasetes/sample_len',nrow(sampled_conditions),'.rds'))
+  print(paste0('Finished sample: ',i,'/',length(n)))
+}
+
+### Ratio splitting
+cells <- c('A375','HT29')
+ratios <- seq(0.1,1,0.1)
+for (cell in cells){
+  fullCell <- sigInfo %>% filter(cell_iname!=cell & cell_iname %in% cells) %>% 
+    filter(!(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y)))) %>% unique()
+  cellInfo <- sigInfo %>% filter(cell_iname==cell) %>% 
+    filter(!(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y)))) %>% unique()
+  paired <- sigInfo %>% filter(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y)))
+  for (ratio in ratios){
+    n <- floor(ratio * nrow(fullCell))
+    if (n>nrow(cellInfo)){
+      n <- nrow(cellInfo)
+    }
+    cellInfo_percentage <- sample_n(cellInfo,n)
+    data <- rbind(fullCell,paired,cellInfo_percentage)
+    n1 <- nrow(data %>% filter(cell_iname!=cell))
+    n2 <- nrow(data %>% filter(cell_iname==cell))
+    r <- n2/n1
+    saveRDS(data,paste0('preprocessed_data/sampledDatasetes/ratios',cell,'/sample_ratio',r,'.rds'))
+  }
+}
+
+### Paired percentage
+cells <- c('A375','HT29')
+data <- sigInfo %>% filter(cell_iname %in% cells) %>% 
+  filter(!(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y)))) %>% unique()
+paired <- sigInfo %>% filter(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y)))
+ns <- ceiling(seq(0.05,0.3,0.05) * (nrow(paired)+nrow(data)))
+for (n in ns){
+  data_paired <- sample_n(paired,n)
+  data_all <- rbind(data,data_paired)
+  saveRDS(data,paste0('preprocessed_data/sampledDatasetes/pairedPercs/sample_ratio_',n,'.rds'))
+}
+
+### For cell-line based similarity vs performance analysis we will use the existing pairs
 
 ### These next is for only 2 hand-picked cell-lines------
 ind <- which(common$value==max(common$value))
