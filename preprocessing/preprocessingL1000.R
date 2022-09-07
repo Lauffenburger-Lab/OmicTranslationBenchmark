@@ -307,10 +307,64 @@ ns <- ceiling(seq(0.05,0.3,0.05) * (nrow(paired)+nrow(data)))
 for (n in ns){
   data_paired <- sample_n(paired,n)
   data_all <- rbind(data,data_paired)
-  saveRDS(data,paste0('preprocessed_data/sampledDatasetes/pairedPercs/sample_ratio_',n,'.rds'))
+  saveRDS(data_all,paste0('preprocessed_data/sampledDatasetes/pairedPercs/sample_ratio_',n,'.rds'))
 }
 
 ### For cell-line based similarity vs performance analysis we will use the existing pairs
+
+### Create 5fold validation splits for all cases-----
+library(caret)
+folders <- c('A375_HT29','A375_PC3','HA1E_VCAP',
+             'HT29_MCF7','HT29_PC3','MCF7_HA1E',
+             'PC3_HA1E','MCF7_PC3','pairedPercs',
+             'ratiosA375','ratiosHT29')
+
+for (folder in folders){
+  files <- list.files(paste0('preprocessed_data/sampledDatasetes/',folder),recursive = T,full.names = T)
+  files <- as.data.frame(files)
+  files <- files %>% 
+    mutate(new_dirs=strsplit(files,'.rds')) %>% 
+    unnest(new_dirs) %>% filter(new_dirs!='')
+  
+  for (i in 1:nrow(files)){
+    new_dir <- files$new_dirs[i]
+    data <- readRDS(files$files[i])
+    if (folder %in% c('pairedPercs','ratiosA375','ratiosHT29')){
+      cells <- c('A375','HT29')
+    }else{
+      cells <- strsplit(folder,'_')[[1]]
+    }
+    pairedInfo <- left_join(data %>% filter(cell_iname==cells[1]) %>% 
+                              select(c('sig_id.x'='sig_id'),conditionId,cmap_name) %>% unique(), 
+                            data %>% filter(cell_iname==cells[2]) %>% 
+                              select(c('sig_id.y'='sig_id'),conditionId,cmap_name) %>% unique()) %>% 
+      filter(!is.na(sig_id.x) & !is.na(sig_id.y))
+    
+    cellInfo_1 <- data %>% filter(cell_iname==cells[1]) %>% 
+      filter(!(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y))))
+    cellInfo_2 <- data %>% filter(cell_iname==cells[2]) %>% 
+      filter(!(sig_id %in% unique(c(pairedInfo$sig_id.x,pairedInfo$sig_id.y))))
+    
+    dir.create(new_dir,showWarnings = F)
+    
+    paired_folds <- createFolds(pairedInfo$conditionId, k = 5, list = TRUE, returnTrain = TRUE)
+    cell1_folds <- createFolds(cellInfo_1$sig_id, k = 5, list = TRUE, returnTrain = TRUE)
+    cell2_folds <- createFolds(cellInfo_2$sig_id, k = 5, list = TRUE, returnTrain = TRUE)
+    
+    for (j in 1:length(paired_folds)){
+      data.table::fwrite(pairedInfo[paired_folds[[j]],],paste0(new_dir,'/train_paired_',j,'.csv'))
+      data.table::fwrite(pairedInfo[-paired_folds[[j]],],paste0(new_dir,'/val_paired_',j,'.csv'))
+      
+      data.table::fwrite(cellInfo_1[cell1_folds[[j]],],paste0(new_dir,'/train_',cells[1],'_',j,'.csv'))
+      data.table::fwrite(cellInfo_1[-cell1_folds[[j]],],paste0(new_dir,'/val_',cells[1],'_',j,'.csv'))
+      
+      data.table::fwrite(cellInfo_2[cell2_folds[[j]],],paste0(new_dir,'/train_',cells[2],'_',j,'.csv'))
+      data.table::fwrite(cellInfo_2[-cell2_folds[[j]],],paste0(new_dir,'/val_',cells[2],'_',j,'.csv'))
+    }
+  }
+             
+}
+
 
 ### These next is for only 2 hand-picked cell-lines------
 ind <- which(common$value==max(common$value))
