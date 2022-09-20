@@ -21,4 +21,15 @@ results/Importance_results/important_scores_*
 results/trained_models/*.pth
 results/trained_embs_all/*.csv
 learning/.ipynb_checkpoints
+preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/HA1E_VCAP/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/HT29_MCF7/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/HT29_PC3/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/MCF7_HA1E/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/MCF7_PC3/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/PC3_HA1E/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/pairedPercs/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/ratiosA375/*.csv
+preprocessing/preprocessed_data/sampledDatasetes/ratiosHT29/*.csv
 .Rproj.user
