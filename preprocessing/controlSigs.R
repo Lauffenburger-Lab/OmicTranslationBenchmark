@@ -25,7 +25,7 @@ sigInfo <- sigInfo %>% filter(pert_type=='ctl_untrt')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
 
 # Filter based on TAS
-sigInfo <- sigInfo %>% filter(tas>=0.3)
+sigInfo <- sigInfo %>% filter(tas<=0.3)
 
 # Duplicate information
 sigInfo <- sigInfo %>% mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
@@ -43,7 +43,7 @@ sigIds <- unique(sigInfo$sig_id)
 sigList <-  split(sigIds, ceiling(seq_along(sigIds)/ceiling(length(sigIds)/cores)))
 
 # Parallelize parse_gctx
-ds_path <- '../L1000_2021_11_23/level5_beta_ctl_n58022x12328.gctx'
+ds_path <- '../../../L1000_2021_11_23/level5_beta_ctl_n58022x12328.gctx'
 parse_gctx_parallel <- function(path ,rid,cid){
   gctx_file <- parse_gctx(path ,rid = rid,cid = cid)
   return(gctx_file@mat)
@@ -52,7 +52,10 @@ cmap_gctx <- foreach(sigs = sigList) %dopar% {
   parse_gctx_parallel(ds_path ,rid = unique(as.character(geneInfo$gene_id)),cid = sigs)
 }
 cmap <-do.call(cbind,cmap_gctx)
-#saveRDS(cmap,'preprocessed_data/cmap_all_controls_untreated_q1.rds')
+saveRDS(cmap,'preprocessed_data/cmap_all_controls_untreated_q1.rds')
+
+sigInfo <- sigInfo %>% filter(sig_id %in% colnames(cmap))
+conditions <- sigInfo %>%  group_by(cell_iname) %>% summarise(conditions_per_cell = n_distinct(conditionId)) %>% ungroup()
 
 ### Check correlation of TAS with duplicates correlation and noise-------------------------------------------------
 # Calculate gsea distances 
@@ -92,8 +95,8 @@ dist <- dist %>% mutate(is_duplicate = (duplIdentifier.x==duplIdentifier.y))
 # the quality of the data. The higher it is
 # the higher the quality of the data.
 
-tas_thresholds_lower <- c(0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5)
-tas_thresholds_upper <- c(0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55)
+tas_thresholds_lower <- c(0.0,0.2,0.25,0.3,0.35,0.4,0.45,0.5)
+tas_thresholds_upper <- c(0.99,0.25,0.3,0.35,0.4,0.45,0.5,0.55)
 
 # Initialize empty lists to store plots
 # and number of data after filtering 
@@ -167,7 +170,7 @@ cmap <- readRDS('preprocessed_data/cmap_all_controls_untreated_q1.rds')
 write.csv(t(cmap), 'preprocessed_data/cmap_untreated_tas03.csv')
 
 # Drug condition information
-sigInfo <- sigInfo  %>% filter(tas>=0.3)
+sigInfo <- sigInfo  %>% filter(tas<=0.3)
 #sigInfo <- sigInfo %>% filter(pert_time==96)
 conditions <- sigInfo %>%  group_by(cell_iname) %>% summarise(conditions_per_cell = n_distinct(conditionId)) %>% ungroup()
 
@@ -213,9 +216,9 @@ sigInfo <- sigInfo %>% select(sig_id,cell_iname,conditionId) %>% unique() %>%
 a375 <- sigInfo %>% filter(cell_iname=='A375') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
 ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
 write.csv(a375,'preprocessed_data/10fold_validation_spit/alldata/a375_unpaired_untreated.csv')
-#write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired_untreated.csv') #zero
+write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired_untreated.csv') #zero
 
-#write.csv(sigInfo,'preprocessed_data/conditions_HT29_A375.csv')
+write.csv(sigInfo,'preprocessed_data/conditions_HT29_A375.csv')
 
 # Check correlations in baseline-----
 cmap <- readRDS('preprocessed_data/cmap_all_controls_untreated_q1.rds')

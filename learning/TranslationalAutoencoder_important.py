@@ -14,17 +14,17 @@ import os
 from sklearn.metrics import silhouette_score,confusion_matrix
 from scipy.stats import spearmanr
 from evaluationUtils import r_square,get_cindex,pearson_r,pseudoAccuracy
-#import seaborn as sns
-#sns.set()
-#import logging
+import seaborn as sns
+sns.set()
+import logging
 from captum.attr import IntegratedGradients
 from captum.attr import LayerConductance
 from captum.attr import NeuronConductance
 
 
-#logging.basicConfig(level=logging.INFO, format='%(message)s')
-#logger = logging.getLogger()
-#print2log = logger.info
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger()
+print2log = logger.info
 
 device = torch.device('cuda')
 
@@ -309,7 +309,7 @@ for e in range(0, NUM_EPOCHS):
         loss_adv = adv_entropy + model_params['adv_penalnty'] * adversary_drugs_penalty
         loss_adv.backward()
         optimizer_adv.step()
-        # print(f1_basal_trained)
+        # print2log(f1_basal_trained)
         # else:
         optimizer.zero_grad()
         # f1_basal_trained = None
@@ -442,7 +442,7 @@ classifier.eval()
 adverse_classifier.eval()
 Vsp.eval()
 
-print('Evaluate mode')
+print2log('Evaluate mode')
 
 
 # In[19]:
@@ -478,8 +478,8 @@ cf_matrix = confusion_matrix(true_labels.numpy(),predicted)
 tn, fp, fn, tp = cf_matrix.ravel()
 class_acc = (tp+tn)/predicted.size
 f1 = 2*tp/(2*tp+fp+fn)
-print('F1 score:%s'%f1)
-print('Accuracy:%s'%class_acc)
+print2log('F1 score:%s'%f1)
+print2log('Accuracy:%s'%class_acc)
 
 
 # In[27]:
@@ -489,7 +489,7 @@ print('Accuracy:%s'%class_acc)
 Embs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
 Embs_1.index = np.concatenate((sampleInfo_paired['sig_id.x'].values,sampleInfo_1.sig_id.values))
 Embs_1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_1.to_csv('../results/trained_embs_all/AllEmbs_CPA_pc3.csv')
+Embs_1.to_csv('trained_embs_all/AllEmbs_CPA_pc3.csv')
 display(Embs_1)
 
 
@@ -500,7 +500,7 @@ display(Embs_1)
 Embs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
 Embs_2.index = np.concatenate((sampleInfo_paired['sig_id.y'].values,sampleInfo_2.sig_id.values))
 Embs_2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_2.to_csv('../results/trained_embs_all/AllEmbs_CPA_ha1e.csv')
+Embs_2.to_csv('trained_embs_all/AllEmbs_CPA_ha1e.csv')
 display(Embs_2)
 
 
@@ -517,11 +517,11 @@ for jj in range(xhat_1.shape[0]):
 Spear_1=np.mean(rhos)
 acc = pseudoAccuracy(x_1.detach().cpu(),xhat_1.detach().cpu(),eps=1e-6)
 Accuracy_1=np.mean(acc)
-print('R^2 cell1: %s'%r2_1.item())
-print('Pearson correlation cell1: %s'%pearson_1.item())
-print('MSE cell1: %s'%mse_1.item())
-print('Spearman correlation cell1: %s'%Spear_1)
-print('Pseudo-accuracy cell1: %s'%Accuracy_1)
+print2log('R^2 cell1: %s'%r2_1.item())
+print2log('Pearson correlation cell1: %s'%pearson_1.item())
+print2log('MSE cell1: %s'%mse_1.item())
+print2log('Spearman correlation cell1: %s'%Spear_1)
+print2log('Pseudo-accuracy cell1: %s'%Accuracy_1)
 
 
 # In[30]:
@@ -537,11 +537,11 @@ for jj in range(xhat_2.shape[0]):
 Spear_2=np.mean(rhos)
 acc = pseudoAccuracy(x_2.detach().cpu(),xhat_2.detach().cpu(),eps=1e-6)
 Accuracy_2=np.mean(acc)
-print('R^2 cell2: %s'%r2_2.item())
-print('Pearson correlation cell2: %s'%pearson_2.item())
-print('MSE cell2: %s'%mse_2.item())
-print('Spearman correlation cell2: %s'%Spear_2)
-print('Pseudo-accuracy cell2: %s'%Accuracy_2)
+print2log('R^2 cell2: %s'%r2_2.item())
+print2log('Pearson correlation cell2: %s'%pearson_2.item())
+print2log('MSE cell2: %s'%mse_2.item())
+print2log('Spearman correlation cell2: %s'%Spear_2)
+print2log('Pseudo-accuracy cell2: %s'%Accuracy_2)
 
 
 # In[31]:
@@ -563,10 +563,10 @@ for jj in range(x_1_equivalent.shape[0]):
 Spear_direct=np.mean(rhos)
 acc_2 = np.mean(pseudoAccuracy(x_2_equivalent.detach().cpu(),x_1_equivalent.detach().cpu(),eps=1e-6))
 acc_1 = np.mean(pseudoAccuracy(x_1_equivalent.detach().cpu(),x_2_equivalent.detach().cpu(),eps=1e-6))
-print('Pearson of direct translation: %s'%pearDirect.item())
-print('Spearman of direct translation: %s'%Spear_direct)
-print('Pdeudo-accuracy of direct translation from cell1 to cell2: %s'%acc_2)
-print('Pdeudo-accuracy of direct translation from cell2 to cell1: %s'%acc_1)
+print2log('Pearson of direct translation: %s'%pearDirect.item())
+print2log('Spearman of direct translation: %s'%Spear_direct)
+print2log('Pdeudo-accuracy of direct translation from cell1 to cell2: %s'%acc_2)
+print2log('Pdeudo-accuracy of direct translation from cell2 to cell1: %s'%acc_1)
 
 
 # In[33]:
@@ -584,9 +584,9 @@ for jj in range(x_2_equivalent.shape[0]):
     rhos.append(rho)
 Spear_2=np.mean(rhos)
 acc_2 = np.mean(pseudoAccuracy(x_2_equivalent.detach().cpu(),x_hat_2_equivalent.detach().cpu(),eps=1e-6))
-print('Pearson correlation cell1 to cell2: %s'%pearson_2.item())
-print('Spearman cell1 to cell2: %s'%Spear_2)
-print('Pdeudo-accuracy cell1 to cell2: %s'%acc_2)
+print2log('Pearson correlation cell1 to cell2: %s'%pearson_2.item())
+print2log('Spearman cell1 to cell2: %s'%Spear_2)
+print2log('Pdeudo-accuracy cell1 to cell2: %s'%acc_2)
 
 
 # In[34]:
@@ -604,10 +604,10 @@ for jj in range(x_1_equivalent.shape[0]):
     rhos.append(rho)
 Spear_1=np.mean(rhos)
 acc_1 = np.mean(pseudoAccuracy(x_1_equivalent.detach().cpu(),x_hat_1_equivalent.detach().cpu(),eps=1e-6))
-print('Pearson correlation cell2 to cell1: %s'%pearson_1.item())
-print('MSE cell2 to cell1: %s'%mse_1.item())
-print('Spearman cell2 to cell1: %s'%Spear_1)
-print('Pdeudo-accuracy cell2 to cell1: %s'%acc_1)
+print2log('Pearson correlation cell2 to cell1: %s'%pearson_1.item())
+print2log('MSE cell2 to cell1: %s'%mse_1.item())
+print2log('Spearman cell2 to cell1: %s'%Spear_1)
+print2log('Pdeudo-accuracy cell2 to cell1: %s'%acc_1)
 
 
 # In[ ]:
@@ -618,7 +618,7 @@ print('Pdeudo-accuracy cell2 to cell1: %s'%acc_1)
 #             x_2_equivalent.detach().flatten().cpu().numpy(),
 #             alpha=0.1)
 # plt.text(0, 0.9, 'r {:.2f}'.format(pearDirect.item()))
-# plt.savefig('../figures/pc3_to_ha1e_direct_correlation_allgenes.png',dpi=600)
+# plt.savefig('pc3_to_ha1e_direct_correlation_allgenes.png',dpi=600)
 
 
 # In[36]:
@@ -629,7 +629,7 @@ plt.scatter(x_hat_1_equivalent.detach().flatten().cpu().numpy(),
             x_1_equivalent.detach().flatten().cpu().numpy(),
            alpha=0.1)
 plt.text(0, 0.9, 'r {:.2f}'.format(pearson_1.item()))
-plt.savefig('../figures/ha1e_to_pc3_translate_correlation_cpa.png',dpi=600)
+plt.savefig('ha1e_to_pc3_translate_correlation_cpa.png',dpi=600)
 
 
 # In[37]:
@@ -640,21 +640,21 @@ plt.scatter(x_hat_2_equivalent.detach().flatten().cpu().numpy(),
             x_2_equivalent.detach().flatten().cpu().numpy(),
            alpha=0.1)
 plt.text(0, 0.9, 'r {:.2f}'.format(pearson_2.item()))
-plt.savefig('../figures/pc3_to_ha1e_translate_correlation_cpa.png',dpi=600)
+plt.savefig('pc3_to_ha1e_translate_correlation_cpa.png',dpi=600)
 
 
 # In[39]:
 
 
-torch.save(encoder_1, '../results/trained_models/Encoder_PC3_MI_allgenes_CPA.pth')
-torch.save(encoder_2, '../results/trained_models/Encoder_HA1E_MI_allgenes_CPA.pth')
-torch.save(decoder_1, '../results/trained_models/Decoder_PC3_MI_allgenes_CPA.pth')
-torch.save(decoder_2, '../results/trained_models/Decoder_HA1E_MI_allgenes_CPA.pth')
-torch.save(local_d, '../results/trained_models/local_d_MI_pc3_ha1e_allgenes_CPA.pth')
-torch.save(prior_d, '../results/trained_models/prior_d_MI_pc3_ha1e_allgenes_CPA.pth')
-torch.save(classifier,'../results/trained_models/classifier_pc3_ha1e_CPA.pth')
-torch.save(adverse_classifier,'../results/trained_models/adverse_classifier_pc3_ha1e_CPA.pth')
-torch.save(Vsp,'../results/trained_models/Vsp_pc3_ha1e_CPA.pth')
+torch.save(encoder_1, 'trained_models/Encoder_PC3_MI_allgenes_CPA.pth')
+torch.save(encoder_2, 'trained_models/Encoder_HA1E_MI_allgenes_CPA.pth')
+torch.save(decoder_1, 'trained_models/Decoder_PC3_MI_allgenes_CPA.pth')
+torch.save(decoder_2, 'trained_models/Decoder_HA1E_MI_allgenes_CPA.pth')
+torch.save(local_d, 'trained_models/local_d_MI_pc3_ha1e_allgenes_CPA.pth')
+torch.save(prior_d, 'trained_models/prior_d_MI_pc3_ha1e_allgenes_CPA.pth')
+torch.save(classifier,'trained_models/classifier_pc3_ha1e_CPA.pth')
+torch.save(adverse_classifier,'trained_models/adverse_classifier_pc3_ha1e_CPA.pth')
+torch.save(Vsp,'trained_models/Vsp_pc3_ha1e_CPA.pth')
 
 import seaborn as sns
 sns.set()
@@ -670,7 +670,7 @@ sns.distplot(z_latent_1.detach().cpu().flatten().numpy())
 plt.xlabel('PC3 encoded features values')
 plt.ylabel('Density')
 plt.title('Distribution of latent space features')
-plt.savefig('../figures/good_trained_ae_pc3_latent_space_allgenes_CPA.png', bbox_inches='tight',dpi=600)
+plt.savefig('good_trained_ae_pc3_latent_space_allgenes_CPA.png', bbox_inches='tight',dpi=600)
 
 
 #plt.hist(z_latent_2.detach().cpu().flatten().numpy())
@@ -680,19 +680,19 @@ sns.distplot(z_latent_2.detach().cpu().flatten().numpy())
 plt.xlabel('HA1E encoded features values')
 plt.ylabel('Density')
 plt.title('Distribution of latent space features')
-plt.savefig('../figures/good_trained_ae_ha1e_latent_space_allgenes_CPA.png', bbox_inches='tight',dpi=600)
+plt.savefig('good_trained_ae_ha1e_latent_space_allgenes_CPA.png', bbox_inches='tight',dpi=600)
 
 
-encoder_1=torch.load('../results/trained_models/Encoder_PC3_MI_allgenes_CPA.pth')
-# encoder_2=torch.load('../results/trained_models/Encoder_HA1E_MI_allgenes_CPA.pth')
-classifier = torch.load('../results/trained_models/classifier_pc3_ha1e_CPA.pth')
-Vsp = torch.load('../results/trained_models/Vsp_pc3_ha1e_CPA.pth')
+encoder_1=torch.load('trained_models/Encoder_PC3_MI_allgenes_CPA.pth')
+# encoder_2=torch.load('trained_models/Encoder_HA1E_MI_allgenes_CPA.pth')
+classifier = torch.load('trained_models/classifier_pc3_ha1e_CPA.pth')
+Vsp = torch.load('trained_models/Vsp_pc3_ha1e_CPA.pth')
 
 encoder_1.eval()
 # encoder_2.eval()
 classifier.eval()
 Vsp.eval()
-print('Evaluation mode')
+print2log('Evaluation mode')
 
 
 x_1 = torch.tensor(np.concatenate((cmap.loc[sampleInfo_paired['sig_id.x']].values,
@@ -713,8 +713,8 @@ len_samples = x_1.shape[0]
 
 
 # Classifier importance
-z_1 = torch.tensor(pd.read_csv('../results/trained_embs_all/AllEmbs_MI_pc3_CPA.csv'index_col=0).drop_duplicates().values).to(device)
-z_2 = torch.tensor(pd.read_csv('../results/trained_embs_all/AllEmbs_MI_ha1e_CPA.csv',index_col=0).drop_duplicates().values).to(device)
+z_1 = torch.tensor(pd.read_csv('trained_embs_all/AllEmbs_MI_pc3_CPA.csv'index_col=0).drop_duplicates().values).to(device)
+z_2 = torch.tensor(pd.read_csv('trained_embs_all/AllEmbs_MI_ha1e_CPA.csv',index_col=0).drop_duplicates().values).to(device)
 z = torch.cat((z_1,z_2),0).float()
 ig = IntegratedGradients(classifier)
 z.requires_grad_()
@@ -725,11 +725,11 @@ attr2 = attr2.detach().cpu().numpy()
 df1 = pd.DataFrame(attr1)
 df1.index = cmap.index
 df1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-df1.to_csv('../results/Importance_results/important_scores_to_classify_as_pc3_cpa.csv')
+df1.to_csv('Importance_results/important_scores_to_classify_as_pc3_cpa.csv')
 df2 = pd.DataFrame(attr2)
 df2.index = cmap.index
 df2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-df2.to_csv('../results/Importance_results/important_scores_to_classify_as_ha1e_cpa.csv')
+df2.to_csv('Importance_results/important_scores_to_classify_as_ha1e_cpa.csv')
 
 
 # x_1_equivalent = x_1[0:paired_inds,:]
@@ -763,7 +763,7 @@ for z in range(hid_dim):
     #encoder_1.zero_grad()
     attr, delta = ig.attribute(x_1,target=z,n_steps=100,return_convergence_delta=True)
     scores[:,z] = torch.mean(attr,0)
-print(scores)
+print2log(scores)
 
 plt.figure(figsize=(10,5), dpi= 80)
 sns.set(font_scale=2)
@@ -771,10 +771,10 @@ sns.distplot(scores.flatten().cpu().numpy())
 plt.xlabel('Importance score')
 plt.ylabel('Density')
 plt.title('Distribution of importance scores of the input features')
-plt.savefig('../figures/pc3_important_scores_to_encode.png', bbox_inches='tight')
+plt.savefig('pc3_important_scores_to_encode.png', bbox_inches='tight')
 
 
 df = pd.DataFrame(scores.cpu().numpy())
 df.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
 df.index = cmap.columns
-df.to_csv('../results/Importance_results/important_scores_pc3_to_encode.csv')
+df.to_csv('Importance_results/important_scores_pc3_to_encode.csv')

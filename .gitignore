@@ -32,4 +32,11 @@ preprocessing/preprocessed_data/sampledDatasetes/PC3_HA1E/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/pairedPercs/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/ratiosA375/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/ratiosHT29/*.csv
+preprocessing/preprocessed_data/10fold_validation_spit/alldata/ha1e_unpaired_untreated.csv
+preprocessing/preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired_untreated.csv
+preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_untreated_pc3_ha1e.csv
+preprocessing/preprocessed_data/10fold_validation_spit/alldata/pc3_unpaired_untreated.csv
+preprocessing/preprocessed_data/AllfilteredDrugs.csv
+preprocessing/preprocessed_data/conditions_PC3_HA1E.csv
+learning/__pycache__/
 .Rproj.user
