@@ -20,6 +20,15 @@ results/MI_results/models/*
 results/Importance_results/important_scores_*
 results/trained_models/*.pth
 results/trained_embs_all/*.csv
+results/trained_models/alldata_cpa_Vsp_pc3_ha1e.pt
+results/trained_models/alldata_cpa_adverseclassifier_pc3_ha1e.pt
+results/trained_models/alldata_cpa_classifier_pc3_ha1e.pt
+results/trained_models/alldata_cpa_decoder_ha1e.pt
+results/trained_models/alldata_cpa_decoder_pc3.pt
+results/trained_models/alldata_cpa_encoder_ha1e.pt
+results/trained_models/alldata_cpa_encoder_pc3.pt
+results/trained_models/alldata_cpa_locald_pc3_ha1e.pt
+results/trained_models/alldata_cpa_priord_pc3_ha1e.pt
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
