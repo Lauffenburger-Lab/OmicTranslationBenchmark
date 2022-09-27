@@ -154,7 +154,7 @@ baseline_res <- do.call(cbind.data.frame, base_geneset_corr)
 baseline_res <- baseline_res %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
 baseline_res <- baseline_res %>% mutate(model = 'direct translation')
 
-model_res <- do.call(cbind.data.frame, model_geneset_corr)
+model_res <- do.call(cbind.data.frame, model_geneset_corr_cell1_to_cell2)
 model_res <- model_res %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
 model_res <- model_res %>% mutate(model = 'model')
 
@@ -162,8 +162,151 @@ results <- rbind(baseline_res,model_res)
 results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(geneset) %>% filter(geneset!='') %>% unique()
 
 p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
-  ggtitle('Performance in 10-fold cross validation')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  ggtitle(paste0('Genestet performance for translating from ',cells[1],' to ',cells[2]))+ ylab('pearson`s r')+ ylim(c(0,0.85))+
   theme_minimal(base_family = "serif",base_size = 15)+
   theme(plot.title = element_text(hjust = 0.5,size=15))
 p <- p + stat_compare_means(aes(group = model),label='p.signif')
 print(p)
+png(paste0('../figures/genesets_model_vs_direct_',tolower(cells[1]),'_',tolower(cells[2]),'.png')
+    ,width=12,height=8,units = "in",res = 600)
+print(p)
+dev.off()
+
+model_res <- do.call(cbind.data.frame, model_geneset_corr_cell2_to_cell1)
+model_res <- model_res %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+model_res <- model_res %>% mutate(model = 'model')
+
+results <- rbind(baseline_res,model_res)
+results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(geneset) %>% filter(geneset!='') %>% unique()
+
+p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
+  ggtitle(paste0('Genestet performance for translating from ',cells[2],' to ',cells[1]))+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  theme_minimal(base_family = "serif",base_size = 15)+
+  theme(plot.title = element_text(hjust = 0.5,size=15))
+p <- p + stat_compare_means(aes(group = model),label='p.signif')
+print(p)
+png(paste0('../figures/genesets_model_vs_direct_',tolower(cells[2]),'_',tolower(cells[1]),'.png')
+    ,width=12,height=8,units = "in",res = 600)
+print(p)
+dev.off()
+
+### Compare with pearson correlation of gene expression-----
+k <- 1
+model_gex_corr_cell2_to_cell1 <- NULL
+model_gex_corr_cell1_to_cell2 <- NULL
+for (set in sets){
+  gex_corr_cell1_cell2 <- NULL
+  gex_corr_cell2_cell1 <- NULL
+  for (i in 0:9){
+    # validation info
+    # valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',
+    #                                      tolower(cells[1]),'_',
+    #                                      tolower(cells[2]),'_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+    valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',
+                                         i,'.csv'),header = T) %>% column_to_rownames('V1')
+    valInfo <- rbind(valPaired %>% dplyr::select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
+                     valPaired %>% dplyr::select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
+    valInfo <- valInfo %>% unique()
+    valInfo <- valInfo %>% dplyr::select(sig_id,conditionId,cell_iname)
+    
+    # Load predictions # RUN SATORI TO GET PREDICTIONS
+    Trans_val <- distinct(rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach_10K/validation/valTrans_',i,'_',tolower(cells[1]),'.csv'),header = T),
+                                data.table::fread(paste0('../results/MI_results/embs/CPA_approach_10K/validation/valTrans_',i,'_',tolower(cells[2]),'.csv'),header = T)))
+    sigs <- Trans_val$V1
+    Trans_val <- t(Trans_val %>% dplyr::select(-V1))
+    rownames(Trans_val) <- rownames(cmap)
+    #colnames(Trans_val) <- sigs
+    #Trans_val <- Trans_val[,valInfo$sig_id]
+    
+    val_sig1 <- valPaired$sig_id.x
+    val_sig2 <- valPaired$sig_id.y
+    
+    #Base ground truth
+    camp_tmp <- cmap[,which(colnames(cmap) %in% c(val_sig1,val_sig2))]
+    cmap1 <- camp_tmp[,val_sig1]
+    cmap2 <- camp_tmp[,val_sig2]
+    
+    # Predicted geneset enrichment
+    cmap1_hat <- Trans_val[,which(sigs==val_sig1)]
+    cmap2_hat <- Trans_val[,which(sigs==val_sig2)]
+    gex_corr_cell2_cell1[i+1] <- as.numeric(cor.test(c(cmap1_hat),c(cmap1))$estimate)
+    gex_corr_cell1_cell2[i+1] <- as.numeric(cor.test(c(cmap2_hat),c(cmap2))$estimate)
+    
+  }
+  model_gex_corr_cell2_to_cell1[[set]] <- gex_corr_cell2_cell1
+  model_gex_corr_cell1_to_cell2[[set]] <- gex_corr_cell1_cell2
+  k <- k+1
+  print(paste0('Finished ',set))
+}
+
+# Visualize cell2 to cell1
+model_gsea <- do.call(cbind.data.frame, model_geneset_corr_cell2_to_cell1)
+model_gsea <- model_gsea %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+model_gsea <- model_gsea %>% mutate(model = 'genesets performance')
+model_gex <- do.call(cbind.data.frame, model_gex_corr_cell2_to_cell1)
+model_gex <- model_gex %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+model_gex <- model_gex %>% mutate(geneset = 'Genes Expr.') %>% unique()
+model_gex <- model_gex %>% mutate(model = 'genes performance')
+
+results <- rbind(model_gsea,model_gex)
+results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(geneset) %>% filter(geneset!='') %>% unique()
+results$geneset <- factor(results$geneset,levels = c('Genes Expr.',str_split_fixed(sets,'NES',n=2)[,2]))
+results <- results %>% mutate(type=model)
+  
+comparisons <- NULL
+p.values <- NULL
+k <- 1
+for (set in str_split_fixed(sets,'NES',n=2)[,2]){
+  comparisons[[k]] <- c('Genes Expr.',set)
+  p.values[k] <- wilcox.test(as.matrix(results %>% filter(geneset==comparisons[[k]][1]) %>% dplyr::select('cor')),
+                             as.matrix(results %>% filter(geneset==comparisons[[k]][2]) %>% dplyr::select('cor')))$p.value
+  k <- k+1
+}
+p <- ggboxplot(results, x = "geneset", y = 'cor',color='type',add='jitter')+
+  ggtitle(paste0('Genestet performance for translating from ',cells[2],' to ',cells[1]))+ ylab('pearson`s r')+
+  theme_minimal(base_family = "serif",base_size = 15)+
+  theme(plot.title = element_text(hjust = 0.5,size=15),legend.position='bottom')
+p <- p + stat_compare_means(comparisons=comparisons[which(p.values<0.05)],method = 'wilcox.test',label='p.signif')
+print(p)
+
+png(paste0('../figures/genesets_vs_genes_',tolower(cells[2]),'_',tolower(cells[1]),'.png')
+    ,width=12,height=8,units = "in",res = 600)
+print(p)
+dev.off()
+
+# Visualize cell1 to cell2
+model_gsea <- do.call(cbind.data.frame, model_geneset_corr_cell1_to_cell2)
+model_gsea <- model_gsea %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+model_gsea <- model_gsea %>% mutate(model = 'genesets performance')
+model_gex <- do.call(cbind.data.frame, model_gex_corr_cell1_to_cell2)
+model_gex <- model_gex %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+model_gex <- model_gex %>% mutate(geneset = 'Genes Expr.') %>% unique()
+model_gex <- model_gex %>% mutate(model = 'genes performance')
+
+results <- rbind(model_gsea,model_gex)
+results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(geneset) %>% filter(geneset!='') %>% unique()
+results$geneset <- factor(results$geneset,levels = c('Genes Expr.',str_split_fixed(sets,'NES',n=2)[,2]))
+results <- results %>% mutate(type=model)
+
+comparisons <- NULL
+p.values <- NULL
+k <- 1
+for (set in str_split_fixed(sets,'NES',n=2)[,2]){
+  comparisons[[k]] <- c('Genes Expr.',set)
+  p.values[k] <- wilcox.test(as.matrix(results %>% filter(geneset==comparisons[[k]][1]) %>% dplyr::select('cor')),
+                             as.matrix(results %>% filter(geneset==comparisons[[k]][2]) %>% dplyr::select('cor')))$p.value
+  k <- k+1
+}
+p <- ggboxplot(results, x = "geneset", y = 'cor',color='type',add='jitter')+
+  ggtitle(paste0('Genestet performance for translating from ',cells[1],' to ',cells[2]))+ ylab('pearson`s r')+
+  theme_minimal(base_family = "serif",base_size = 15)+
+  theme(plot.title = element_text(hjust = 0.5,size=15),legend.position='bottom')
+p <- p + stat_compare_means(comparisons=comparisons[which(p.values<0.05)],method = 'wilcox.test',label='p.signif')
+print(p)
+
+png(paste0('../figures/genesets_vs_genes_',tolower(cells[1]),'_',tolower(cells[2]),'.png')
+    ,width=12,height=8,units = "in",res = 600)
+print(p)
+dev.off()
+
+### TFs dorothea performance--------------
