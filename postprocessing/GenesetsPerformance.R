@@ -1,0 +1,169 @@
+library(tidyverse)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
+
+## Load all cmap data---------
+genespace <- 'best_infered plus landmarks'
+cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_all_genes_q1_tas03.csv',header = T) %>% column_to_rownames('V1')
+cmap <- t(cmap)
+
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
+if (genespace=='landmark'){
+  geneInfo <-  geneInfo %>% filter(feature_space == "landmark")
+}else{
+  geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
+}
+
+# Keep only protein-coding genes
+geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
+
+#Load signature info and split data to high quality replicates and low quality replicates
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- sigInfo %>% 
+  mutate(quality_replicates = ifelse(is_exemplar_sig==1 & qc_pass==1 & nsample>=3,1,0))
+sigInfo <- sigInfo %>% filter(pert_type=='trt_cp')
+sigInfo <- sigInfo %>% filter(quality_replicates==1)
+sigInfo <- sigInfo %>% filter(tas>=0.3)
+sigInfo <- sigInfo %>% 
+  mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
+sigInfo <- sigInfo %>% group_by(duplIdentifier) %>%
+  mutate(dupl_counts = n()) %>% ungroup()
+sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
+
+## Perfome Genesets perfromance analysis for a specific pair of cell-lines---------
+cells <- c('A375','HT29')
+sigInfo <-  sigInfo %>% filter(cell_iname %in% cells)
+sig1 <- c(as.matrix(sigInfo %>% filter(cell_iname==cells[1]) %>% dplyr::select(sig_id)))
+sig2 <- c(as.matrix(sigInfo %>% filter(cell_iname==cells[2]) %>% dplyr::select(sig_id)))
+
+# paired conditions
+all_paired <- data.table::fread('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_a375_ht29.csv',
+                                header = T) %>% column_to_rownames('V1')
+
+cmap <- cmap[as.character(geneInfo$gene_id),sigInfo$sig_id]
+
+# genesets_results <- fastenrichment(sigInfo$sig_id,
+#                                    geneInfo$gene_id,
+#                                    cmap,
+#                                    enrichment_space = c("go_bp","kegg","msig_db_h",
+#                                                         "msig_db_c1","msig_db_c2","msig_db_c3",
+#                                                         "msig_db_c4","msig_db_c5","msig_db_c6","msig_db_c7"),
+#                                    pval_adjustment=F,
+#                                    n_permutations=1000)
+# saveRDS(genesets_results,'../results/all_gensetsEnrich_results_landmarks_drugs_pc3_ha1e.rds')
+
+
+genesets_results <- readRDS('../results/all_gensetsEnrich_results_allgenes_drugs_a375_ht29.rds')
+
+# Choose Genesets level to perform analysis
+# "NES KEGG"
+# "NES GO BP"
+
+#sets <- c("NES KEGG","NES GO BP","NES MSIG Hallmark")
+sets <- names(genesets_results$NES)[which(names(genesets_results$NES)!="NES TF")]
+
+#set <-  "NES GO BP"
+# base_geneset_corr <- NULL
+# for (set in names(genesets_results$NES)[which(names(genesets_results$NES)!="NES TF")]){
+#   NES <- genesets_results$NES[[set]]
+#   
+#   nes1 <- t(NES[,all_paired$sig_id.x])
+#   nes2 <- t(NES[,all_paired$sig_id.y])
+#   
+#   base_geneset_corr[[set]] <- as.numeric(cor.test(c(nes1),c(nes2))$estimate)
+#   
+# }
+
+#geneset_train_corr <- NULL
+base_geneset_corr <- NULL
+model_geneset_corr_cell2_to_cell1 <- NULL
+model_geneset_corr_cell1_to_cell2 <- NULL
+sets_to_enr <- c("go_bp","kegg",'msig_db_h',"msig_db_c1","msig_db_c2","msig_db_c3",
+                 "msig_db_c4","msig_db_c5","msig_db_c6","msig_db_c7")
+k <- 1
+for (set in sets){
+  geneset_val_corr_cell2_to_cell1 <- NULL
+  geneset_val_corr_cell1_to_cell2 <- NULL
+  base_geneset_val_corr <- NULL
+  for (i in 0:9){
+    # validation info
+    # valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',
+    #                                      tolower(cells[1]),'_',
+    #                                      tolower(cells[2]),'_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+    valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',
+                                         i,'.csv'),header = T) %>% column_to_rownames('V1')
+    valInfo <- rbind(valPaired %>% dplyr::select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
+                     valPaired %>% dplyr::select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
+    valInfo <- valInfo %>% unique()
+    valInfo <- valInfo %>% dplyr::select(sig_id,conditionId,cell_iname)
+    
+    # Load predictions # RUN SATORI TO GET PREDICTIONS
+    Trans_val <- distinct(rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach_10K/validation/valTrans_',i,'_',tolower(cells[1]),'.csv'),header = T),
+                       data.table::fread(paste0('../results/MI_results/embs/CPA_approach_10K/validation/valTrans_',i,'_',tolower(cells[2]),'.csv'),header = T)))
+    sigs <- Trans_val$V1
+    Trans_val <- t(Trans_val %>% dplyr::select(-V1))
+    rownames(Trans_val) <- rownames(cmap)
+    #colnames(Trans_val) <- sigs
+    #Trans_val <- Trans_val[,valInfo$sig_id]
+    
+    Trans_gsea <- fastenrichment(sigs,
+                                 geneInfo$gene_id,
+                                 Trans_val,
+                                 enrichment_space = sets_to_enr[k],
+                                 order_columns = F,
+                                 pval_adjustment=F,
+                                 n_permutations=100)
+    
+    NEShat <- Trans_gsea$NES[[set]]
+    NES <- genesets_results$NES[[set]]
+    
+    if (nrow(NES)>nrow(NEShat)){
+      NEShat <- NEShat[which(rownames(NEShat) %in% rownames(NES)),]
+      NES <- NES[rownames(NEShat),]
+      warning(paste0(set,' in Fold ',i,' has now fewer genesets infered'))
+    }
+    val_sig1 <- valPaired$sig_id.x
+    val_sig2 <- valPaired$sig_id.y
+    
+    # Baseline correlation
+    nes1 <- t(NES[,val_sig1])
+    nes2 <- t(NES[,val_sig2])
+    base_geneset_val_corr[i+1] <- as.numeric(cor.test(c(nes1),c(nes2))$estimate)
+    
+    # Predicted geneset enrichment
+    nes1_hat <- t(NEShat[,which(sigs==val_sig1)])
+    nes2_hat <- t(NEShat[,which(sigs==val_sig2)])
+    geneset_val_corr_cell2_to_cell1[i+1] <- as.numeric(cor.test(c(nes1_hat),c(nes1))$estimate)
+    geneset_val_corr_cell1_to_cell2[i+1] <- as.numeric(cor.test(c(nes2_hat),c(nes2))$estimate)
+    
+  }
+  base_geneset_corr[[set]] <- base_geneset_val_corr
+  model_geneset_corr_cell2_to_cell1[[set]] <- geneset_val_corr_cell2_to_cell1
+  model_geneset_corr_cell1_to_cell2[[set]] <- geneset_val_corr_cell1_to_cell2
+  k <- k+1
+  print(paste0('Finished ',set))
+}
+
+saveRDS(base_geneset_corr,'../results/base_genesets_correlation.rds')
+saveRDS(model_geneset_corr_cell1_to_cell2,'../results/model_A375_to_HT29_genesets_correlation.rds')
+saveRDS(model_geneset_corr_cell2_to_cell1,'../results/model_HT29_to_A375_genesets_correlation.rds')
+
+### Visualize results ------
+baseline_res <- do.call(cbind.data.frame, base_geneset_corr)
+baseline_res <- baseline_res %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+baseline_res <- baseline_res %>% mutate(model = 'direct translation')
+
+model_res <- do.call(cbind.data.frame, model_geneset_corr)
+model_res <- model_res %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
+model_res <- model_res %>% mutate(model = 'model')
+
+results <- rbind(baseline_res,model_res)
+results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(geneset) %>% filter(geneset!='') %>% unique()
+
+p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
+  ggtitle('Performance in 10-fold cross validation')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  theme_minimal(base_family = "serif",base_size = 15)+
+  theme(plot.title = element_text(hjust = 0.5,size=15))
+p <- p + stat_compare_means(aes(group = model),label='p.signif')
+print(p)

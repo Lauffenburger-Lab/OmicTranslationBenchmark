@@ -37,8 +37,6 @@ print2log = logger.info
 
 
 device = torch.device('cuda')
-print2log(torch.cuda.is_available())
-print2log(device)
 
 
 # In[3]:
@@ -57,7 +55,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.benchmark = False
     
 # Read data
-cmap = pd.read_csv('cmap_all_genes_q1_tas03.csv',index_col = 0)
+cmap = pd.read_csv('../preprocessing/preprocessed_data/all_cmap_landmarks.csv',index_col = 0)
 
 gene_size = len(cmap.columns)
 samples = cmap.index.values
@@ -132,11 +130,201 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 # In[6]:
 
 
-class_criterion = torch.nn.CrossEntropyLoss()
-NUM_EPOCHS= 1000
-bs_1 = 120
-bs_2 =  120
-bs_paired =  80
+#class_criterion = torch.nn.CrossEntropyLoss()
+#NUM_EPOCHS= 1000
+#bs = 512
+#bs_1 = model_params['batch_size_1']
+#bs_2 =  model_params['batch_size_2']
+#bs_paired =  model_params['batch_size_paired']
+
+
+# In[7]:
+
+
+#for i in range(10):
+#    # Network
+#    encoder = SimpleEncoder(gene_size,model_params['encoder_1_hiddens'],model_params['latent_dim'],
+#                              dropRate=model_params['dropout_encoder'], 
+#                              activation=model_params['encoder_activation']).to(device)
+#    prior_d = PriorDiscriminator(model_params['latent_dim']).to(device)
+#    local_d = LocalDiscriminator(model_params['latent_dim'],model_params['latent_dim']).to(device)
+#    
+#    adverse_classifier = Classifier(in_channel=model_params['latent_dim'],
+#                                    hidden_layers=model_params['adv_class_hidden'],
+#                                    num_classes=model_params['no_adv_class'],
+#                                    drop_in=0.5,
+#                                    drop=0.3).to(device)
+#    
+#    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
+#    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
+#    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+#    
+#    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+#    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+#    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+#    
+#    N_paired = len(trainInfo_paired)
+#    N_1 = len(trainInfo_1)
+#    N_2 = len(trainInfo_2)
+#    N = N_1
+#    if N_2>N:
+#        N=N_2
+#    
+#    allParams = list(encoder.parameters())
+#    allParams = allParams + list(prior_d.parameters()) + list(local_d.parameters())
+#    allParams = allParams + list(adverse_classifier.parameters())
+#    optimizer = torch.optim.Adam(allParams, lr= model_params['encoding_lr'], weight_decay=model_params['adversary_wd'])
+#    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+#                                                step_size=model_params['schedule_step_enc'],
+#                                                gamma=model_params['gamma_enc'])
+#    for e in range(0, NUM_EPOCHS):
+#        encoder.train()
+#        prior_d.train()
+#        local_d.train()
+#        adverse_classifier.train()
+#        
+#        trainloader_1 = getSamples(N_1, bs_1)
+#        len_1 = len(trainloader_1)
+#        trainloader_2 = getSamples(N_2, bs_2)
+#        len_2 = len(trainloader_2)
+#        trainloader_paired = getSamples(N_paired, bs_paired)
+#        len_paired = len(trainloader_paired)
+#
+#        lens = [len_1,len_2,len_paired]
+#        maxLen = np.max(lens)
+#        
+#        if maxLen>lens[0]:
+#            trainloader_suppl = getSamples(N_1, bs_1)
+#            for jj in range(maxLen-lens[0]):
+#                trainloader_1.insert(jj,trainloader_suppl[jj])
+#        
+#        if maxLen>lens[1]:
+#            trainloader_suppl = getSamples(N_2, bs_2)
+#            for jj in range(maxLen-lens[1]):
+#                trainloader_2.insert(jj,trainloader_suppl[jj])
+#        
+#        if maxLen>lens[2]:
+#            trainloader_suppl = getSamples(N_paired, bs_paired)
+#            for jj in range(maxLen-lens[2]):
+#                trainloader_paired.insert(jj,trainloader_suppl[jj])
+#        
+#        for j in range(maxLen):
+#            dataIndex_1 = trainloader_1[j]
+#            dataIndex_2 = trainloader_2[j]
+#            dataIndex_paired = trainloader_paired[j]
+#            
+#            df_pairs = trainInfo_paired.iloc[dataIndex_paired,:]
+#            df_1 = trainInfo_1.iloc[dataIndex_1,:]
+#            df_2 = trainInfo_2.iloc[dataIndex_2,:]
+#            paired_inds = len(df_pairs)
+#            
+#            
+#            X_1 = torch.tensor(np.concatenate((cmap.loc[df_pairs['sig_id.x']].values,
+#                                                 cmap.loc[df_1.sig_id].values))).float().to(device)
+#            X_2 = torch.tensor(np.concatenate((cmap.loc[df_pairs['sig_id.y']].values,
+#                                                 cmap.loc[df_2.sig_id].values))).float().to(device)
+#            
+#            
+#            conditions = np.concatenate((df_pairs.conditionId.values,
+#                                         df_1.conditionId.values,
+#                                         df_pairs.conditionId.values,
+#                                         df_2.conditionId.values))
+#            size = conditions.size
+#            conditions = conditions.reshape(size,1)
+#            conditions = conditions == conditions.transpose()
+#            conditions = conditions*1
+#            mask = torch.tensor(conditions).to(device).detach()
+#            pos_mask = mask
+#            neg_mask = 1 - mask
+#            log_2 = math.log(2.)
+#            optimizer.zero_grad()
+#                        
+#            #if iteration % model_params["adversary_steps"] == 0:            
+#            z_1 = encoder(X_1)
+#            z_2 = encoder(X_2)
+#            latent_vectors = torch.cat((z_1, z_2), 0)
+#            labels_adv = adverse_classifier(latent_vectors)
+#            true_labels = torch.cat((torch.ones(z_1.shape[0]),
+#                                     torch.zeros(z_2.shape[0])),0).long().to(device)
+#            adv_entropy = class_criterion(labels_adv,true_labels)
+#            _, predicted = torch.max(labels_adv, 1)
+#            predicted = predicted.cpu().numpy()
+#            cf_matrix = confusion_matrix(true_labels.cpu().numpy(),predicted)
+#            tn, fp, fn, tp = cf_matrix.ravel()
+#            f1 = 2*tp/(2*tp+fp+fn)
+#            
+#            
+#            #z_un = local_d(torch.cat((z_1, z_2), 0))
+#            z_un = local_d(latent_vectors)
+#            res_un = torch.matmul(z_un, z_un.t())
+#            
+#            p_samples = res_un * pos_mask.float()
+#            q_samples = res_un * neg_mask.float()
+#
+#            Ep = log_2 - F.softplus(- p_samples)
+#            Eq = F.softplus(-q_samples) + q_samples - log_2
+#
+#            Ep = (Ep * pos_mask.float()).sum() / pos_mask.float().sum()
+#            Eq = (Eq * neg_mask.float()).sum() / neg_mask.float().sum()
+#            mi_loss = Eq - Ep
+#
+#            #prior = torch.rand_like(torch.cat((z_1, z_2), 0))
+#            prior = torch.rand_like(latent_vectors)
+#
+#            term_a = torch.log(prior_d(prior)).mean()
+#            term_b = torch.log(1.0 - prior_d(latent_vectors)).mean()
+#            prior_loss = -(term_a + term_b) * model_params['prior_beta']
+#            
+#            # Remove signal from z_basal
+#            loss = mi_loss + prior_loss + adv_entropy + adverse_classifier.L2Regularization(model_params['state_class_reg']) +encoder.L2Regularization(model_params['enc_l2_reg'])
+#                   
+#
+#            loss.backward()
+#            optimizer.step()
+#            
+#        scheduler.step()
+#        outString = 'Split {:.0f}: Epoch={:.0f}/{:.0f}'.format(i+1,e+1,NUM_EPOCHS)
+#        outString += ', MI Loss={:.4f}'.format(mi_loss.item())
+#        outString += ', Prior Loss={:.4f}'.format(prior_loss.item())
+#        outString += ', Entropy Loss={:.4f}'.format(adv_entropy.item())
+#        outString += ', loss={:.4f}'.format(loss.item())
+#        outString += ', F1 score={:.4f}'.format(f1)
+#        if (e%250==0):
+#            print2log(outString)
+#    print2log(outString)
+#    encoder.eval()
+#    prior_d.eval()
+#    local_d.eval()
+#    adverse_classifier.eval()
+#    
+#    paired_val_inds = len(valInfo_paired)
+#    x_1 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.x']].values,
+#                                          cmap.loc[valInfo_1.sig_id].values))).float().to(device)
+#    x_2 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.y']].values,
+#                                          cmap.loc[valInfo_2.sig_id].values))).float().to(device)
+#    
+#    
+#    z_latent_1 = encoder(x_1)
+#    z_latent_2 = encoder(x_2)
+#    
+#    
+#    labels = adverse_classifier(torch.cat((z_latent_1, z_latent_2), 0))
+#    true_labels = torch.cat((torch.ones(z_latent_1.shape[0]).view(z_latent_1.shape[0],1),
+#                             torch.zeros(z_latent_2.shape[0]).view(z_latent_2.shape[0],1)),0).long()
+#    _, predicted = torch.max(labels, 1)
+#    predicted = predicted.cpu().numpy()
+#    cf_matrix = confusion_matrix(true_labels.numpy(),predicted)
+#    tn, fp, fn, tp = cf_matrix.ravel()
+#    class_acc = (tp+tn)/predicted.size
+#    f1 = 2*tp/(2*tp+fp+fn)
+#        
+##    print2log('Classification accuracy: %s'%class_acc)
+##    print2log('Classification F1 score: %s'%f1)
+##    
+##    torch.save(encoder,'MI_results/models/CPA_approach/pre_trained_master_encoder_%s.pt'%i)
+##    torch.save(adverse_classifier,'MI_results/models/CPA_approach/pre_trained_classifier_adverse_%s.pt'%i)
+
+
 # ### Train the whole model
 
 # In[8]:
@@ -187,65 +375,21 @@ crossCorrelation = []
 valF1 = []
 valClassAcc = []
 
-pretrained_adv_class = torch.load('MI_results/models/CPA_approach/pre_trained_classifier_adverse_1.pt')
-
-#folders = ['sample_len101','sample_len203','sample_len308',
-#           'sample_len407','sample_len510','sample_len818',
-#           'sample_len1027','sample_len1513','sample_len1813']
-
-
-#folders = ['sample_ratio0.415823367065317','sample_ratio0.480220791168353','sample_ratio',
-#           'sample_ratio','sample_ratio','sample_ratio',
-#           'sample_ratio','sample_ratio','sample_ratio']
-import os
-folders = [x[0].split('/')[-1] for x in os.walk('sampledDatasetes/ratiosHT29/')]
-folders.pop(0)
-folders.sort()
-
-#folders = ['sample_ratio_456','sample_ratio_569','sample_ratio_683']
-
-batchSizes_2 = [10,30,40,50,65,80,90,100,120,150]
-#batchSizes_2 = [5,10,15,20,25,30,50,70,80]
-#batchSizes_paired = [2,6,12,30,50,90]
-#batchSizes_paired = [30,50,90]
+folders = ['sample_len100','sample_len205','sample_len301',
+           'sample_len407','sample_len506','sample_len802',
+           'sample_len1020','sample_len1522','sample_len1968']
+batchSizes_1 = [5,9,15,20,30,40,60,80,100]
+batchSizes_2 = [5,9,15,20,30,40,60,80,100]
+batchSizes_paired = [5,12,15,21,30,40,60,70,80]
 
 for fold_id,folder in enumerate(folders):
 
-    #bs_1 = batchSizes_1[fold_id]
+    bs_1 = batchSizes_1[fold_id]
     bs_2 = batchSizes_2[fold_id]
-    print2log('Working with folder:'+folder)
-    #bs_paired = batchSizes_paired[fold_id]
-
-    valR2 = []
-    valPear = []
-    valMSE = []
-    valSpear = []
-    valAccuracy = []
-
-    valPearDirect = []
-    valSpearDirect = []
-    valAccDirect = []
-
-    valR2_1 = []
-    valPear_1 = []
-    valMSE_1 = []
-    valSpear_1 = []
-    valAccuracy_1 = []
-
-    valR2_2 = []
-    valPear_2 = []
-    valMSE_2 = []
-    valSpear_2 = []
-    valAccuracy_2 = []
-
-    crossCorrelation = []
-
-    valF1 = []
-    valClassAcc = []
+    bs_paired = batchSizes_paired[fold_id]
 
     for i in range(1,6):
-
-        # Network
+    # Network
         decoder_1 = Decoder(model_params['latent_dim'],model_params['decoder_1_hiddens'],gene_size,
                         dropRate=model_params['dropout_decoder'], 
                         activation=model_params['decoder_activation']).to(device)
@@ -271,18 +415,18 @@ for fold_id,folder in enumerate(folders):
                                     num_classes=model_params['no_adv_class'],
                                     drop_in=model_params['adv_class_drop_in'],
                                     drop=model_params['adv_class_drop']).to(device)
-
+        pretrained_adv_class = torch.load('../results/MI_results/models/CPA_approach/pre_trained_classifier_adverse_1.pt')
         adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
     
         Vsp = SpeciesCovariate(2,model_params['latent_dim'],dropRate=model_params['V_dropout']).to(device)
     
-        trainInfo_paired = pd.read_csv('sampledDatasetes/ratiosHT29/'+folder+'/train_paired_%s.csv'%i,index_col=None)
-        trainInfo_1 = pd.read_csv('sampledDatasetes/ratiosHT29/'+folder+'/train_A375_%s.csv'%i,index_col=None)
-        trainInfo_2 = pd.read_csv('sampledDatasetes/ratiosHT29/'+folder+'/train_HT29_%s.csv'%i,index_col=None)
+        trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/train_paired_%s.csv'%i,index_col=0)
+        trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/train_A375_%s.csv'%i,index_col=0)
+        trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/train_HT29_%s.csv'%i,index_col=0)
 
-        valInfo_paired = pd.read_csv('sampledDatasetes/ratiosHT29/'+folder+'/val_paired_%s.csv'%i,index_col=None)
-        valInfo_1 = pd.read_csv('sampledDatasetes/ratiosHT29/'+folder+'/val_A375_%s.csv'%i,index_col=None)
-        valInfo_2 = pd.read_csv('sampledDatasetes/ratiosHT29/'+folder+'/val_HT29_%s.csv'%i,index_col=None)
+        valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/val_paired_%s.csv'%i,index_col=0)
+        valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/val_A375_%s.csv'%i,index_col=0)
+        valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/val_HT29_%s.csv'%i,index_col=0)
     
         N_paired = len(trainInfo_paired)
         N_1 = len(trainInfo_1)
@@ -598,12 +742,12 @@ for fold_id,folder in enumerate(folders):
         valMSE_2.append(mse_2.item())
         #print('R^2 1: %s'%r2_1.item())
         print2log('Pearson correlation 1: %s'%pearson_1.item())
-        print2log('Spearman correlation 1: %s'%valSpear_1[i-1])
-        print2log('Pseudo-Accuracy 1: %s'%valAccuracy_1[i-1])
+        print2log('Spearman correlation 1: %s'%valSpear_1[i])
+        print2log('Pseudo-Accuracy 1: %s'%valAccuracy_1[i])
         #print('R^2 2: %s'%r2_2.item())
         print2log('Pearson correlation 2: %s'%pearson_2.item())
-        print2log('Spearman correlation 2: %s'%valSpear_2[i-1])
-        print2log('Pseudo-Accuracy 2: %s'%valAccuracy_2[i-1])
+        print2log('Spearman correlation 2: %s'%valSpear_2[i])
+        print2log('Pseudo-Accuracy 2: %s'%valAccuracy_2[i])
     
     
         #x_1_equivalent = torch.tensor(cmap_val.loc[mask.index[np.where(mask>0)[0]],:].values).float().to(device)
@@ -663,15 +807,15 @@ for fold_id,folder in enumerate(folders):
         valSpearDirect.append(spearDirect)
         valAccDirect.append([accDirect_2,accDirect_1])
     
-        #torch.save(decoder_1,'sampledDatasetes/pairedPercs/'+folder+'/decoder_1_%s.pt'%i)
-        #torch.save(decoder_2,'sampledDatasetes/pairedPercs/'+folder+'/decoder_2_%s.pt'%i)
-        #torch.save(prior_d,'sampledDatasetes/pairedPercs/'+folder+'/priorDiscr_%s.pt'%i)
-        #torch.save(local_d,'sampledDatasetes/pairedPercs/'+folder+'/localDiscr_%s.pt'%i)
-        #torch.save(encoder_1,'sampledDatasetes/pairedPercs/'+folder+'/encoder_1_%s.pt'%i)
-        #torch.save(encoder_2,'sampledDatasetes/pairedPercs/'+folder+'/encoder_2_%s.pt'%i)
-        #torch.save(classifier,'sampledDatasetes/pairedPercs/'+folder+'/classifier_%s.pt'%i)
-        #torch.save(Vsp,'sampledDatasetes/pairedPercs/'+folder+'/Vspecies_%s.pt'%i)
-        #torch.save(adverse_classifier,'sampledDatasetes/pairedPercs/'+folder+'/classifier_adverse_%s.pt'%i)
+        torch.save(decoder_1,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/decoder_1_%s.pt'%i)
+        torch.save(decoder_2,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/decoder_2_%s.pt'%i)
+        torch.save(prior_d,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/priorDiscr_%s.pt'%i)
+        torch.save(local_d,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/localDiscr_%s.pt'%i)
+        torch.save(encoder_1,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/encoder_1_%s.pt'%i)
+        torch.save(encoder_2,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/encoder_2_%s.pt'%i)
+        torch.save(classifier,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/classifier_%s.pt'%i)
+        torch.save(Vsp,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/Vspecies_%s.pt'%i)
+        torch.save(adverse_classifier,'../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'/classifier_adverse_%s.pt'%i)
 
 
     print2log('Summarize validation results folder %s'%fold_id)
@@ -723,4 +867,4 @@ for fold_id,folder in enumerate(folders):
                               'Direct_pearson':valPearDirect,'Direct_spearman':valSpearDirect,
                               'DirectAcc_ht29':valAccDirect[:,0],'DirectAcc_a375':valAccDirect[:,1]})
 
-    df_result.to_csv('sampledDatasetes/ratiosHT29/'+folder+'.csv')
+    df_result.to_csv('../preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/'+folder+'.csv')

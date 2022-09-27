@@ -23,6 +23,7 @@ sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
 sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(qc_pass==1 & nsample>=3,1,0)) # no exempler controls so I just remove that constraint
 sigInfo <- sigInfo %>% filter(pert_type=='ctl_untrt')
 sigInfo <- sigInfo %>% filter(quality_replicates==1)
+sigInfo <- sigInfo %>% filter(pert_time<=24)
 
 # Filter based on TAS
 sigInfo <- sigInfo %>% filter(tas<=0.3)
@@ -171,7 +172,7 @@ write.csv(t(cmap), 'preprocessed_data/cmap_untreated_tas03.csv')
 
 # Drug condition information
 sigInfo <- sigInfo  %>% filter(tas<=0.3)
-#sigInfo <- sigInfo %>% filter(pert_time==96)
+sigInfo <- sigInfo %>% filter(pert_time<=24)
 conditions <- sigInfo %>%  group_by(cell_iname) %>% summarise(conditions_per_cell = n_distinct(conditionId)) %>% ungroup()
 
 # Take top 5 cell-lines and keep the two with the most common data
@@ -200,25 +201,25 @@ cell1 <- as.character(common$Var1[ind])
 cell2 <- as.character(common$Var2[ind])
 
 # For now get A375 and HT29
-sigInfo <- sigInfo %>% filter(cell_iname=='A375' | cell_iname=='HT29')
+sigInfo <- sigInfo %>% filter(cell_iname=='PC3' | cell_iname=='HA1E')
 
 # Split the data of the two cell-lines into:
 # paired: 1 dataframe with paired conditions
 # unpaired: 2 datasets one for each celline
 
-a375 <- sigInfo %>% filter(cell_iname=='A375') %>% select(conditionId,sig_id,cell_iname) %>% unique()
-ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% select(conditionId,sig_id,cell_iname) %>% unique()
+a375 <- sigInfo %>% filter(cell_iname=='PC3') %>% select(conditionId,sig_id,cell_iname) %>% unique()
+ht29 <- sigInfo %>% filter(cell_iname=='HA1E') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 paired <- merge(a375,ht29,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y))) %>% unique()
-write.csv(paired,'preprocessed_data/10fold_validation_spit/alldata/paired_untreated_a375_ht29.csv')
+write.csv(paired,'preprocessed_data/10fold_validation_spit/alldata/paired_untreated_pc3_ha1e.csv')
 
 sigInfo <- sigInfo %>% select(sig_id,cell_iname,conditionId) %>% unique() %>%
   filter(!(sig_id %in% unique(c(paired$sig_id.x,paired$sig_id.y)))) %>% unique()
-a375 <- sigInfo %>% filter(cell_iname=='A375') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
-ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
-write.csv(a375,'preprocessed_data/10fold_validation_spit/alldata/a375_unpaired_untreated.csv')
-write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired_untreated.csv') #zero
+a375 <- sigInfo %>% filter(cell_iname=='PC3') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
+ht29 <- sigInfo %>% filter(cell_iname=='HA1E') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
+write.csv(a375,'preprocessed_data/10fold_validation_spit/alldata/pc3_unpaired_untreated.csv')
+write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ha1e_unpaired_untreated.csv') #zero
 
-write.csv(sigInfo,'preprocessed_data/conditions_HT29_A375.csv')
+#write.csv(sigInfo,'preprocessed_data/conditions_HA1E_PC3.csv')
 
 # Check correlations in baseline-----
 cmap <- readRDS('preprocessed_data/cmap_all_controls_untreated_q1.rds')
@@ -251,3 +252,52 @@ ht29_untreated <- t(ht29_untreated)
 corr_pear <- mapply(cor, as.data.frame(a375_untreated),as.data.frame(ht29_untreated))
 hist(corr_pear)
 print(mean(corr_pear))
+
+## Load ccle and keep only genes of L1000-----
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
+geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
+# Keep only protein-coding genes
+geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
+
+# Load signature info and split data to high quality replicates and low quality replicates
+sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
+sigInfo <- sigInfo %>% mutate(quality_replicates = ifelse(qc_pass==1 & nsample>=3,1,0)) # no exempler controls so I just remove that constraint
+sigInfo <- sigInfo %>% filter(pert_type=='ctl_untrt')
+sigInfo <- sigInfo %>% filter(quality_replicates==1)
+sigInfo <- sigInfo %>% filter(pert_time<=24)
+
+# Filter based on TAS
+sigInfo <- sigInfo %>% filter(tas<=0.3)
+
+# Duplicate information
+sigInfo <- sigInfo %>% mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
+sigInfo <- sigInfo %>% group_by(duplIdentifier) %>% mutate(dupl_counts = n()) %>% ungroup()
+
+# Drug condition information
+sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
+conditions <- sigInfo %>%  group_by(cell_iname) %>% summarise(conditions_per_cell = n_distinct(conditionId)) %>% ungroup()
+
+ccle <- t(data.table::fread('../data/CCLE/CCLE_expression.csv') %>% column_to_rownames('V1'))
+ccle <- as.data.frame(ccle) %>% rownames_to_column('V1') %>% separate(V1,c('gene_id','useless'),sep=" ") %>%
+  dplyr::select(-useless) %>% column_to_rownames('gene_id')
+ccle <- as.data.frame(t(ccle)) %>% rownames_to_column('DepMap_ID')
+sample_info <- data.table::fread('../data/CCLE/sample_info.csv') %>% dplyr::select(DepMap_ID,stripped_cell_line_name) %>%
+  unique()
+ccle <- left_join(ccle,sample_info) %>% dplyr::select(-DepMap_ID) %>%
+  column_to_rownames('stripped_cell_line_name')
+ccle <- ccle[which(rownames(ccle) %in% unique(sigInfo$cell_iname)),]
+ind <- ncol(ccle)
+
+genes_missing <- geneInfo$gene_symbol[which(!(geneInfo$gene_symbol %in% colnames(ccle)))]
+
+ccle <- cbind(ccle,data.frame(matrix(0,nrow(ccle),length(genes_missing))))
+colnames(ccle)[(ind+1):ncol(ccle)] <- genes_missing
+print(all(rownames(cmap)==geneInfo$gene_id))
+df_genes <- left_join(data.frame(gene_symbol=rownames(cmap)),
+                      geneInfo %>% select(gene_symbol,gene_id) %>% unique())
+print(all(rownames(cmap)==geneInfo$gene_symbol))
+rownames(cmap) <- geneInfo$gene_symbol  
+
+ccle <- ccle %>% select(rownames(cmap))
+ccle <- t(ccle)
+write.csv(ccle,'preprocessed_data/ccle_l1000genes.csv')

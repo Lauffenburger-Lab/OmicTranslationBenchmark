@@ -365,9 +365,9 @@ print(p)
 
 
 ## Build classifier only using latent space embeddings
-emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_pc3.csv',header = T)) %>% column_to_rownames('V1')
+emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_pc3.csv',header = T)) %>% column_to_rownames('V1')
 emb1 <- emb1 %>% mutate(cell='PC3')
-emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_ha1e.csv',header = T)) %>% column_to_rownames('V1')
+emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_ha1e.csv',header = T)) %>% column_to_rownames('V1')
 emb2 <- emb2 %>% mutate(cell='HA1E')
 
 all_embs <- rbind(emb1,emb2)
@@ -396,14 +396,14 @@ p <- ggplot(all_embs,aes(x=`z307`,y=`z992`,col=label)) + geom_point()+
 print(p)
 
 ### Find important genes to encode into each latent variable important for classification
-importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_pc3.csv',header=T) %>% column_to_rownames('V1')
-importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
+importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_pc3_cpa.csv',header=T) %>% column_to_rownames('V1')
+importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_ha1e_cpa.csv',header=T) %>% column_to_rownames('V1')
 
 importance_class_1 <- apply(importance_class_1,2,mean)
 importance_class_2 <- apply(importance_class_2,2,mean)
 
-top10_1 <- order(-abs(importance_class_1))[1:15]
-top10_2 <- order(-abs(importance_class_2))[1:15]
+top10_1 <- order(-abs(importance_class_1))[1:10]
+top10_2 <- order(-abs(importance_class_2))[1:10]
 
 df1 <- data.frame(scores_1=importance_class_1[top10_1]) %>% rownames_to_column('Genes1')
 df2 <- data.frame(scores_2=importance_class_2[top10_2]) %>% rownames_to_column('Genes2')
@@ -416,20 +416,22 @@ ggplot(df2,aes(x=Genes2,y=scores_2)) + geom_bar(stat='identity')
 var_1 <- names(importance_class_1)[top10_1[1:10]]
 var_2 <- names(importance_class_2)[top10_2[1:10]]
 
-emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_pc3_withclass.csv',header = T)) %>% column_to_rownames('V1')
+emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_pc3.csv',header = T)) %>% column_to_rownames('V1')
 emb1 <- emb1 %>% mutate(cell='PC3')
-emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_ha1e_withclass.csv',header = T)) %>% column_to_rownames('V1')
+emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_ha1e.csv',header = T)) %>% column_to_rownames('V1')
 emb2 <- emb2 %>% mutate(cell='HA1E')
 all_embs <- rbind(emb1,emb2)
 
-ggplot(all_embs,aes(x=`z1009`,y=`z263`)) + geom_point(aes(color=cell)) +
+# x=`z1009`,y=`z263` for AE with classifier only and MI not CPA
+ggplot(all_embs,aes(x=`z778`,y=`z987`)) + geom_point(aes(color=cell)) +
   ggtitle('Scatter plot using only 2 latent variable') +theme(text = element_text(family = "serif",size = 14))
 
 # Load importance to encode
-imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_encode_allgenes_withclass_noabs.csv') %>%
+#important_scores_pc3_encode_allgenes_withclass_noabs.csv and var_x[1:2]
+imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode_cpa.csv') %>%
   select(c('Gene_1'='V1'),all_of(var_1[1:2])) %>% column_to_rownames('Gene_1')
 imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
-imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_encode_allgenes_withclass_noabs.csv')%>%
+imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode_cpa.csv')%>%
   select(c('Gene_2'='V1'),all_of(var_2[1:2])) %>% column_to_rownames('Gene_2')
 imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
 
@@ -458,8 +460,14 @@ fig
 #imp_enc_1 <- imp_enc_1 %>% column_to_rownames('Gene_1')
 #imp_enc_2 <- imp_enc_2 %>% column_to_rownames('Gene_2')
 
-top50_1 <- rownames(imp_enc_1)[order(imp_enc_1$mean_imp)][1:50]
-top50_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)][1:50]
+# to eixa order by absolute value kai sta 2
+top50_1 <- rownames(imp_enc_1)[order(abs(imp_enc_1$mean_imp))][1:50]
+top50_2 <- rownames(imp_enc_2)[order(abs(imp_enc_2$mean_imp))][1:50]
+
+df1 <- as.data.frame(top50_1)
+df2 <- as.data.frame(top50_2)
+df1 <- left_join(df1,geneInfo,by=c("top50_1"="gene_id"))
+df2 <- left_join(df2,geneInfo,by=c("top50_2"="gene_id"))
 
 gex_filtered <- gex %>% select(all_of(unique(c(top50_1,top50_2))),cell)
 

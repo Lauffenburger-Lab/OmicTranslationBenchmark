@@ -29,6 +29,10 @@ results/trained_models/alldata_cpa_encoder_ha1e.pt
 results/trained_models/alldata_cpa_encoder_pc3.pt
 results/trained_models/alldata_cpa_locald_pc3_ha1e.pt
 results/trained_models/alldata_cpa_priord_pc3_ha1e.pt
+results/all_gensetsEnrich_results_allgenes_drugs_a375_ht29.rds
+results/all_gensetsEnrich_results_allgenes_drugs_pc3_ha1e.rds
+results/all_gensetsEnrich_results_landmarks_drugs_a375_ht29.rds
+results/all_gensetsEnrich_results_landmarks_drugs_pc3_ha1e.rds
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
@@ -47,5 +51,7 @@ preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_untreated_
 preprocessing/preprocessed_data/10fold_validation_spit/alldata/pc3_unpaired_untreated.csv
 preprocessing/preprocessed_data/AllfilteredDrugs.csv
 preprocessing/preprocessed_data/conditions_PC3_HA1E.csv
+preprocessing/preprocessed_data/ccle_l1000genes.csv
+preprocessing/preprocessed_data/conditions_HA1E_PC3.csv
 learning/__pycache__/
 .Rproj.user
