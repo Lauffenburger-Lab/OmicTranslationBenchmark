@@ -310,3 +310,115 @@ print(p)
 dev.off()
 
 ### TFs dorothea performance--------------
+library(dorothea)
+minNrOfGenes = 5
+dorotheaData = read.table('../../../Artificial-Signaling-Network/TF activities/annotation/dorothea.tsv', sep = "\t", header=TRUE)
+confidenceFilter = is.element(dorotheaData$confidence, c('A', 'B'))
+dorotheaData = dorotheaData[confidenceFilter,]
+
+print(all(rownames(cmap)==geneInfo$gene_id))
+rownames(cmap) <- geneInfo$gene_symbol
+# Estimate TF activities of ground truth
+settings = list(verbose = TRUE, minsize = minNrOfGenes)
+TF_activities = run_viper(cmap, dorotheaData, options =  settings)
+
+tfs_corr_cell1_cell2 <- NULL
+tfs_corr_cell2_cell1 <- NULL
+base_tfs_cor <- NULL
+gex_corr_cell2_cell1 <- NULL
+gex_corr_cell1_cell2 <- NULL
+for (i in 0:9){
+  # validation info
+  # valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',
+  #                                      tolower(cells[1]),'_',
+  #                                      tolower(cells[2]),'_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+  valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',
+                                       i,'.csv'),header = T) %>% column_to_rownames('V1')
+  valInfo <- rbind(valPaired %>% dplyr::select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
+                   valPaired %>% dplyr::select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
+  valInfo <- valInfo %>% unique()
+  valInfo <- valInfo %>% dplyr::select(sig_id,conditionId,cell_iname)
+  
+  # Load predictions # RUN SATORI TO GET PREDICTIONS
+  Trans_val <- distinct(rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach_10K/validation/valTrans_',i,'_',tolower(cells[1]),'.csv'),header = T),
+                              data.table::fread(paste0('../results/MI_results/embs/CPA_approach_10K/validation/valTrans_',i,'_',tolower(cells[2]),'.csv'),header = T)))
+  sigs <- Trans_val$V1
+  Trans_val <- t(Trans_val %>% dplyr::select(-V1))
+  rownames(Trans_val) <- rownames(cmap)
+  TF_activities_hat = run_viper(Trans_val, dorotheaData, options =  settings)
+  
+  val_sig1 <- valPaired$sig_id.x
+  val_sig2 <- valPaired$sig_id.y
+  
+  ## Genes analysis
+  
+  #Base ground truth genes
+  camp_tmp <- cmap[,which(colnames(cmap) %in% c(val_sig1,val_sig2))]
+  cmap1 <- camp_tmp[,val_sig1]
+  cmap2 <- camp_tmp[,val_sig2]
+  
+  # Predicted genes
+  cmap1_hat <- Trans_val[,which(sigs==val_sig1)]
+  cmap2_hat <- Trans_val[,which(sigs==val_sig2)]
+  gex_corr_cell2_cell1[i+1] <- as.numeric(cor.test(c(cmap1_hat),c(cmap1))$estimate)
+  gex_corr_cell1_cell2[i+1] <- as.numeric(cor.test(c(cmap2_hat),c(cmap2))$estimate)
+  
+  ## TFs analysis
+  
+  #Base ground truth TFS
+  tfs_tmp <- TF_activities[,which(colnames(TF_activities) %in% c(val_sig1,val_sig2))]
+  cmap1 <- tfs_tmp[,val_sig1]
+  cmap2 <- tfs_tmp[,val_sig2]
+  base_tfs_cor[i+1] <- as.numeric(cor.test(c(cmap1),c(cmap2))$estimate)
+  
+  # Predicted tfs enrichment
+  cmap1_hat <- TF_activities_hat[,which(sigs==val_sig1)]
+  cmap2_hat <- TF_activities_hat[,which(sigs==val_sig2)]
+  tfs_corr_cell2_cell1[i+1] <- as.numeric(cor.test(c(cmap1_hat),c(cmap1))$estimate)
+  tfs_corr_cell1_cell2[i+1] <- as.numeric(cor.test(c(cmap2_hat),c(cmap2))$estimate)
+  
+  print(paste0('Finished ',i))
+  
+}
+
+model_tfs <- data.frame('HT29 to A375'=tfs_corr_cell2_cell1,
+                      'A375 to HT29'=tfs_corr_cell1_cell2,
+                      'direct translation'=base_tfs_cor)
+model_tfs <- model_tfs %>% rownames_to_column('fold') %>% gather('translation','cor',-fold)
+model_tfs <- model_tfs %>% mutate(translation=str_replace(translation,'[.]',' '))
+model_tfs <- model_tfs %>% mutate(translation=str_replace(translation,'[.]',' '))
+model_tfs <- model_tfs %>% mutate(level='TFs')
+
+model_genes <- data.frame('HT29 to A375'=gex_corr_cell2_cell1,
+                        'A375 to HT29'=gex_corr_cell1_cell2)
+model_genes <- model_genes %>% rownames_to_column('fold') %>% gather('translation','cor',-fold)
+model_genes <- model_genes %>% mutate(translation=str_replace(translation,'[.]',' '))
+model_genes <- model_genes %>% mutate(translation=str_replace(translation,'[.]',' '))
+model_genes <- model_genes %>% mutate(level='Genes')
+
+results <- rbind(model_tfs,model_genes)
+
+p <- ggboxplot(results %>% filter(translation!='direct translation'),
+               x = "translation", y = 'cor',color='level',add='jitter',)+
+  ggtitle('TFs performance from translating predicted gene expression')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  theme_minimal(base_family = "serif",base_size = 30)+
+  theme(plot.title = element_text(hjust = 0.5,size=23),legend.position='bottom')
+p <- p + stat_compare_means(aes(group=level),method = 'wilcox.test',label='p.signif')
+print(p)
+
+png('../figures/tfs_vs_genes_translating_comparison.png',width=9,height=8,units = "in",res = 600)
+print(p)
+dev.off()
+
+comparisons <- list(c('direct translation','A375 to HT29'),c('direct translation','HT29 to A375'))
+p <- ggboxplot(results %>% filter(level!='Genes'),
+               x = "translation", y = 'cor',color='translation',add='jitter')+
+  ggtitle('TFs performance from translating predicted gene expression')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  theme_minimal(base_family = "serif",base_size = 30)+
+  theme(plot.title = element_text(hjust = 0.5,size=23),legend.position='')
+p <- p + stat_compare_means(comparisons=comparisons,method = 'wilcox.test',label='p.signif')
+print(p)
+
+png('../figures/tfs_vs_direct_translating_comparison.png',width=9,height=8,units = "in",res = 600)
+print(p)
+dev.off()

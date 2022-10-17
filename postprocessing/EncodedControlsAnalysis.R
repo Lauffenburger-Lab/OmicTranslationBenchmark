@@ -33,10 +33,10 @@ df_pca$label <- controls$label
 df_pca$type <- controls$type
 
 png('../figures/pca_controls_ccle_a375_ht29.png',width=9,height=8,units = "in",res = 600)
-ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=2) +
+ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=3.5) +
   ggtitle('Scatterplot of controls in the PCA space') +
-  theme_gray(base_family = "serif",base_size = 13)+
-  theme(plot.title = element_text(hjust = 0.5,size=15))
+  theme_gray(base_family = "serif",base_size = 20)+
+  theme(plot.title = element_text(hjust = 0.5,size=20))
 dev.off()
 
 ## t-SNE
