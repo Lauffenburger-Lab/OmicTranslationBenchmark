@@ -100,12 +100,12 @@ res2 <- res2 %>% mutate(translation='HT29 to A375') %>%
   mutate(metric=ifelse(grepl('Acc',metric),'accuracy',ifelse(grepl('spearman',metric),'spearman','pearson')))
 
 all_results <- rbind(results %>% mutate(model='model translation'),
-                     res1%>% mutate(model='direct translation'),
-                     res2%>% mutate(model='direct translation'))
-all_results$model <- factor(all_results$model,levels = c('direct translation','model translation'))
+                     res1%>% mutate(model='direct translation in 10k genes'),
+                     res2%>% mutate(model='direct translation in 10k genes'))
+all_results$model <- factor(all_results$model,levels = c('direct translation in 10k genes','model translation'))
 
 p <- ggboxplot(all_results,x='metric',y='value',color='model',add='jitter') + 
-  scale_color_manual(breaks = c('model translation','direct translation'),
+  scale_color_manual(breaks = c('model translation','direct translation in 10k genes'),
                      values=scales::hue_pal()(length(unique(all_results$model))))+
   theme_minimal(base_family = "serif",base_size = 15)+ 
   theme(plot.title = element_text(hjust = 0.5,size=15),legend.position='bottom') + 
@@ -129,6 +129,13 @@ cells <- unique(unlist(strsplit(folders,'_')))
 # Load all cmap and keep only these cell-lines and calculate correlation-------------
 cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_all_genes_q1_tas03.csv',header=T) %>% 
   column_to_rownames('V1')
+
+# ## Run the following for landmarks analysis
+# lands = data.table::fread('../preprocessing/preprocessed_data/cmap_landmarks_HT29_A375.csv',header=T) %>% 
+#   column_to_rownames('V1')
+# lands = colnames(lands)
+# cmap <- cmap[,lands]
+# gc()
 
 #Load signature info and split data to high quality replicates and low quality replicates
 sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
@@ -178,6 +185,10 @@ for (folder in folders){
     select(-keep) %>% mutate(size=strsplit(size,'.csv')) %>% unnest(size) %>% unique() %>%
     mutate(size=strsplit(size,'sample_len')) %>% unnest(size) %>% 
     filter(size!='') %>% unique()
+  
+  #uncomment this for landmarks
+  # files <- files %>% mutate(size=strsplit(size,'_')) %>% unnest(size) %>% 
+  #   filter(size!='') %>% filter(size!='landmarks') %>% unique()
   files$size <- as.numeric(files$size)
   for (j in 1:nrow(files)){
     data <- data.table::fread(files$files[j])
@@ -185,6 +196,12 @@ for (folder in folders){
     colnames(data)[1] <- 'fold'
     data <- data %>% gather('metric','value',-fold)
     
+    # comment this if we use landmarks and use the line bellow
+    # data <- data %>% mutate(metric=ifelse(grepl('pearson',metric) & !grepl('Direct',metric) & !grepl('recon',metric),'pearson translation',
+    #                                ifelse(grepl('spear',metric) & !grepl('Direct',metric) & !grepl('recon',metric),'spearman translation',
+    #                                ifelse(grepl('acc',metric) & !grepl('Direct',metric) & !grepl('recon',metric),'sign accuracy translation',
+    #                                ifelse(metric=='F1_score','F1 score',
+    #                                ifelse(metric=='ClassAccuracy','Accuracy','other'))))))
     if (folder == 'A375_HT29'){
       data <- data %>% mutate(metric=ifelse(metric=='model_pearsonHT29' | metric=='model_pearsonA375','pearson translation',
                               ifelse(metric=='model_spearHT29' | metric=='model_spearA375','spearman translation',
@@ -202,6 +219,7 @@ for (folder in folders){
                               ifelse(metric=='F1_score','F1 score',
                               ifelse(metric=='ClassAccuracy','Accuracy','other'))))))))
     }
+    
     data <- data %>% filter(metric!='other')
     data <- data %>% group_by(fold,metric) %>% mutate(value=mean(value)) %>% ungroup() %>% unique()
     data <- data %>% mutate(size=files$size[j])
