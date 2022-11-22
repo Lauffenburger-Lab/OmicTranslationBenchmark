@@ -11,6 +11,9 @@ data/level5_beta_trt_cp_n720216x12328.gctx
 data/siginfo_beta.txt
 data/compoundinfo_beta.txt
 data/CCLE/*
+results/TransCompR_results/models/*
+results/TransCompR_results/embs/validation/*
+results/TransCompR_results/embs/train/*
 results/deepcellstate_results/models/*
 results/my_results/models/*
 results/my_results/embs/train/*
