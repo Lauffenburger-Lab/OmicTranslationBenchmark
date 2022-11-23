@@ -1,0 +1,13 @@
+,metric,Similarity trained Autoencoders,Autoencoders with classifier,CPA,TransCompR
+Similarity trained Autoencoders,pearson,1.0,0.9097218891455553,0.3846730627355087,0.9698499769931556
+Autoencoders with classifier,pearson,0.0,1.0,0.3447042220069576,0.9698499769931556
+CPA,pearson,0.0,0.0,1.0,0.3846730627355087
+TransCompR,pearson,0.0,0.0,0.0,1.0
+Similarity trained Autoencoders,spearman,1.0,0.47267559351158717,0.4273553138978077,0.00018267179110955002
+Autoencoders with classifier,spearman,0.0,1.0,0.7337299956962472,0.00018267179110955002
+CPA,spearman,0.0,0.0,1.0,0.00018267179110955002
+TransCompR,spearman,0.0,0.0,0.0,1.0
+Similarity trained Autoencoders,accuracy,1.0,0.6231762238821174,0.3447042220069576,0.00018267179110955002
+Autoencoders with classifier,accuracy,0.0,1.0,0.6775849579524755,0.00018267179110955002
+CPA,accuracy,0.0,0.0,1.0,0.00018267179110955002
+TransCompR,accuracy,0.0,0.0,0.0,1.0
