@@ -51,9 +51,9 @@ if gene_space=='landmarks':
 gene_size = len(cmap.columns)
 samples = cmap.index.values
 
-paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_a375_ht29.csv',index_col=None)
-data_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/a375_unpaired.csv',index_col=None)
-data_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired.csv',index_col=None)
+paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_pc3_ha1e.csv',index_col=None)
+data_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/pc3_unpaired.csv',index_col=None)
+data_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/ha1e_unpaired.csv',index_col=None)
 
 cmap1 = cmap.loc[np.concatenate((paired['sig_id.x'].values,data_1['sig_id'].values)),:]
 cmap2 = cmap.loc[np.concatenate((paired['sig_id.y'].values,data_2['sig_id'].values)),:]
@@ -86,16 +86,16 @@ pca_transformed_2 = pca_space_2.transform(cmap2)
 print2log('Begin TransCompR modeling...')
 ### Train TransCompR model with Decoder architecture
 if gene_space=='landmarks':
-    model_params = {'decoder_1_hiddens': [640, 768],
-                    'decoder_2_hiddens': [640, 768], #384,640
+    model_params = {'decoder_1_hiddens': [384,640],
+                    'decoder_2_hiddens': [384,640], #640, 768
                     'dropout_decoder': 0.2,
                     'decoder_activation': torch.nn.ELU(),
                     'lr': 0.001,
                     'schedule_step': 300,
                     'gamma': 0.8,
-                    'batch_size_1': 178,
-                    'batch_size_2': 154,
-                    'batch_size_paired': 90,
+                    'batch_size_1': 250, #178,
+                    'batch_size_2':  160, #154,
+                    'batch_size_paired': 75, #90,
                     'epochs': 1000,
                     'no_folds': 10,
                     'dec_l2_reg': 0.01,
@@ -108,9 +108,9 @@ else:
                     'lr': 0.001,
                     'schedule_step': 300,
                     'gamma': 0.8,
-                    'batch_size_1': 178,
-                    'batch_size_2': 154,
-                    'batch_size_paired': 90,
+                    'batch_size_1': 250, #178,
+                    'batch_size_2': 160, #154,
+                    'batch_size_paired': 75, #90,
                     'epochs': 1000,
                     'no_folds': 10,
                     'dec_l2_reg': 0.01,
@@ -143,7 +143,7 @@ for i in range(model_params["no_folds"]):
                         activation=model_params['decoder_activation']).to(device)
 
     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv' % i, index_col=0)
-    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv' % i, index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ha1e_%s.csv' % i, index_col=0)
 
     N_paired = len(trainInfo_paired)
     N = len(trainInfo_2)
@@ -207,7 +207,7 @@ for i in range(model_params["no_folds"]):
         if (e % 200 == 0):
             print2log(outString)
     print2log(outString)
-    torch.save(decoder_2, '../results/TransCompR_results/models/decoderSameDimCPA_ht29_%s.pt' % i)
+    torch.save(decoder_2, '../results/TransCompR_results/models/decoder_ha1e_%s.pt' % i)
 
 print2log('Train decoder for cell-line 1 to translate cell-line 2')
 for i in range(model_params["no_folds"]):
@@ -217,7 +217,7 @@ for i in range(model_params["no_folds"]):
                         activation=model_params['decoder_activation']).to(device)
 
     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv' % i, index_col=0)
-    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv' % i, index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_pc3_%s.csv' % i, index_col=0)
 
     N_paired = len(trainInfo_paired)
     N = len(trainInfo_1)
@@ -281,18 +281,18 @@ for i in range(model_params["no_folds"]):
         if (e % 200 == 0):
             print2log(outString)
     print2log(outString)
-    torch.save(decoder_1, '../results/TransCompR_results/models/decoderSameDimCPA_a375_%s.pt' % i)
+    torch.save(decoder_1, '../results/TransCompR_results/models/decoder_pc3_%s.pt' % i)
 
 print('Evaluate translation using decoders')
 for i in range(model_params["no_folds"]):
-    decoder_1 = torch.load('../results/TransCompR_results/models/decoderSameDimCPA_a375_%s.pt' % i)
-    decoder_2 = torch.load('../results/TransCompR_results/models/decoderSameDimCPA_ht29_%s.pt' % i)
+    decoder_1 = torch.load('../results/TransCompR_results/models/decoder_pc3_%s.pt' % i)
+    decoder_2 = torch.load('../results/TransCompR_results/models/decoder_ha1e_%s.pt' % i)
     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv' % i, index_col=0)
-    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv' % i, index_col=0)
-    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv' % i, index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_pc3_%s.csv' % i, index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ha1e_%s.csv' % i, index_col=0)
     valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_%s.csv' % i, index_col=0)
-    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_%s.csv' % i, index_col=0)
-    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_%s.csv' % i, index_col=0)
+    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_pc3_%s.csv' % i, index_col=0)
+    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ha1e_%s.csv' % i, index_col=0)
     decoder_1.eval()
     decoder_2.eval()
     
@@ -369,13 +369,13 @@ valSpear = np.array(valSpear)
 valAccuracy= np.array(valAccuracy)
 print2log(np.mean(valPear,axis=0))
 
-df_result = pd.DataFrame({'model_pearsonHT29':valPear[:,0],'model_pearsonA375':valPear[:,1],
-                          'model_spearHT29':valSpear[:,0],'model_spearA375':valSpear[:,1],
-                          'model_accHT29':valAccuracy[:,0],'model_accA375':valAccuracy[:,1],
-                          'recon_pear_ht29':valPear_2 ,'recon_pear_a375':valPear_1,
-                          'recon_spear_ht29':valSpear_2 ,'recon_spear_a375':valSpear_1,
-                          'recon_acc_ht29':valAccuracy_2 ,'recon_acc_a375':valAccuracy_1})
-df_result.to_csv('../results/TransCompR_results/'+gene_space+'_10foldvalidation_transcompr_decodersSameDimCPA_1000ep512bs_a375_ht29.csv')
+df_result = pd.DataFrame({'model_pearsonHA1E':valPear[:,0],'model_pearsonPC3':valPear[:,1],
+                          'model_spearHA1E':valSpear[:,0],'model_spearPC3':valSpear[:,1],
+                          'model_accHA1E':valAccuracy[:,0],'model_accPC3':valAccuracy[:,1],
+                          'recon_pear_ha1e':valPear_2 ,'recon_pear_pc3':valPear_1,
+                          'recon_spear_ha1e':valSpear_2 ,'recon_spear_pc3':valSpear_1,
+                          'recon_acc_ha1e':valAccuracy_2 ,'recon_acc_pc3':valAccuracy_1})
+df_result.to_csv('../results/TransCompR_results/'+gene_space+'_10foldvalidation_transcompr_decoders_1000ep512bs_pc3_ha1e.csv')
 
 ### Train model with just a transformation matrix
 print2log('Training Matrix architecture to predict GeX...')
@@ -425,7 +425,7 @@ for i in range(model_params["no_folds"]):
     decoder_2 = MatrixKernel(nComps2, gene_size).to(device)
 
     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv' % i, index_col=0)
-    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv' % i, index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ha1e_%s.csv' % i, index_col=0)
 
     N_paired = len(trainInfo_paired)
     N = len(trainInfo_2)
@@ -489,7 +489,7 @@ for i in range(model_params["no_folds"]):
         if (e % 200 == 0):
             print2log(outString)
     print2log(outString)
-    torch.save(decoder_2, '../results/TransCompR_results/models/MatrixKernelSameDimCPA_ht29_%s.pt' % i)
+    torch.save(decoder_2, '../results/TransCompR_results/models/MatrixKernel_ha1e_%s.pt' % i)
 
 print2log('Train Matrix for cell-line 1 to translate cell-line 2')
 for i in range(model_params["no_folds"]):
@@ -497,7 +497,7 @@ for i in range(model_params["no_folds"]):
     decoder_1 = MatrixKernel(nComps1, gene_size).to(device)
 
     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv' % i, index_col=0)
-    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv' % i, index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_pc3_%s.csv' % i, index_col=0)
 
     N_paired = len(trainInfo_paired)
     N = len(trainInfo_1)
@@ -561,18 +561,18 @@ for i in range(model_params["no_folds"]):
         if (e % 200 == 0):
             print2log(outString)
     print2log(outString)
-    torch.save(decoder_1, '../results/TransCompR_results/models/MatrixKernelSameDimCPA_a375_%s.pt' % i)
+    torch.save(decoder_1, '../results/TransCompR_results/models/MatrixKernel_pc3_%s.pt' % i)
 
 print('Evaluate translation using matrix kernel')
 for i in range(model_params["no_folds"]):
-    decoder_1 = torch.load('../results/TransCompR_results/models/MatrixKernelSameDimCPA_a375_%s.pt' % i)
-    decoder_2 = torch.load('../results/TransCompR_results/models/MatrixKernelSameDimCPA_ht29_%s.pt' % i)
+    decoder_1 = torch.load('../results/TransCompR_results/models/MatrixKernel_pc3_%s.pt' % i)
+    decoder_2 = torch.load('../results/TransCompR_results/models/MatrixKernel_ha1e_%s.pt' % i)
     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_%s.csv' % i, index_col=0)
-    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_%s.csv' % i, index_col=0)
-    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_%s.csv' % i, index_col=0)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_pc3_%s.csv' % i, index_col=0)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/train_ha1e_%s.csv' % i, index_col=0)
     valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_%s.csv' % i, index_col=0)
-    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_%s.csv' % i, index_col=0)
-    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_%s.csv' % i, index_col=0)
+    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_pc3_%s.csv' % i, index_col=0)
+    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/val_ha1e_%s.csv' % i, index_col=0)
     decoder_1.eval()
     decoder_2.eval()
     
@@ -649,10 +649,10 @@ valSpear = np.array(valSpear)
 valAccuracy= np.array(valAccuracy)
 print2log(np.mean(valPear,axis=0))
 
-df_result = pd.DataFrame({'model_pearsonHT29':valPear[:,0],'model_pearsonA375':valPear[:,1],
-                          'model_spearHT29':valSpear[:,0],'model_spearA375':valSpear[:,1],
-                          'model_accHT29':valAccuracy[:,0],'model_accA375':valAccuracy[:,1],
-                          'recon_pear_ht29':valPear_2 ,'recon_pear_a375':valPear_1,
-                          'recon_spear_ht29':valSpear_2 ,'recon_spear_a375':valSpear_1,
-                          'recon_acc_ht29':valAccuracy_2 ,'recon_acc_a375':valAccuracy_1})
-df_result.to_csv('../results/TransCompR_results/'+gene_space+'_10foldvalidation_transcompr_matrixKernelSameDimCPA_1000ep512bs_a375_ht29.csv')
+df_result = pd.DataFrame({'model_pearsonHA1E':valPear[:,0],'model_pearsonPC3':valPear[:,1],
+                          'model_spearHA1E':valSpear[:,0],'model_spearPC3':valSpear[:,1],
+                          'model_accHA1E':valAccuracy[:,0],'model_accPC3':valAccuracy[:,1],
+                          'recon_pear_ha1e':valPear_2 ,'recon_pear_pc3':valPear_1,
+                          'recon_spear_ha1e':valSpear_2 ,'recon_spear_pc3':valSpear_1,
+                          'recon_acc_ha1e':valAccuracy_2 ,'recon_acc_pc3':valAccuracy_1})
+df_result.to_csv('../results/TransCompR_results/'+gene_space+'_10foldvalidation_transcompr_matrixKernel_1000ep512bs_pc3_ha1e.csv')
