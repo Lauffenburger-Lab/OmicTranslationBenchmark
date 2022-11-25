@@ -423,7 +423,7 @@ emb2 <- emb2 %>% mutate(cell='HA1E')
 all_embs <- rbind(emb1,emb2)
 
 # x=`z1009`,y=`z263` for AE with classifier only and MI not CPA
-ggplot(all_embs,aes(x=`z778`,y=`z987`)) + geom_point(aes(color=cell)) +
+ggplot(all_embs,aes(x=`z853`,y=`z465`)) + geom_point(aes(color=cell)) +
   ggtitle('Scatter plot using only 2 latent variable') +theme(text = element_text(family = "serif",size = 14))
 
 # Load importance to encode
@@ -461,11 +461,12 @@ fig
 #imp_enc_2 <- imp_enc_2 %>% column_to_rownames('Gene_2')
 
 # to eixa order by absolute value kai sta 2
-top50_1 <- rownames(imp_enc_1)[order(abs(imp_enc_1$mean_imp))][1:50]
-top50_2 <- rownames(imp_enc_2)[order(abs(imp_enc_2$mean_imp))][1:50]
+top50_1 <- rownames(imp_enc_1)[order(-imp_enc_1$mean_imp)][1:50]
+top50_2 <- rownames(imp_enc_2)[order(-imp_enc_2$mean_imp)][1:50]
 
 df1 <- as.data.frame(top50_1)
 df2 <- as.data.frame(top50_2)
+geneInfo$gene_id <- as.character(geneInfo$gene_id) 
 df1 <- left_join(df1,geneInfo,by=c("top50_1"="gene_id"))
 df2 <- left_join(df2,geneInfo,by=c("top50_2"="gene_id"))
 
