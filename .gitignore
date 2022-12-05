@@ -21,6 +21,13 @@ results/ANNmixedTransCompR_results/models/*
 results/ANNmixedTransCompR_results/pretrained_models/*
 results/ANNmixedTransCompR_results/embs/validation/*
 results/ANNmixedTransCompR_results/embs/train/*
+results/CPAmixedTransCompR_results/models/*
+results/CPAmixedTransCompR_results/models_pcaLoss/*
+results/CPAmixedTransCompR_results/pretrained_models/*
+results/CPAmixedTransCompR_results/embs/validation/*
+results/CPAmixedTransCompR_results/embs/train/*
+results/CPAmixedTransCompR_results/models_10k_cpa_loss.zip
+results/CPAmixedTransCompR_results/models_10k.zip
 results/deepcellstate_results/models/*
 results/my_results/models/*
 results/my_results/embs/train/*
