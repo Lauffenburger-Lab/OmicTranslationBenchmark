@@ -28,6 +28,8 @@ results/CPAmixedTransCompR_results/embs/validation/*
 results/CPAmixedTransCompR_results/embs/train/*
 results/CPAmixedTransCompR_results/models_10k_cpa_loss.zip
 results/CPAmixedTransCompR_results/models_10k.zip
+results/CPAmixedTransCompR_results_10k/models_10k_cpa_loss.zip
+results/CPAmixedTransCompR_results_10k/models_10k.zip
 results/deepcellstate_results/models/*
 results/my_results/models/*
 results/my_results/embs/train/*
