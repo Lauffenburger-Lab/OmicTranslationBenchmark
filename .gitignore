@@ -11,6 +11,7 @@ data/level5_beta_trt_cp_n720216x12328.gctx
 data/siginfo_beta.txt
 data/compoundinfo_beta.txt
 data/CCLE/*
+serology/*
 results/FITmodel_results/models_noReg/*
 results/FITmodel_results/models/*
 results/TransCompR_results/models/*
@@ -21,6 +22,8 @@ results/ANNmixedTransCompR_results/models/*
 results/ANNmixedTransCompR_results/pretrained_models/*
 results/ANNmixedTransCompR_results/embs/validation/*
 results/ANNmixedTransCompR_results/embs/train/*
+results/ANNmixedTransCompR_results_10k/models.zip
+results/ANNmixedTransCompR_results_10k/pretrained_models.zip
 results/CPAmixedTransCompR_results/models/*
 results/CPAmixedTransCompR_results/models_pcaLoss/*
 results/CPAmixedTransCompR_results/pretrained_models/*
@@ -30,6 +33,7 @@ results/CPAmixedTransCompR_results/models_10k_cpa_loss.zip
 results/CPAmixedTransCompR_results/models_10k.zip
 results/CPAmixedTransCompR_results_10k/models_10k_cpa_loss.zip
 results/CPAmixedTransCompR_results_10k/models_10k.zip
+results/CPAmixedTransCompR_results_10k/pretrained_models_10k.zip
 results/deepcellstate_results/models/*
 results/my_results/models/*
 results/my_results/embs/train/*

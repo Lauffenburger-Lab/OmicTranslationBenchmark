@@ -1,7 +1,14 @@
 library(tidyverse)
+library(Rtsne)
+library(factoextra)
+library(ggplot2)
+library(ggpubr)
+library(umap)
 
-# df <- read.csv('../results/Importance_results/important_scores_a375_to_ht29_allgenes.csv') %>% column_to_rownames('X')
-df <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_per_sample_allgenes.csv')
+geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
+## Translation load------------
+df <- read.csv('../results/Importance_results/imImportance_resultsportant_scores_a375_to_ht29_allgenes.csv') %>% column_to_rownames('X')
+# df <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_per_sample_allgenes.csv')
 df <- df %>% unique()
 rownames( df ) <- NULL
 df <- df %>% column_to_rownames('X')
@@ -395,15 +402,48 @@ p <- ggplot(all_embs,aes(x=`z307`,y=`z992`,col=label)) + geom_point()+
   theme(text = element_text(size=13))
 print(p)
 
-### Find important genes to encode into each latent variable important for classification
+### Find important genes to encode into each latent variable important for classification------------------
 importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_pc3_cpa.csv',header=T) %>% column_to_rownames('V1')
 importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_ha1e_cpa.csv',header=T) %>% column_to_rownames('V1')
 
 importance_class_1 <- apply(importance_class_1,2,mean)
 importance_class_2 <- apply(importance_class_2,2,mean)
 
-top10_1 <- order(-abs(importance_class_1))[1:10]
-top10_2 <- order(-abs(importance_class_2))[1:10]
+kmeans_class1 <-  kmeans(as.matrix(importance_class_1),centers = 3,iter.max = 100, nstart = 50)
+df_class_1 <-  data.frame(latent_variable=names(importance_class_1),score = importance_class_1,cluster =kmeans_class1$cluster)
+df_class_1_summary <- df_class_1 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
+cl1 <- df_class_1_summary$cluster[1]
+cl2 <- df_class_1_summary$cluster[2]
+hist(df_class_1$score[df_class_1$cluster==cl1])
+hist(df_class_1$score[df_class_1$cluster==cl2])
+if (max(df_class_1$score[df_class_1$cluster==cl1])<=min(df_class_1$score[df_class_1$cluster==cl2])){
+  th <- mean(max(df_class_1$score[df_class_1$cluster==cl1]),min(df_class_1$score[df_class_1$cluster==cl2]))
+} else{
+  th <- mean(min(df_class_1$score[df_class_1$cluster==cl1]),max(df_class_1$score[df_class_1$cluster==cl2]))
+}
+important_1 <- df_class_1 %>% filter(score>=th) %>% select(latent_variable)
+important_1 <- important_1$latent_variable
+
+kmeans_class2 <-  kmeans(as.matrix(importance_class_2),centers = 3,iter.max = 100, nstart = 50)
+df_class_2 <-  data.frame(latent_variable=names(importance_class_2),score = importance_class_2,cluster =kmeans_class2$cluster)
+df_class_2_summary <- df_class_2 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
+cl1 <- df_class_2_summary$cluster[1]
+cl2 <- df_class_2_summary$cluster[2]
+hist(df_class_2$score[df_class_2$cluster==cl1])
+hist(df_class_2$score[df_class_2$cluster==cl2])
+if (max(df_class_2$score[df_class_2$cluster==cl1])<=min(df_class_2$score[df_class_2$cluster==cl2])){
+  th <- mean(max(df_class_2$score[df_class_2$cluster==cl1]),min(df_class_2$score[df_class_2$cluster==cl2]))
+} else{
+  th <- mean(min(df_class_2$score[df_class_2$cluster==cl1]),max(df_class_2$score[df_class_2$cluster==cl2]))
+}
+important_2 <- df_class_2 %>% filter(score<=th) %>% select(latent_variable)
+important_2 <- important_2$latent_variable
+  
+# top10_1 <- order(-abs(importance_class_1))[1:10]
+# top10_2 <- order(-abs(importance_class_2))[1:10]
+
+top10_1 <- important_1
+top10_2 <- important_2
 
 df1 <- data.frame(scores_1=importance_class_1[top10_1]) %>% rownames_to_column('Genes1')
 df2 <- data.frame(scores_2=importance_class_2[top10_2]) %>% rownames_to_column('Genes2')
@@ -413,8 +453,11 @@ ggplot(df1,aes(x=Genes1,y=scores_1)) + geom_bar(stat='identity',fill='#0077b3') 
   theme(text = element_text(family = "serif",size = 14))
 ggplot(df2,aes(x=Genes2,y=scores_2)) + geom_bar(stat='identity')
 
-var_1 <- names(importance_class_1)[top10_1[1:10]]
-var_2 <- names(importance_class_2)[top10_2[1:10]]
+# var_1 <- names(importance_class_1)[top10_1[1:10]]
+# var_2 <- names(importance_class_2)[top10_2[1:10]]
+
+var_1 <- top10_1
+var_2 <- top10_1
 
 emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_pc3.csv',header = T)) %>% column_to_rownames('V1')
 emb1 <- emb1 %>% mutate(cell='PC3')
@@ -429,12 +472,50 @@ ggplot(all_embs,aes(x=`z853`,y=`z465`)) + geom_point(aes(color=cell)) +
 # Load importance to encode
 #important_scores_pc3_encode_allgenes_withclass_noabs.csv and var_x[1:2]
 imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode_cpa.csv') %>%
-  select(c('Gene_1'='V1'),all_of(var_1[1:2])) %>% column_to_rownames('Gene_1')
+  select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
 imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
 imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode_cpa.csv')%>%
-  select(c('Gene_2'='V1'),all_of(var_2[1:2])) %>% column_to_rownames('Gene_2')
+  select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
 imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
 
+### kmeans approach where I use all vars not just the top 2
+kmeans_1 <- kmeans(as.matrix(imp_enc_1[,1:ncol(imp_enc_1)-1]),centers = 3,iter.max = 1000, nstart = 200)
+df_1 <-  data.frame(gene=rownames(imp_enc_1),mean_score = imp_enc_1$mean_imp,cluster =kmeans_1$cluster)
+df_1_summary <- df_1 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
+cl1 <- df_1_summary$cluster[1]
+cl2 <- df_1_summary$cluster[2]
+hist(df_1$mean_score[df_1$cluster==cl1])
+hist(df_1$mean_score[df_1$cluster==cl2])
+if (mean(df_class_2$score[df_class_2$cluster==cl1])>mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_1 <- df_1 %>% filter(cluster==cl1)
+} else if (mean(df_class_2$score[df_class_2$cluster==cl1])<mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_1 <- df_1 %>% filter(cluster==cl2)
+}else{
+  print('Cannot discern two cell-lines')
+}
+kmeans_2 <- kmeans(as.matrix(imp_enc_2[,1:ncol(imp_enc_2)-1]),centers = 3,iter.max = 1000, nstart = 200)
+df_2 <-  data.frame(gene=rownames(imp_enc_2),mean_score = imp_enc_2$mean_imp,cluster =kmeans_2$cluster)
+df_2_summary <- df_2 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
+cl1 <- df_2_summary$cluster[1]
+cl2 <- df_2_summary$cluster[2]
+hist(df_2$mean_score[df_2$cluster==cl1])
+hist(df_2$mean_score[df_2$cluster==cl2])
+if (mean(df_class_2$score[df_class_2$cluster==cl1])<mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_2 <- df_2 %>% filter(cluster==cl1)
+} else if (mean(df_class_2$score[df_class_2$cluster==cl1])>mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_2 <- df_2 %>% filter(cluster==cl2)
+}else{
+  print('Cannot discern two cell-lines')
+}
+
+df1 <- left_join(df_1,geneInfo,by=c("gene"="gene_id"))
+g1 <- df1$gene
+df2 <- left_join(df_2,geneInfo,by=c("gene"="gene_id"))
+df1 <- df1 %>% filter(!(gene %in% df2$gene))
+df2 <- df2 %>% filter(!(gene %in% g1))
+df1 <- df1 %>% filter(mean_score>0)
+df2 <- df2 %>% filter(mean_score<0)
+####
 
 gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
 ind1 <- grep('PC3',rownames(gex))
@@ -443,18 +524,22 @@ gex <- gex %>% mutate(cell='None')
 gex$cell[ind1] <- 'PC3'
 gex$cell[ind2] <- 'HA1E'
 
-p <- ggplot(gex,aes(x=`23636`,y=`1465`)) + geom_point(aes(color=cell))+
-  ggtitle('Scatter plot of transcriptomic data for 2 cell-lines') +
-  theme(text = element_text(size=13))
-print(p)
-png('../figures/2dscatterplot_pc3_ha1e_gex_withclass.png',width=10,height = 10,units = "in",res=300)
-print(p)
-dev.off()
+### ONLY FOR KMEANS APPROACH
+gex_filtered <- gex %>% select(all_of(unique(c(df1$gene,df2$gene))),cell)
+####
 
-library(plotly)
-fig <- plot_ly(gex, x = ~`5997`, y = ~`3162`, z = ~`84617`, color = ~cell, colors = c('#BF382A', '#0C4B8E'))
-fig <- fig %>% add_markers(size=1)
-fig
+# p <- ggplot(gex,aes(x=`23636`,y=`1465`)) + geom_point(aes(color=cell))+
+#   ggtitle('Scatter plot of transcriptomic data for 2 cell-lines') +
+#   theme(text = element_text(size=13))
+# print(p)
+# png('../figures/2dscatterplot_pc3_ha1e_gex_withclass.png',width=10,height = 10,units = "in",res=300)
+# print(p)
+# dev.off()
+
+# library(plotly)
+# fig <- plot_ly(gex, x = ~`5997`, y = ~`3162`, z = ~`84617`, color = ~cell, colors = c('#BF382A', '#0C4B8E'))
+# fig <- fig %>% add_markers(size=1)
+# fig
 
 ## Get top 100 (50 for every cell) genes important to encode into cell-associated latent space
 #imp_enc_1 <- imp_enc_1 %>% column_to_rownames('Gene_1')
@@ -462,7 +547,7 @@ fig
 
 # to eixa order by absolute value kai sta 2
 top50_1 <- rownames(imp_enc_1)[order(-imp_enc_1$mean_imp)][1:50]
-top50_2 <- rownames(imp_enc_2)[order(-imp_enc_2$mean_imp)][1:50]
+top50_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)][1:50]
 
 df1 <- as.data.frame(top50_1)
 df2 <- as.data.frame(top50_2)
@@ -473,6 +558,7 @@ df2 <- left_join(df2,geneInfo,by=c("top50_2"="gene_id"))
 gex_filtered <- gex %>% select(all_of(unique(c(top50_1,top50_2))),cell)
 
 pca_filt <- prcomp(gex_filtered[,1:(ncol(gex_filtered)-1)],scale = F)
+fviz_screeplot(pca_filt)
 df_pca<- pca_filt$x[,1:2]
 df_pca <- as.data.frame(df_pca)
 df_pca  <- df_pca %>% mutate(cell=gex_filtered$cell)
@@ -522,19 +608,88 @@ y <- predict(mdl,newdata = test_gex[,1:(ncol(test_gex)-1)])
 confusionMatrix(factor(test_gex$cell,levels = c('HA1E', 'PC3')),y)
 feature_imp <- varImp(mdl,scale=T)
 feature_imp <- feature_imp[["importance"]]
-p <- ggplot(gex,aes(x=`8942`,y=`1906`,col=cell)) + geom_point()+
+p <- ggplot(gex,aes(x=`4638`,y=`7846`,col=cell)) + geom_point()+
   ggtitle('Scatter plot for 2 cell-lines')+
   theme(text = element_text(size=13))
 print(p)
 
 library(plotly)
-fig <- plot_ly(gex_filtered, x = ~`8942`, y = ~`1906`, z = ~`7867`, color = ~cell, colors = c('#BF382A', '#0C4B8E'))
+fig <- plot_ly(gex_filtered, x = ~`4638`, y = ~`7846`, z = ~`10398`, color = ~cell, colors = c('#BF382A', '#0C4B8E'))
 fig <- fig %>% add_markers(size=1)
 fig
 
-## Important genes from direct ANN classifier
-importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_gex_as_pc3.csv',header=T) %>% column_to_rownames('V1')
-importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_gex_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
+ggplot(feature_imp %>% rownames_to_column('gene_id') %>% arrange(desc(Overall)) %>% mutate(id=seq(1,nrow(feature_imp))),
+       aes(x=id,y=Overall)) + geom_bar(stat = 'identity') + xlim(c(0,50))
+
+selected <- feature_imp %>% rownames_to_column('gene_id') %>% arrange(desc(Overall))
+selected <- selected %>% mutate(gene_id=gsub("[^[:alnum:][:blank:]+?&/\\-]", "", gene_id))
+selected <- selected$gene_id[1:10]
+### Run random forest again for selected genes
+train_gex <- sample_n(gex_filtered[,which(colnames(gex_filtered) %in% c(selected,'cell'))],1742)
+test_gex <- gex_filtered[which(!(rownames(gex_filtered) %in% rownames(train_gex))),which(colnames(gex_filtered) %in% c(selected,'cell'))]
+mdl <- train(cell ~ ., data = train_gex, method = "rf", trControl = ctrl,trace=T)
+mean(mdl[["resample"]][["Accuracy"]])
+# Evaluate precision and accuracy in test set
+y <- predict(mdl,newdata = test_gex[,1:(ncol(test_gex)-1)])
+confusionMatrix(factor(test_gex$cell,levels = c('HA1E', 'PC3')),y)
+feature_imp <- varImp(mdl,scale=T)
+feature_imp <- feature_imp[["importance"]]
+p <- ggplot(gex,aes(x=`4638`,y=`7846`,col=cell)) + geom_point()+
+  ggtitle('Scatter plot for 2 cell-lines')+
+  theme(text = element_text(size=13))
+print(p)
+fig <- plot_ly(gex_filtered, x = ~`4638`, y = ~`7846`, z = ~`8942`, color = ~cell, colors = c('#BF382A', '#0C4B8E'))
+fig <- fig %>% add_markers(size=1)
+fig
+###
+
+## Important to encode in the common latent space----------------
+important_forCommon_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv',header=T) %>% column_to_rownames('V1')
+important_forCommon_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv',header=T) %>% column_to_rownames('V1')
+
+### kmeans approach
+kmeans_1 <- kmeans(x,centers = 1,iter.max = 1000, nstart = 200)
+df_1 <-  data.frame(gene=rownames(important_forCommon_1),mean_score = important_forCommon_1$mean_imp,cluster =kmeans_1$cluster)
+df_1_summary <- df_1 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
+cl1 <- df_1_summary$cluster[1]
+cl2 <- df_1_summary$cluster[2]
+hist(df_1$mean_score[df_1$cluster==cl1])
+hist(df_1$mean_score[df_1$cluster==cl2])
+if (mean(df_class_2$score[df_class_2$cluster==cl1])>mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_1 <- df_1 %>% filter(cluster==cl1)
+} else if (mean(df_class_2$score[df_class_2$cluster==cl1])<mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_1 <- df_1 %>% filter(cluster==cl2)
+}else{
+  print('Cannot discern two cell-lines')
+}
+kmeans_2 <- kmeans(as.matrix(imp_enc_2[,1:ncol(imp_enc_2)-1]),centers = 3,iter.max = 1000, nstart = 200)
+df_2 <-  data.frame(gene=rownames(imp_enc_2),mean_score = imp_enc_2$mean_imp,cluster =kmeans_2$cluster)
+df_2_summary <- df_2 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
+cl1 <- df_2_summary$cluster[1]
+cl2 <- df_2_summary$cluster[2]
+hist(df_2$mean_score[df_2$cluster==cl1])
+hist(df_2$mean_score[df_2$cluster==cl2])
+if (mean(df_class_2$score[df_class_2$cluster==cl1])<mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_2 <- df_2 %>% filter(cluster==cl1)
+} else if (mean(df_class_2$score[df_class_2$cluster==cl1])>mean(df_class_2$score[df_class_2$cluster==cl2])){
+  df_2 <- df_2 %>% filter(cluster==cl2)
+}else{
+  print('Cannot discern two cell-lines')
+}
+
+df1 <- left_join(df_1,geneInfo,by=c("gene"="gene_id"))
+g1 <- df1$gene
+df2 <- left_join(df_2,geneInfo,by=c("gene"="gene_id"))
+df1 <- df1 %>% filter(!(gene %in% df2$gene))
+df2 <- df2 %>% filter(!(gene %in% g1))
+df1 <- df1 %>% filter(mean_score>0)
+df2 <- df2 %>% filter(mean_score<0)
+####
+
+
+## Important genes from direct ANN classifier-------------------
+importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv',header=T) %>% column_to_rownames('V1')
+importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv',header=T) %>% column_to_rownames('V1')
 
 importance_class_1 <- apply(importance_class_1,2,mean)
 importance_class_2 <- apply(importance_class_2,2,mean)
