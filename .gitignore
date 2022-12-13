@@ -1,5 +1,5 @@
 serology/data/*
-serology/learning/__pycache__
+serology/learning/__pycache__/*
 serology/serology.Rproj
 serology/.Rhistory
 learning/__pycache__
