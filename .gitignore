@@ -1,3 +1,8 @@
+serology/data/*
+serology/learning/__pycache__
+serology/serology.Rproj
+serology/.Rhistory
+learning/__pycache__
 preprocessing/.Rhistory
 preprocessing/.Rproj.user/
 preprocessing/preprocessed_data/cmap_*
@@ -6,6 +11,7 @@ postprocessing/.Rhistory
 postprocessing/.Rproj.user/
 figures/.Rhistory
 figures/.Rproj.user/
+figures/.ipynb_checkpoints
 data/geneinfo_beta.txt
 data/level5_beta_trt_cp_n720216x12328.gctx
 data/siginfo_beta.txt
