@@ -236,7 +236,7 @@ class VAE(torch.nn.Module):
         return(L2Loss)
 
 class SimpleEncoder(torch.nn.Module):
-    def __init__(self, in_channel, hidden_layers, latent_dim,dropRate=0.1, activation=None,normalizeOutput=False, bias=True):
+    def __init__(self, in_channel, hidden_layers, latent_dim,dropRate=0.1, dropIn=0.5,activation=None,normalizeOutput=False, bias=True):
 
         super(SimpleEncoder, self).__init__()
 
@@ -258,7 +258,9 @@ class SimpleEncoder(torch.nn.Module):
             self.activation = activation
         # self.bn = nn.BatchNorm1d(num_features=latent_dim, momentum=0.6, dtype=torch.double)
         self.dropout = torch.nn.Dropout(dropRate)
-        self.drop_in = torch.nn.Dropout(0.5)
+        self.dropIn = dropIn
+        if dropIn>0:
+            self.drop_in = torch.nn.Dropout(dropIn)
 
         self.init_emb()
 
@@ -270,7 +272,8 @@ class SimpleEncoder(torch.nn.Module):
                     m.bias.data.fill_(0.0)
 
     def forward(self, x):
-        x = self.drop_in(x)
+        if self.dropIn>0:
+            x = self.drop_in(x)
         for i in range(self.num_hidden_layers):
             x = self.linear_layers[i](x)
             x = self.bn[i](x)
