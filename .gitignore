@@ -1,3 +1,7 @@
+serology/results/models/*
+serology/results/pretrained_models/*
+serology/serology.Rproj
+serology/postprocessing/.Rhistory
 learning/__pycache__
 preprocessing/.Rhistory
 preprocessing/.Rproj.user/
@@ -13,7 +17,6 @@ data/level5_beta_trt_cp_n720216x12328.gctx
 data/siginfo_beta.txt
 data/compoundinfo_beta.txt
 data/CCLE/*
-serology/*
 results/FITmodel_results/models_noReg/*
 results/FITmodel_results/models/*
 results/TransCompR_results/models/*
