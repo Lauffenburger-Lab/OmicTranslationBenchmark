@@ -20,8 +20,8 @@ from sklearn.metrics import mean_squared_error
 
 #Define custom metrics for evaluation
 def r_square(y_true, y_pred):
-    SS_res =  torch.sum((y_true - y_pred)**2)
-    SS_tot = torch.sum((y_true - torch.mean(y_true))**2)
+    SS_res =  torch.sum((y_true - y_pred)**2,0)
+    SS_tot = torch.sum((y_true - torch.mean(y_true))**2,0)
     return (1 - SS_res/(SS_tot + 1e-7))
 
 def get_cindex(y_true, y_pred):
@@ -60,7 +60,7 @@ def pearson_r(y_true, y_pred):
     y_square_sum = torch.sum(ym * ym,dim=0)
     r_den = torch.sqrt(x_square_sum * y_square_sum)
     r = r_num / r_den
-    return torch.mean(r)
+    return r #torch.mean(r)
 
 
 def pseudoAccuracy(y_true, y_pred, eps=1e-4):
