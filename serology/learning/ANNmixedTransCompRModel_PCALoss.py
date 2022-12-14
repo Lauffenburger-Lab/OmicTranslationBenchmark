@@ -827,21 +827,18 @@ for i in range(model_params["no_folds"]):
             dataIndex_1 = trainloader_1[j]
             dataIndex_2 = trainloader_2[j]
 
-            X_primates = xtrain_primates[dataIndex_2, :].float().to(device)
+            X_2 = xtrain_primates[dataIndex_2, :].float().to(device)
             X2_transformed = torch.tensor(pca_space_2.transform(xtrain_primates[dataIndex_2, :].numpy())).float()
             z = X2_transformed.to(device)
-            z_species_2 = torch.cat((torch.zeros(X_primates.shape[0], 1),
-                                     torch.ones(X_primates.shape[0], 1)), 1).to(device)
-            X_human = xtrain_human[dataIndex_1, :].float().to(device)
+            z_species_2 = torch.cat((torch.zeros(X_2.shape[0], 1),
+                                     torch.ones(X_2.shape[0], 1)), 1).to(device)
+            X_1 = xtrain_human[dataIndex_1, :].float().to(device)
             X1_transformed = torch.tensor(pca_space_1.transform(xtrain_human[dataIndex_1, :].numpy())).float()
             z = X1_transformed.to(device)
-            z_species_1 = torch.cat((torch.ones(X_human.shape[0], 1),
-                                     torch.zeros(X_human.shape[0], 1)), 1).to(device)
+            z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
+                                     torch.zeros(X_1.shape[0], 1)), 1).to(device)
 
-            conditions = np.concatenate((df_pairs.conditionId.values,
-                                         df_1.conditionId.values,
-                                         df_pairs.conditionId.values,
-                                         df_2.conditionId.values))
+            conditions = np.concatenate((ytrain_human[dataIndex_1, 0],ytrain_primates[dataIndex_2, 0]))
             size = conditions.size
             conditions = conditions.reshape(size, 1)
             conditions = conditions == conditions.transpose()
