@@ -2,6 +2,7 @@ serology/results/models/*
 serology/results/pretrained_models/*
 serology/serology.Rproj
 serology/.Rhistory
+serology/learning/__pycache__
 learning/__pycache__
 preprocessing/.Rhistory
 preprocessing/.Rproj.user/
