@@ -6,6 +6,7 @@ import math
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split,cross_validate,KFold
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import silhouette_score,confusion_matrix,r2_score
 from sklearn.decomposition import PCA
 from scipy.stats import spearmanr
@@ -25,11 +26,11 @@ print2log = logger.info
 parser = argparse.ArgumentParser(prog='TransCompR mixed with ANNs approaches')
 parser.add_argument('--filter_pcs', action='store', default=False)
 parser.add_argument('--latent_dim', action='store', default=None)
-parser.add_argument('--outPattern', action='store')
+# parser.add_argument('--outPattern', action='store')
 args = parser.parse_args()
 filter_pcs = args.filter_pcs
 latent_dim = args.latent_dim
-outPattern = args.outPattern
+# outPattern = args.outPattern
 if latent_dim is None:
     print2log('No latent dimension was defined.Filtered PCs will be used.')
     filter_pcs = True
@@ -74,19 +75,19 @@ gene_size_human = len(human_exprs.columns)
 gene_size_primates = len(primates_exprs.columns)
 
 
-## Split in 10fold validation
-dataset_human = torch.utils.data.TensorDataset(Xh,Yh)
-dataset_primates = torch.utils.data.TensorDataset(Xm,Ym)
+# ## Split in 10fold validation
+# dataset_human = torch.utils.data.TensorDataset(Xh,Yh)
+# dataset_primates = torch.utils.data.TensorDataset(Xm,Ym)
 k_folds=10
-kfold=KFold(n_splits=k_folds,shuffle=True)
-
-lm = []
-for train_idx,test_idx in kfold.split(dataset_primates):
-    lm.append((train_idx,test_idx))
-
-lh = []
-for train_idx,test_idx in kfold.split(dataset_human):
-    lh.append((train_idx,test_idx))
+# kfold=KFold(n_splits=k_folds,shuffle=True)
+#
+# lm = []
+# for train_idx,test_idx in kfold.split(dataset_primates):
+#     lm.append((train_idx,test_idx))
+#
+# lh = []
+# for train_idx,test_idx in kfold.split(dataset_human):
+#     lh.append((train_idx,test_idx))
 
 print2log('Begin TransCompR modeling...')
 ### Train TransCompR model with Decoder architecture
@@ -138,12 +139,16 @@ model_params = {'encoder_1_hiddens':[64],
                 'encoder_activation':torch.nn.ELU(),#torch.nn.LeakyReLU(negative_slope=0.9),
                 'decoder_activation':torch.nn.ELU(),
                 'V_dropout':0.5,
-                'state_class_hidden':[24,32,16],
-                'state_class_drop_in':0.5,
-                'state_class_drop':0.25,
+                'state_class_hidden':[24,32,16,8,4],
+                'state_class_drop_in':0.2,
+                'state_class_drop':0.2,
                 'no_states':2,
-                'adv_class_hidden':[24,32,16],
-                'adv_class_drop_in':0.3,
+                'species_class_hidden':[24,32,16,8],
+                'species_class_drop_in':0.1,
+                'species_class_drop':0.1,
+                'no_species':2,
+                'adv_class_hidden':[24,32,16,8],
+                'adv_class_drop_in':0.2,
                 'adv_class_drop':0.1,
                 'no_adv_class':2,
                 'encoding_lr':0.0001, #itan 1/10 palia
@@ -158,16 +163,17 @@ model_params = {'encoder_1_hiddens':[64],
                 'prior_beta':1.0,
                 'no_folds':k_folds,
                 'v_reg':1e-04,
-                'state_class_reg':1e-02,
+                'state_class_reg':1e-03,
+                'species_class_reg':1e-04,
                 'enc_l2_reg':1e-06,
                 'dec_l2_reg':1e-05,
                 'lambda_mi_loss':1.,
                 'effsize_reg': 1.,
                 'cosine_loss': 1.,
-                'adv_penalnty':10,
+                'adv_penalnty':1.,
                 'reg_adv':100,
-                'reg_classifier': 10,
-                'similarity_reg' : 1.,
+                'reg_classifier': 1.,
+                'similarity_reg' : 1e-02,
                 'adversary_steps':4,
                 'autoencoder_wd': 0.,
                 'adversary_wd': 0.}
@@ -179,30 +185,34 @@ bs_2 =  model_params['batch_size_2']
 # recon_criterion = GammaLoss()
 recon_criterion = torch.nn.GaussianNLLLoss(full=True)
 
-print2log('Training Decoder architecture to predict serology...')
-mean_human = []
-var_human = []
-mean_primates = []
-var_primates = []
-
-r2_human = []
-pear_human = []
-r2_primates = []
-pear_primates = []
-
-pear_matrix_primates = np.zeros((model_params['no_folds'],Xm.shape[1]))
-pear_matrix_human = np.zeros((model_params['no_folds'],Xh.shape[1]))
-
-pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2))
-pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
-
+# print2log('Training Decoder architecture to predict serology...')
+# mean_human = []
+# var_human = []
+# mean_primates = []
+# var_primates = []
+#
+# r2_human = []
+# pear_human = []
+# r2_primates = []
+# pear_primates = []
+#
+# pear_matrix_primates = np.zeros((model_params['no_folds'],Xm.shape[1]))
+# pear_matrix_human = np.zeros((model_params['no_folds'],Xh.shape[1]))
+#
+# pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2))
+# pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
+#
 # print2log('Train decoder for primates')
 # for i in range(model_params['no_folds']):
 #     # Network
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #
 #     gene_size_primates = xtrain_primates.shape[1]
 #     gene_size_human = xtrain_human.shape[1]
@@ -283,10 +293,14 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # print2log('Train decoder for human')
 # for i in range(model_params['no_folds']):
 #     # Network
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #
 #     gene_size_primates = xtrain_primates.shape[1]
 #     gene_size_human = xtrain_human.shape[1]
@@ -366,10 +380,14 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # for i in range(model_params['no_folds']):
 #     decoder_1 = torch.load('../results/pretrained_models/decoder_human_%s.pt' % i)
 #     decoder_2 = torch.load('../results/pretrained_models/decoder_primates_%s.pt' % i)
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #     decoder_1.eval()
 #     decoder_2.eval()
 #
@@ -504,10 +522,14 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # #model_params["no_folds"]
 # for i in range(model_params['no_folds']):
 #     # Network
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #
 #     gene_size_primates = xtrain_primates.shape[1]
 #     gene_size_human = xtrain_human.shape[1]
@@ -586,10 +608,14 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # print2log('Train encoder for human')
 # for i in range(model_params['no_folds']):
 #     # Network
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #
 #     gene_size_primates = xtrain_primates.shape[1]
 #     gene_size_human = xtrain_human.shape[1]
@@ -676,10 +702,14 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #     encoder_2.eval()
 #     Vsp.eval()
 #
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #
 #     x1_all = xtest_human.float().to(device)
 #     x2_all = xtest_primates.float().to(device)
@@ -777,10 +807,14 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #                                     drop_in=0.25,
 #                                     drop=0.1).to(device)
 #
-#     xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-#     xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-#     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-#     xtest_human, ytest_human = dataset_human[lh[i][1]]
+#     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+#     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+#     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+#     ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+#     xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+#     ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+#     xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+#     ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 #
 #     gene_size_primates = xtrain_primates.shape[1]
 #     gene_size_human = xtrain_human.shape[1]
@@ -906,20 +940,38 @@ valPearDirect = []
 valF1 = []
 valClassAcc = []
 
+valF1Species = []
+valAccSpecies = []
+
 valF1KNNTrans = []
 valF1ClassTrans = []
 
 #Reduce epochs and sceduler step
 NUM_EPOCHS = int(NUM_EPOCHS/2)
 model_params['epochs'] = NUM_EPOCHS
+bs_1 = 70
+bs_2 =  40
 model_params['schedule_step_enc'] = int(model_params['schedule_step_enc']/2)
+model_params['encoding_lr'] = model_params['encoding_lr']/10
+model_params['adv_lr'] = model_params['adv_lr']/10
+model_params['schedule_step_adv'] = int(model_params['schedule_step_adv']/2)
 class_criterion = torch.nn.CrossEntropyLoss()
 
+pear_matrix_primates = np.zeros((model_params['no_folds'],Xm.shape[1]))
+pear_matrix_human = np.zeros((model_params['no_folds'],Xh.shape[1]))
+
+pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2))
+pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
+
 for i in range(model_params["no_folds"]):
-    xtrain_primates, ytrain_primates = dataset_primates[lm[i][0]]
-    xtest_primates, ytest_primates = dataset_primates[lm[i][1]]
-    xtrain_human, ytrain_human = dataset_human[lh[i][0]]
-    xtest_human, ytest_human = dataset_human[lh[i][1]]
+    xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+    ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+    xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+    ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+    xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+    ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+    xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+    ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 
     gene_size_primates = xtrain_primates.shape[1]
     gene_size_human = xtrain_human.shape[1]
@@ -960,6 +1012,11 @@ for i in range(model_params["no_folds"]):
                             num_classes=model_params['no_states'],
                             drop_in=model_params['state_class_drop_in'],
                             drop=model_params['state_class_drop']).to(device)
+    species_classifier = Classifier(in_channel=model_params['latent_dim1'],
+                            hidden_layers=model_params['species_class_hidden'],
+                            num_classes=model_params['no_species'],
+                            drop_in=model_params['species_class_drop_in'],
+                            drop=model_params['species_class_drop']).to(device)
     pretrained_adv_class = torch.load('../results/pretrained_models/pre_trained_classifier_adverse_%s.pt'%i)
     adverse_classifier = Classifier(in_channel=model_params['latent_dim1'],
                                     hidden_layers=model_params['adv_class_hidden'],
@@ -995,6 +1052,7 @@ for i in range(model_params["no_folds"]):
         # local_d.train()
         classifier.train()
         adverse_classifier.train()
+        species_classifier.train()
         Vsp.train()
 
         trainloader_1 = getSamples(N_1, bs_1)
@@ -1100,17 +1158,17 @@ for i in range(model_params["no_folds"]):
 
             # p_samples = res_un * pos_mask.float()
             # q_samples = res_un * neg_mask.float()
-
+            #
             # Ep = log_2 - F.softplus(- p_samples)
             # Eq = F.softplus(-q_samples) + q_samples - log_2
-
+            #
             # Ep = (Ep * pos_mask.float()).sum() / pos_mask.float().sum()
             # Eq = (Eq * neg_mask.float()).sum() / neg_mask.float().sum()
             # mi_loss = Eq - Ep
-
+            #
             # #prior = torch.rand_like(latent_vectors)
             # prior = torch.rand_like(latent_base_vectors)
-
+            #
             # term_a = torch.log(prior_d(prior)).mean()
             # term_b = torch.log(1.0 - prior_d(latent_base_vectors)).mean()
             # #term_b = torch.log(1.0 - prior_d(latent_vectors)).mean()
@@ -1118,14 +1176,25 @@ for i in range(model_params["no_folds"]):
 
             # Classification loss
             labels = classifier(latent_vectors)
-            true_labels = torch.cat((torch.ones(z_1.shape[0]),
-                                     torch.zeros(z_2.shape[0])), 0).long().to(device)
+            true_labels = torch.cat((ytrain_human[dataIndex_1, 0],
+                                     ytrain_primates[dataIndex_2, 0]), 0).long().to(device)
             entropy = class_criterion(labels, true_labels)
             _, predicted = torch.max(labels, 1)
             predicted = predicted.cpu().numpy()
             cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted)
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_latent = 2 * tp / (2 * tp + fp + fn)
+
+            # Species classification loss
+            labels = species_classifier(latent_vectors)
+            true_labels = torch.cat((torch.ones(z_1.shape[0]),
+                                     torch.zeros(z_2.shape[0])), 0).long().to(device)
+            entropy_species = class_criterion(labels, true_labels)
+            _, predicted = torch.max(labels, 1)
+            predicted = predicted.cpu().numpy()
+            cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted)
+            tn, fp, fn, tp = cf_matrix.ravel()
+            f1_species = 2 * tp / (2 * tp + fp + fn)
 
             # Remove signal from z_basal
             labels_adv = adverse_classifier(latent_base_vectors)
@@ -1139,10 +1208,11 @@ for i in range(model_params["no_folds"]):
             f1_basal = 2 * tp / (2 * tp + fp + fn)
 
             # loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params['cosine_loss'] * cosineLoss
-            loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['reg_classifier'] * entropy - model_params[
+            loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss - model_params[
+                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * entropy + model_params['reg_classifier'] * entropy_species - model_params[
                        'reg_adv'] * adv_entropy + classifier.L2Regularization(
-                model_params['state_class_reg']) + Vsp.Regularization(model_params['v_reg']) - model_params[
-                       'cosine_loss'] * cosineLoss + 1e-5 * (torch.sqrt(torch.sum((X1_transformed - z_1)**2)) + torch.sqrt(torch.sum((X2_transformed - z_2)**2))) # 1E-5 STA ALLGENES
+                model_params['state_class_reg']) + species_classifier.L2Regularization(
+                model_params['species_class_reg'])+Vsp.Regularization(model_params['v_reg']) + 1e-6 * (torch.sqrt(torch.sum((X1_transformed - z_1)**2)) + torch.sqrt(torch.sum((X2_transformed - z_2)**2))) # 1E-5 STA ALLGENES
 
             loss.backward()
             optimizer.step()
@@ -1171,6 +1241,7 @@ for i in range(model_params["no_folds"]):
             # outString += ', MI Loss={:.4f}'.format(mi_loss.item())
             # outString += ', Prior Loss={:.4f}'.format(prior_loss.item())
             outString += ', Entropy Loss={:.4f}'.format(entropy.item())
+            outString += ', Entropy_species={:.4f}'.format(entropy_species.item())
             outString += ', Adverse Entropy={:.4f}'.format(adv_entropy.item())
             outString += ', Cosine Loss={:.4f}'.format(cosineLoss.item())
             outString += ', loss={:.4f}'.format(loss.item())
@@ -1180,7 +1251,7 @@ for i in range(model_params["no_folds"]):
             outString += ', F1 basal trained={:.4f}'.format(f1_basal_trained)
             # else:
             #    outString += ', F1 basal trained= %s'%f1_basal_trained
-        if (e % 25 == 0 ):
+        if (e % 50 == 0):
             print2log(outString)
     print2log(outString)
     decoder_1.eval()
@@ -1190,6 +1261,7 @@ for i in range(model_params["no_folds"]):
     # prior_d.eval()
     # local_d.eval()
     classifier.eval()
+    species_classifier.eval()
     adverse_classifier.eval()
     Vsp.eval()
 
@@ -1220,8 +1292,8 @@ for i in range(model_params["no_folds"]):
     z_latent_2 = Vsp(z_latent_base_2, z_species_2)
 
     labels = classifier(torch.cat((z_latent_1, z_latent_2), 0))
-    true_labels = torch.cat((torch.ones(z_latent_1.shape[0]).view(z_latent_1.shape[0], 1),
-                             torch.zeros(z_latent_2.shape[0]).view(z_latent_2.shape[0], 1)), 0).long()
+    true_labels = torch.cat((ytest_human[:, 0],
+                             ytest_primates[:, 0]), 0).long()
     _, predicted = torch.max(labels, 1)
     predicted = predicted.cpu().numpy()
     cf_matrix = confusion_matrix(true_labels.numpy(), predicted)
@@ -1229,11 +1301,25 @@ for i in range(model_params["no_folds"]):
     class_acc = (tp + tn) / predicted.size
     f1 = 2 * tp / (2 * tp + fp + fn)
 
+    # Species classifier
+    labels = species_classifier(torch.cat((z_latent_1, z_latent_2), 0))
+    true_labels = torch.cat((torch.ones(z_latent_1.shape[0]).view(z_latent_1.shape[0], 1),
+                             torch.zeros(z_latent_2.shape[0]).view(z_latent_2.shape[0], 1)), 0).long()
+    _, predicted = torch.max(labels, 1)
+    predicted = predicted.cpu().numpy()
+    cf_matrix = confusion_matrix(true_labels.numpy(), predicted)
+    tn, fp, fn, tp = cf_matrix.ravel()
+    species_acc = (tp + tn) / predicted.size
+    species_f1 = 2 * tp / (2 * tp + fp + fn)
+
     valF1.append(f1)
     valClassAcc.append(class_acc)
+    valF1Species.append(species_f1)
+    valAccSpecies.append(species_acc)
 
     print2log('Classification accuracy: %s' % class_acc)
     print2log('Classification F1 score: %s' % f1)
+    print2log('Classification species F1 score: %s' % species_f1)
 
     xhat_1 = decoder_1(z_latent_1)
     xhat_2 = decoder_2(z_latent_2)
@@ -1273,7 +1359,7 @@ for i in range(model_params["no_folds"]):
     z2_train = Vsp(encoder_2(xtrain_primates.float().to(device)),z_species_train_2)
 
     knn = KNeighborsClassifier(n_neighbors=5, metric='cosine')
-    knn.fit(torch.cat((z1_train, z2_train), 0).detach().numpy(), np.concatenate((np.ones(z1_train.shape[0]),
+    knn.fit(torch.cat((z1_train, z2_train), 0).detach().cpu().numpy(), np.concatenate((np.ones(z1_train.shape[0]),
                                                                                  np.zeros(z2_train.shape[0])), 0))
 
     z1_translated = Vsp(z_latent_base_2, 1 - z_species_2)
@@ -1310,10 +1396,11 @@ for i in range(model_params["no_folds"]):
     torch.save(encoder_1, '../results/models/encoder_human_%s.pt' % i)
     torch.save(encoder_2, '../results/models/encoder_primates_%s.pt' % i)
     torch.save(classifier, '../results/models/classifier_%s.pt' % i)
+    torch.save(species_classifier, '../results/models/species_classifier_%s.pt' % i)
     torch.save(Vsp, '../results/models/Vspecies_%s.pt' % i)
     torch.save(adverse_classifier, '../results/models/classifier_adverse_%s.pt' % i)
 
-df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,
+df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Species,'AccuracySpecies':valAccSpecies,
                           'recon_pear_primates':valPear_2 ,'recon_pear_human':valPear_1,
                           'recon_r2_primates':valR2_2,'recon_r2_human':valR2_1,
                           'latent_human_pear':valPear_1_latent,'latent_mouse_pear':valPear_2_latent,
