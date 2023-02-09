@@ -712,7 +712,7 @@ for i in range(model_params['no_folds']):
     print2log(outString)
     torch.save(encoder_1, '../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt' % i)
     # torch.save(Vsp,'../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt' % i)
-    torch.save(encoder_interm_2,'../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+    torch.save(encoder_interm_2,'../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
 
 print2log('Evaluate translation using encoders')
 for i in range(model_params['no_folds']):
@@ -741,10 +741,10 @@ for i in range(model_params['no_folds']):
     x2_all = xtest_primates.float().to(device)
     x1_transformed = torch.tensor(pca_space_1.transform(xtest_human.numpy())).float().to(device)
     x2_transformed = torch.tensor(pca_space_2.transform(xtest_primates.numpy())).float().to(device)
-    z_species_1 = torch.cat((torch.ones(x1_all.shape[0], 1),
-                             torch.zeros(x1_all.shape[0], 1)), 1).to(device)
-    z_species_2 = torch.cat((torch.zeros(x2_all.shape[0], 1),
-                             torch.ones(x2_all.shape[0], 1)), 1).to(device)
+    # z_species_1 = torch.cat((torch.ones(x1_all.shape[0], 1),
+    #                          torch.zeros(x1_all.shape[0], 1)), 1).to(device)
+    # z_species_2 = torch.cat((torch.zeros(x2_all.shape[0], 1),
+    #                          torch.ones(x2_all.shape[0], 1)), 1).to(device)
     z_base_1 = encoder_1(x1_all)
     # ypred_1 = Vsp(z_base_1, z_species_1)
     z_base_2 = encoder_2(x2_all)
@@ -827,6 +827,8 @@ for i in range(model_params["no_folds"]):
     # Network
     pre_encoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt'%i)
     pre_encoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
+    # pre_encoder_interm_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+    # pre_encoder_interm_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
     adverse_classifier = Classifier(in_channel=model_params['latent_dim1'],
                                     hidden_layers=model_params['adv_class_hidden'],
                                     num_classes=model_params['no_adv_class'],
@@ -886,11 +888,11 @@ for i in range(model_params["no_folds"]):
             dataIndex_2 = trainloader_2[j]
 
             X_2 = xtrain_primates[dataIndex_2, :].float().to(device)
-            z_species_2 = torch.cat((torch.zeros(X_2.shape[0], 1),
-                                     torch.ones(X_2.shape[0], 1)), 1).to(device)
+            # z_species_2 = torch.cat((torch.zeros(X_2.shape[0], 1),
+            #                          torch.ones(X_2.shape[0], 1)), 1).to(device)
             X_1 = xtrain_human[dataIndex_1, :].float().to(device)
-            z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
-                                     torch.zeros(X_1.shape[0], 1)), 1).to(device)
+            # z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
+            #                          torch.zeros(X_1.shape[0], 1)), 1).to(device)
             optimizer_adv.zero_grad()
 
             z_base_1 = pre_encoder_1(X_1)
@@ -1019,6 +1021,8 @@ for i in range(model_params["no_folds"]):
     #pre_species_classifier = torch.load('../results_intermediate_encoders/models/pre_species_classifier_%s.pt' % i)
     # pre_prior_d = torch.load('../results_intermediate_encoders/models/pre_prior_d_%s.pt' % i)
     # pre_local_d = torch.load('../results_intermediate_encoders/models/pre_local_d_%s.pt' % i)
+    pre_encoder_interm_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+    pre_encoder_interm_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
 
     decoder_1 = Decoder(nComps1, model_params['decoder_1_hiddens'], gene_size_human,
                         dropRate=model_params['dropout_decoder'],
@@ -1061,17 +1065,31 @@ for i in range(model_params["no_folds"]):
                                     drop=model_params['adv_class_drop']).to(device)
     adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
 
-    Vsp = SpeciesCovariate(2, model_params['latent_dim1'], dropRate=model_params['V_dropout']).to(device)
-    pretrained_Vsp = torch.load('../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt'%i)
+    # Vsp = SpeciesCovariate(2, model_params['latent_dim1'], dropRate=model_params['V_dropout']).to(device)
+    # pretrained_Vsp = torch.load('../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt'%i)
     # pretrained_Vsp = torch.load('../results_intermediate_encoders/models/pre_Vspecies_%s.pt' % i)
-    Vsp.load_state_dict(pretrained_Vsp.state_dict())
+    # Vsp.load_state_dict(pretrained_Vsp.state_dict())
+
+    encoder_interm_1 = SimpleEncoder(model_params['latent_dim1'],
+                                     model_params['intermediateEncoder1'],
+                                     model_params['intermediate_latent1'],
+                                     dropRate=model_params['intermediate_dropout'],
+                                     activation=model_params['encoder_activation']).to(device)
+    encoder_interm_1.load_state_dict(pre_encoder_interm_1.state_dict())
+    encoder_interm_2 = SimpleEncoder(model_params['latent_dim2'],
+                                     model_params['intermediateEncoder2'],
+                                     model_params['intermediate_latent2'],
+                                     dropRate=model_params['intermediate_dropout'],
+                                     activation=model_params['encoder_activation']).to(device)
+    encoder_interm_2.load_state_dict(pre_encoder_interm_2.state_dict())
 
     allParams = list(encoder_1.parameters()) + list(encoder_2.parameters())
     allParams = allParams + list(decoder_1.parameters()) + list(decoder_2.parameters())
     allParams = allParams + list(prior_d.parameters()) + list(local_d.parameters())
     allParams = allParams + list(classifier.parameters())
     allParams = allParams + list(species_classifier.parameters())
-    allParams = allParams + list(Vsp.parameters())
+    # allParams = allParams + list(Vsp.parameters())
+    allParams = allParams + list(encoder_interm_1.parameters()) + list(encoder_interm_2.parameters())
     optimizer = torch.optim.Adam(allParams, lr=model_params['encoding_lr'], weight_decay=0)
     optimizer_adv = torch.optim.Adam(adverse_classifier.parameters(), lr=model_params['adv_lr'], weight_decay=0)
     if model_params['schedule_step_adv'] is not None:
@@ -1091,7 +1109,9 @@ for i in range(model_params["no_folds"]):
         classifier.train()
         adverse_classifier.train()
         species_classifier.train()
-        Vsp.train()
+        # Vsp.train()
+        encoder_interm_1.train()
+        encoder_interm_2.train()
 
         trainloader_1 = getSamples(N_1, bs_1)
         len_1 = len(trainloader_1)
@@ -1120,13 +1140,13 @@ for i in range(model_params["no_folds"]):
             X_2 = xtrain_primates[dataIndex_2, :].float().to(device)
             X2_transformed = torch.tensor(pca_space_2.transform(xtrain_primates[dataIndex_2, :].numpy())).float().to(
                 device)
-            z_species_2 = torch.cat((torch.zeros(X_2.shape[0], 1),
-                                     torch.ones(X_2.shape[0], 1)), 1).to(device)
+            # z_species_2 = torch.cat((torch.zeros(X_2.shape[0], 1),
+            #                          torch.ones(X_2.shape[0], 1)), 1).to(device)
             X_1 = xtrain_human[dataIndex_1, :].float().to(device)
             X1_transformed = torch.tensor(pca_space_1.transform(xtrain_human[dataIndex_1, :].numpy())).float().to(
                 device)
-            z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
-                                     torch.zeros(X_1.shape[0], 1)), 1).to(device)
+            # z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
+            #                          torch.zeros(X_1.shape[0], 1)), 1).to(device)
 
             conditions = np.concatenate((ytrain_human[dataIndex_1, 0], ytrain_primates[dataIndex_2, 0]))
             size = conditions.size
@@ -1172,8 +1192,10 @@ for i in range(model_params["no_folds"]):
             z_un = local_d(latent_base_vectors)
             res_un = torch.matmul(z_un, z_un.t())
 
-            z_1 = Vsp(z_base_1, z_species_1)
-            z_2 = Vsp(z_base_2, z_species_2)
+            z_1 = encoder_interm_1(z_base_1)
+            z_2 = encoder_interm_2(z_base_2)
+            # z_1 = Vsp(z_base_1, z_species_1)
+            # z_2 = Vsp(z_base_2, z_species_2)
             latent_vectors = torch.cat((z_1, z_2), 0)
 
             # y_pred_1 = decoder_1(z_1)
@@ -1250,7 +1272,8 @@ for i in range(model_params["no_folds"]):
                 'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * entropy + model_params['reg_classifier'] * entropy_species - model_params[
                        'reg_adv'] * adv_entropy + classifier.L2Regularization(
                 model_params['state_class_reg']) + species_classifier.L2Regularization(
-                model_params['species_class_reg'])+Vsp.Regularization(model_params['v_reg']) + 1e-6 * (torch.sqrt(torch.sum((X1_transformed - z_1)**2)) + torch.sqrt(torch.sum((X2_transformed - z_2)**2))) # 1E-5 STA ALLGENES
+                model_params['species_class_reg'])+encoder_interm_1.L2Regularization(
+                model_params['enc_l2_reg'])+ encoder_interm_2.L2Regularization(model_params['enc_l2_reg']) + 1e-6 * (torch.sqrt(torch.sum((X1_transformed - z_1)**2)) + torch.sqrt(torch.sum((X2_transformed - z_2)**2))) # 1E-5 STA ALLGENES
 
             loss.backward()
             optimizer.step()
@@ -1301,7 +1324,9 @@ for i in range(model_params["no_folds"]):
     classifier.eval()
     species_classifier.eval()
     adverse_classifier.eval()
-    Vsp.eval()
+    # Vsp.eval()
+    encoder_interm_1.eval()
+    encoder_interm_2.eval()
 
     x_1 = xtest_human.float().to(device)
     x_2 = xtest_primates.float().to(device)
@@ -1315,10 +1340,10 @@ for i in range(model_params["no_folds"]):
     conditions = conditions * 1
     mask = torch.tensor(conditions).to(device).detach()
 
-    z_species_1 = torch.cat((torch.ones(x_1.shape[0], 1),
-                             torch.zeros(x_1.shape[0], 1)), 1).to(device)
-    z_species_2 = torch.cat((torch.zeros(x_2.shape[0], 1),
-                             torch.ones(x_2.shape[0], 1)), 1).to(device)
+    # z_species_1 = torch.cat((torch.ones(x_1.shape[0], 1),
+    #                          torch.zeros(x_1.shape[0], 1)), 1).to(device)
+    # z_species_2 = torch.cat((torch.zeros(x_2.shape[0], 1),
+    #                          torch.ones(x_2.shape[0], 1)), 1).to(device)
 
     # z_latent_1 = encoder_1(x_1)
     # z_latent_2 = encoder_2(x_2)
@@ -1326,8 +1351,10 @@ for i in range(model_params["no_folds"]):
     z_latent_base_1 = encoder_1(x_1)
     z_latent_base_2 = encoder_2(x_2)
 
-    z_latent_1 = Vsp(z_latent_base_1, z_species_1)
-    z_latent_2 = Vsp(z_latent_base_2, z_species_2)
+    z_latent_1 = encoder_interm_1(z_latent_base_1)
+    z_latent_2 = encoder_interm_2(z_latent_base_2)
+    # z_latent_1 = Vsp(z_latent_base_1, z_species_1)
+    # z_latent_2 = Vsp(z_latent_base_2, z_species_2)
 
     labels = classifier(torch.cat((z_latent_1, z_latent_2), 0))
     true_labels = torch.cat((ytest_human[:, 0],
@@ -1389,19 +1416,23 @@ for i in range(model_params["no_folds"]):
     pear_matrix_human_latent[i, :] = pearson_1_latent.detach().cpu().numpy()
 
     # Translate to other species
-    z_species_train_1 = torch.cat((torch.ones(xtrain_human.shape[0], 1),
-                                   torch.zeros(xtrain_human.shape[0], 1)), 1).to(device)
-    z_species_train_2 = torch.cat((torch.zeros(xtrain_primates.shape[0], 1),
-                                   torch.ones(xtrain_primates.shape[0], 1)), 1).to(device)
-    z1_train = Vsp(encoder_1(xtrain_human.float().to(device)),z_species_train_1)
-    z2_train = Vsp(encoder_2(xtrain_primates.float().to(device)),z_species_train_2)
+    # z_species_train_1 = torch.cat((torch.ones(xtrain_human.shape[0], 1),
+    #                                torch.zeros(xtrain_human.shape[0], 1)), 1).to(device)
+    # z_species_train_2 = torch.cat((torch.zeros(xtrain_primates.shape[0], 1),
+    #                                torch.ones(xtrain_primates.shape[0], 1)), 1).to(device)
+    # z1_train = Vsp(encoder_1(xtrain_human.float().to(device)),z_species_train_1)
+    # z2_train = Vsp(encoder_2(xtrain_primates.float().to(device)),z_species_train_2)
+    z1_train = encoder_interm_1(encoder_1(xtrain_human.float().to(device)))
+    z2_train = encoder_interm_2(encoder_2(xtrain_primates.float().to(device)))
 
     knn = KNeighborsClassifier(n_neighbors=5, metric='cosine')
     knn.fit(torch.cat((z1_train, z2_train), 0).detach().cpu().numpy(), np.concatenate((np.ones(z1_train.shape[0]),
                                                                                  np.zeros(z2_train.shape[0])), 0))
 
-    z1_translated = Vsp(z_latent_base_2, 1 - z_species_2)
-    z2_translated = Vsp(z_latent_base_1, 1 - z_species_1)
+    # z1_translated = Vsp(z_latent_base_2, 1 - z_species_2)
+    # z2_translated = Vsp(z_latent_base_1, 1 - z_species_1)
+    z1_translated = encoder_interm_1(z_latent_base_2)
+    z2_translated = encoder_interm_2(z_latent_base_1)
     y_pred_translated = knn.predict(torch.cat((z1_translated, z2_translated), 0).detach().cpu().numpy())
     cf_matrix = confusion_matrix(np.concatenate((np.ones(z1_translated.shape[0]), np.zeros(z2_translated.shape[0])), 0),
                                  y_pred_translated)
@@ -1435,7 +1466,9 @@ for i in range(model_params["no_folds"]):
     torch.save(encoder_2, '../results_intermediate_encoders/models/encoder_primates_%s.pt' % i)
     torch.save(classifier, '../results_intermediate_encoders/models/classifier_%s.pt' % i)
     torch.save(species_classifier, '../results_intermediate_encoders/models/species_classifier_%s.pt' % i)
-    torch.save(Vsp, '../results_intermediate_encoders/models/Vspecies_%s.pt' % i)
+    # torch.save(Vsp, '../results_intermediate_encoders/models/Vspecies_%s.pt' % i)
+    torch.save(encoder_interm_1,'../results_intermediate_encoders/models/encoder_intermediate_human_%s.pt' % i)
+    torch.save(encoder_interm_2,'../results_intermediate_encoders/models/encoder_intermediate_primates_%s.pt' % i)
     torch.save(adverse_classifier, '../results_intermediate_encoders/models/classifier_adverse_%s.pt' % i)
 
 df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Species,'AccuracySpecies':valAccSpecies,
