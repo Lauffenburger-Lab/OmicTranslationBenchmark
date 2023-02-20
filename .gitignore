@@ -1,3 +1,5 @@
+ARCHS/data/*
+ARCHS/ARCHS.Rproj
 recount3/*
 serology/results/models/*
 serology/results/pretrained_models/*
