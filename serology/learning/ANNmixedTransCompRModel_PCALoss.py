@@ -64,6 +64,7 @@ def compute_gradients(output, input):
 print2log('Loading data...')
 human_exprs = pd.read_csv('../data/human_exprs.csv',index_col=0)
 human_metadata = pd.read_csv('../data/human_metadata.csv',index_col=0)
+human_metadata["infect"] = human_metadata["infect"] - int(1)
 primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
 primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
 Xh = torch.tensor(human_exprs.values).double()
@@ -151,6 +152,10 @@ model_params = {'encoder_1_hiddens':[64],
                 'state_class_drop_in':0.2,
                 'state_class_drop':0.2,
                 'no_states':2,
+                'protect_class_hidden':[32,16,8,4,2],
+                'protect_class_drop_in':0.1,
+                'protect_class_drop':0.1,
+                'protect_states':2,
                 'species_class_hidden':[32,16,8],
                 'species_class_drop_in':0.1,
                 'species_class_drop':0.1,
@@ -210,7 +215,7 @@ pear_matrix_human = np.zeros((model_params['no_folds'],Xh.shape[1]))
 pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2))
 pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 
-print2log('Train decoder for primates')
+# print2log('Train decoder for primates')
 # for i in range(model_params['no_folds']):
 #     # Network
 #     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
@@ -298,7 +303,7 @@ print2log('Train decoder for primates')
 #     print2log(outString)
 #     torch.save(decoder_2, '../results_intermediate_encoders/pretrained_models/decoder_primates_%s.pt' % i)
 
-print2log('Train decoder for human')
+# print2log('Train decoder for human')
 # for i in range(model_params['no_folds']):
 #     # Network
 #     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
@@ -1065,8 +1070,8 @@ print2log('Train decoder for human')
 
 
 
-## Pre-train adverse classifier
-print2log('Pre-train adverse classifier')
+# ## Pre-train adverse classifier
+# print2log('Pre-train adverse classifier')
 # class_criterion = torch.nn.CrossEntropyLoss()
 # for i in range(model_params["no_folds"]):
 #     # # Network
@@ -1224,6 +1229,7 @@ valClassAcc = []
 
 valF1Species = []
 valAccSpecies = []
+valF1Protection = []
 
 valF1KNNTrans = []
 valF1ClassTrans = []
@@ -1304,6 +1310,13 @@ for i in range(model_params["no_folds"]):
                             num_classes=model_params['no_states'],
                             drop_in=model_params['state_class_drop_in'],
                             drop=model_params['state_class_drop']).to(device)
+
+    protection_classifier = Classifier(in_channel=model_params['latent_dim1'],
+                            hidden_layers=model_params['protect_class_hidden'],
+                            num_classes=model_params['protect_states'],
+                            drop_in=model_params['protect_class_drop_in'],
+                            drop=model_params['protect_class_drop']).to(device)
+
     # classifier.load_state_dict(pre_classifier.state_dict())
     species_classifier = Classifier(in_channel=model_params['latent_dim1'],
                             hidden_layers=model_params['species_class_hidden'],
@@ -1329,13 +1342,13 @@ for i in range(model_params["no_folds"]):
                                      model_params['intermediate_latent1'],
                                      dropRate=model_params['intermediate_dropout'],dropIn = model_params['inter_dropIn'],
                                      activation=model_params['encoder_activation']).to(device)
-    # encoder_interm_1.load_state_dict(pre_encoder_interm_1.state_dict())
+    #encoder_interm_1.load_state_dict(pre_encoder_interm_1.state_dict())
     encoder_interm_2 = SimpleEncoder(model_params['latent_dim2'],
                                      model_params['intermediateEncoder2'],
                                      model_params['intermediate_latent2'],
                                      dropRate=model_params['intermediate_dropout'],dropIn = model_params['inter_dropIn'],
                                      activation=model_params['encoder_activation']).to(device)
-    # encoder_interm_2.load_state_dict(pre_encoder_interm_2.state_dict())
+    #encoder_interm_2.load_state_dict(pre_encoder_interm_2.state_dict())
 
     allParams = list(encoder_1.parameters()) + list(encoder_2.parameters())
     allParams = allParams + list(decoder_1.parameters()) + list(decoder_2.parameters())
@@ -1366,6 +1379,7 @@ for i in range(model_params["no_folds"]):
         # Vsp.train()
         encoder_interm_1.train()
         encoder_interm_2.train()
+        protection_classifier.train()
 
         trainloader_1 = getSamples(N_1, bs_1)
         len_1 = len(trainloader_1)
@@ -1407,6 +1421,15 @@ for i in range(model_params["no_folds"]):
             conditions = conditions.reshape(size, 1)
             conditions = conditions == conditions.transpose()
             conditions = conditions * 1
+
+            conditions_protect = np.concatenate((ytrain_human[dataIndex_1, 1], ytrain_primates[dataIndex_2, 1]))
+            size = conditions_protect.size
+            conditions_protect = conditions_protect.reshape(size, 1)
+            conditions_protect = conditions_protect == conditions_protect.transpose()
+            conditions_protect = conditions_protect * 1
+
+            conditions = np.multiply(conditions_protect,conditions)
+
             mask = torch.tensor(conditions).to(device).detach()
             pos_mask = mask
             neg_mask = 1 - mask
@@ -1499,6 +1522,17 @@ for i in range(model_params["no_folds"]):
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_latent = 2 * tp / (2 * tp + fp + fn)
 
+            # Protection classification
+            labels = protection_classifier(latent_base_vectors)
+            true_labels = torch.cat((ytrain_human[dataIndex_1, 1],
+                                     ytrain_primates[dataIndex_2, 1]), 0).long().to(device)
+            protection_entropy = class_criterion(labels, true_labels)
+            _, predicted = torch.max(labels, 1)
+            predicted = predicted.cpu().numpy()
+            cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
+            tn, fp, fn, tp = cf_matrix.ravel()
+            f1_protection = 2 * tp / (2 * tp + fp + fn)
+
             # Species classification loss
             labels = species_classifier(latent_vectors)
             true_labels = torch.cat((torch.ones(z_1.shape[0]),
@@ -1521,12 +1555,12 @@ for i in range(model_params["no_folds"]):
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_basal = 2 * tp / (2 * tp + fp + fn)
 
-            # loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params['cosine_loss'] * cosineLoss
+            # loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params['cosine_loss'] * cosineLoss + Vsp.Regularization(model_params["v_reg"])
             loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params[
-                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * entropy + model_params['reg_classifier'] * entropy_species - model_params[
+                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * entropy + model_params['reg_classifier'] * entropy_species + model_params['reg_classifier'] *protection_entropy - model_params[
                        'reg_adv'] * adv_entropy + classifier.L2Regularization(
                 model_params['state_class_reg']) + species_classifier.L2Regularization(
-                model_params['species_class_reg'])+encoder_interm_1.L2Regularization(
+                model_params['species_class_reg'])+ encoder_interm_1.L2Regularization(
                 model_params['intermediate_enc_l2_reg'])+ encoder_interm_2.L2Regularization(model_params['intermediate_enc_l2_reg']) + 1e-6 * (torch.sqrt(torch.sum((X1_transformed - z_1)**2)) + torch.sqrt(torch.sum((X2_transformed - z_2)**2))) # 1E-5 STA ALLGENES
 
             loss.backward()
@@ -1557,16 +1591,18 @@ for i in range(model_params["no_folds"]):
             outString += ', Prior Loss={:.4f}'.format(prior_loss.item())
             outString += ', Entropy Loss={:.4f}'.format(entropy.item())
             outString += ', Entropy_species={:.4f}'.format(entropy_species.item())
+            outString += ', Entropy_protection={:.4f}'.format(protection_entropy.item())
             outString += ', Adverse Entropy={:.4f}'.format(adv_entropy.item())
             outString += ', Cosine Loss={:.4f}'.format(cosineLoss.item())
             outString += ', loss={:.4f}'.format(loss.item())
             outString += ', F1 latent={:.4f}'.format(f1_latent)
+            outString +=', F1 Protection={:.4f}'.format(f1_protection)
             outString += ', F1 basal={:.4f}'.format(f1_basal)
             # if e % model_params["adversary_steps"] == 0 and e>0:
             outString += ', F1 basal trained={:.4f}'.format(f1_basal_trained)
             # else:
             #    outString += ', F1 basal trained= %s'%f1_basal_trained
-        if (e % 50 == 0):
+        if (e % 100 == 0):
             print2log(outString)
     print2log(outString)
     decoder_1.eval()
@@ -1581,6 +1617,7 @@ for i in range(model_params["no_folds"]):
     # Vsp.eval()
     encoder_interm_1.eval()
     encoder_interm_2.eval()
+    protection_classifier.eval()
 
     x_1 = xtest_human.float().to(device)
     x_2 = xtest_primates.float().to(device)
@@ -1620,6 +1657,16 @@ for i in range(model_params["no_folds"]):
     class_acc = (tp + tn) / predicted.size
     f1 = 2 * tp / (2 * tp + fp + fn)
 
+    # Protection classification
+    labels = protection_classifier(torch.cat((z_latent_base_1, z_latent_base_2), 0))
+    true_labels = torch.cat((ytest_human[:, 1],
+                             ytest_primates[:, 1]), 0).long().to(device)
+    _, predicted = torch.max(labels, 1)
+    predicted = predicted.cpu().numpy()
+    cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
+    tn, fp, fn, tp = cf_matrix.ravel()
+    f1_protection = 2 * tp / (2 * tp + fp + fn)
+
     # Species classifier
     labels = species_classifier(torch.cat((z_latent_1, z_latent_2), 0))
     true_labels = torch.cat((torch.ones(z_latent_1.shape[0]).view(z_latent_1.shape[0], 1),
@@ -1635,10 +1682,12 @@ for i in range(model_params["no_folds"]):
     valClassAcc.append(class_acc)
     valF1Species.append(species_f1)
     valAccSpecies.append(species_acc)
+    valF1Protection.append(f1_protection)
 
     print2log('Classification accuracy: %s' % class_acc)
     print2log('Classification F1 score: %s' % f1)
     print2log('Classification species F1 score: %s' % species_f1)
+    print2log('Classification Protection F1 score: %s' % f1_protection)
 
     xhat_1 = decoder_1(z_latent_1)
     xhat_2 = decoder_2(z_latent_2)
@@ -1724,8 +1773,9 @@ for i in range(model_params["no_folds"]):
     torch.save(encoder_interm_1,'../results_intermediate_encoders/models/encoder_intermediate_human_%s.pt' % i)
     torch.save(encoder_interm_2,'../results_intermediate_encoders/models/encoder_intermediate_primates_%s.pt' % i)
     torch.save(adverse_classifier, '../results_intermediate_encoders/models/classifier_adverse_%s.pt' % i)
+    torch.save(protection_classifier,'../results_intermediate_encoders/models/protection_classifier_%s.pt' % i)
 
-df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Species,'AccuracySpecies':valAccSpecies,
+df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Species,'AccuracySpecies':valAccSpecies,'F1Protection':valF1Protection,
                           'recon_pear_primates':valPear_2 ,'recon_pear_human':valPear_1,
                           'recon_r2_primates':valR2_2,'recon_r2_human':valR2_1,
                           'latent_human_pear':valPear_1_latent,'latent_mouse_pear':valPear_2_latent,

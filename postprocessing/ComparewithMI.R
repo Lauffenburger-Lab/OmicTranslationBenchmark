@@ -245,7 +245,7 @@ for (i in 0:9){
   
   valInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
                    data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
-  valPaired = data.table::fread(paste0('10fold_validation_spit/val_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+  valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
   valInfo <- rbind(valInfo,
                    valPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
                    valPaired %>% select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
@@ -312,31 +312,31 @@ for (i in 0:9){
     xlab("")+ylab("Cosine Distance")+ 
     theme(axis.ticks.x=element_blank(),
           panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(),text = element_text(family = "serif",size = 17),legend.position = "bottom")+
-    theme_minimal(base_family = "serif",base_size = 17)
+          panel.background = element_blank(),text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
+    theme_minimal(base_family = "Arial",base_size = 20)
   violin_separation <- violin_separation + theme(legend.position = "bottom")
   plotList[[i+1]] <- violin_separation
   
   #distrList[[i+1]]<-visualize_embeddings_distribution2(rbind(embs_test_mi%>%gather('key','value')%>%mutate(key='Autoencoder MI'),
   #                                                     embs_test%>%gather('key','value')%>%mutate(key='Autoencoder Simple')))
   
-  png(paste0('../figures/MI_results/compare_pca/pca_2d_cells_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
-  pca_test_mi <- cell_line_pca_visualize(embs_test_mi,embs_proc_test_mi,dim=2,show_plot = F)
-  print(pca_test_mi)
-  dev.off()
-  
-  png(paste0('../figures/MI_results/compare_pca/pca_2d_cells_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
-  pca_test <- cell_line_pca_visualize(embs_test,embs_proc_test,dim=2,show_plot = F)
-  print(pca_test)
-  dev.off()  
-  
-  png(paste0('../figures/MI_results/compare_latent_distr/latent_distr_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
-  visualize_embeddings_distribution(embs_test_mi)
-  dev.off()
-  
-  png(paste0('../figures/MI_results/compare_latent_distr/latent_distr_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
-  visualize_embeddings_distribution(embs_test)
-  dev.off()
+  # png(paste0('../figures/MI_results/compare_pca/pca_2d_cells_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  # pca_test_mi <- cell_line_pca_visualize(embs_test_mi,embs_proc_test_mi,dim=2,show_plot = F)
+  # print(pca_test_mi)
+  # dev.off()
+  # 
+  # png(paste0('../figures/MI_results/compare_pca/pca_2d_cells_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  # pca_test <- cell_line_pca_visualize(embs_test,embs_proc_test,dim=2,show_plot = F)
+  # print(pca_test)
+  # dev.off()  
+  # 
+  # png(paste0('../figures/MI_results/compare_latent_distr/latent_distr_mi_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  # visualize_embeddings_distribution(embs_test_mi)
+  # dev.off()
+  # 
+  # png(paste0('../figures/MI_results/compare_latent_distr/latent_distr_simple_split',i,'.png'),width=10,height = 10,units = "in",res=300)
+  # visualize_embeddings_distribution(embs_test)
+  # dev.off()
   
   
   message(paste0('Done split ',i))

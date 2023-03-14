@@ -250,8 +250,8 @@ for (i in 0:9){
     xlab("")+ylab("Cosine Distance")+ 
     theme(axis.ticks.x=element_blank(),
           panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(),text = element_text(family = "serif",size = 17),legend.position = "bottom")+
-    theme_minimal(base_family = "serif",base_size = 17) +
+          panel.background = element_blank(),text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
+    theme_minimal(base_family = "Arial",base_size = 20) +
     geom_text(aes(x=model,y=max(all_dists  %>% select(value))+0.1, label=effsize),
               data=cohen_df ,inherit.aes = FALSE)+
   facet_wrap(~ set)

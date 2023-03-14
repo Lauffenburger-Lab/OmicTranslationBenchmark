@@ -163,14 +163,19 @@ results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(genese
 
 p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
   ggtitle(paste0('Genestet performance for translating from ',cells[1],' to ',cells[2]))+ ylab('pearson`s r')+ ylim(c(0,0.85))+
-  theme_minimal(base_family = "serif",base_size = 15)+
-  theme(plot.title = element_text(hjust = 0.5,size=15))
+  theme_minimal(base_family = "Arial",base_size = 16)+
+  theme(plot.title = element_text(hjust = 0.5,size=16))
 p <- p + stat_compare_means(aes(group = model),label='p.signif')
 print(p)
 png(paste0('../figures/genesets_model_vs_direct_',tolower(cells[1]),'_',tolower(cells[2]),'.png')
     ,width=12,height=8,units = "in",res = 600)
 print(p)
 dev.off()
+# setEPS()
+# postscript(paste0('../figures/genesets_model_vs_direct_',tolower(cells[1]),'_',tolower(cells[2]),'.eps'))
+# print(p)
+# dev.off()
+
 
 model_res <- do.call(cbind.data.frame, model_geneset_corr_cell2_to_cell1)
 model_res <- model_res %>% rownames_to_column('fold') %>% gather('geneset','cor',-fold)
@@ -181,8 +186,8 @@ results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(genese
 
 p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
   ggtitle(paste0('Genestet performance for translating from ',cells[2],' to ',cells[1]))+ ylab('pearson`s r')+ ylim(c(0,0.85))+
-  theme_minimal(base_family = "serif",base_size = 15)+
-  theme(plot.title = element_text(hjust = 0.5,size=15))
+  theme_minimal(base_family = "Arial",base_size = 16)+
+  theme(plot.title = element_text(hjust = 0.5,size=16))
 p <- p + stat_compare_means(aes(group = model),label='p.signif')
 print(p)
 png(paste0('../figures/genesets_model_vs_direct_',tolower(cells[2]),'_',tolower(cells[1]),'.png')
@@ -264,8 +269,8 @@ for (set in str_split_fixed(sets,'NES',n=2)[,2]){
 }
 p <- ggboxplot(results, x = "geneset", y = 'cor',color='type',add='jitter')+
   ggtitle(paste0('Genestet performance for translating from ',cells[2],' to ',cells[1]))+ ylab('pearson`s r')+
-  theme_minimal(base_family = "serif",base_size = 15)+
-  theme(plot.title = element_text(hjust = 0.5,size=15),legend.position='bottom')
+  theme_minimal(base_family = "Arial",base_size = 16)+
+  theme(plot.title = element_text(hjust = 0.5,size=16),legend.position='bottom')
 p <- p + stat_compare_means(comparisons=comparisons[which(p.values<0.05)],method = 'wilcox.test',label='p.signif')
 print(p)
 
@@ -299,8 +304,8 @@ for (set in str_split_fixed(sets,'NES',n=2)[,2]){
 }
 p <- ggboxplot(results, x = "geneset", y = 'cor',color='type',add='jitter')+
   ggtitle(paste0('Genestet performance for translating from ',cells[1],' to ',cells[2]))+ ylab('pearson`s r')+
-  theme_minimal(base_family = "serif",base_size = 15)+
-  theme(plot.title = element_text(hjust = 0.5,size=15),legend.position='bottom')
+  theme_minimal(base_family = "Arial",base_size = 16)+
+  theme(plot.title = element_text(hjust = 0.5,size=16),legend.position='bottom')
 p <- p + stat_compare_means(comparisons=comparisons[which(p.values<0.05)],method = 'wilcox.test',label='p.signif')
 print(p)
 
@@ -401,12 +406,16 @@ results <- rbind(model_tfs,model_genes)
 p <- ggboxplot(results %>% filter(translation!='direct translation'),
                x = "translation", y = 'cor',color='level',add='jitter',)+
   ggtitle('TFs performance from translating predicted gene expression')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
-  theme_minimal(base_family = "serif",base_size = 30)+
-  theme(plot.title = element_text(hjust = 0.5,size=23),legend.position='bottom')
+  theme_minimal(base_family = "Arial",base_size = 23)+
+  theme(plot.title = element_text(hjust = 0.5,size=20),legend.position='bottom')
 p <- p + stat_compare_means(aes(group=level),method = 'wilcox.test',label='p.signif')
 print(p)
 
 png('../figures/tfs_vs_genes_translating_comparison.png',width=9,height=8,units = "in",res = 600)
+print(p)
+dev.off()
+setEPS()
+postscript('../figures/tfs_vs_genes_translating_comparison.ps',width=9,height=8)
 print(p)
 dev.off()
 
@@ -414,11 +423,16 @@ comparisons <- list(c('direct translation','A375 to HT29'),c('direct translation
 p <- ggboxplot(results %>% filter(level!='Genes'),
                x = "translation", y = 'cor',color='translation',add='jitter')+
   ggtitle('TFs performance from translating predicted gene expression')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
-  theme_minimal(base_family = "serif",base_size = 30)+
-  theme(plot.title = element_text(hjust = 0.5,size=23),legend.position='')
+  theme_minimal(base_family = "Arial",base_size = 23)+
+  theme(plot.title = element_text(hjust = 0.5,size=20),legend.position='')
 p <- p + stat_compare_means(comparisons=comparisons,method = 'wilcox.test',label='p.signif')
 print(p)
 
 png('../figures/tfs_vs_direct_translating_comparison.png',width=9,height=8,units = "in",res = 600)
 print(p)
 dev.off()
+setEPS()
+postscript('../figures/tfs_vs_direct_translating_comparison.ps',width=9,height=8)
+print(p)
+dev.off()
+
