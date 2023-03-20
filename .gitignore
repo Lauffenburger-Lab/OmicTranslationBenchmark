@@ -17,6 +17,7 @@ preprocessing/.Rproj.user/
 preprocessing/preprocessed_data/cmap_*
 preprocessing/preprocessed_data/all_cmap_*
 preprocessing/preprocessed_data/gsea_distances_a375_ht29.rds
+preprocessing/preprocessed_data/landmarks_gsea_distances_a375_ht29.rds
 postprocessing/.Rhistory
 postprocessing/.Rproj.user/
 figures/.Rhistory
@@ -83,6 +84,8 @@ results/all_gensetsEnrich_results_allgenes_drugs_a375_ht29.rds
 results/all_gensetsEnrich_results_allgenes_drugs_pc3_ha1e.rds
 results/all_gensetsEnrich_results_landmarks_drugs_a375_ht29.rds
 results/all_gensetsEnrich_results_landmarks_drugs_pc3_ha1e.rds
+results/deepcellstate_results_10kgenes/allembs_*
+results/deepcellstate_results_10kgenes/alldata_*
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
