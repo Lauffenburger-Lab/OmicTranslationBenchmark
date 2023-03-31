@@ -65,12 +65,12 @@ for i in range(k_folds):
     xtrain_human, ytrain_human = dataset_human[lh[i][0]]
     xtest_human, ytest_human = dataset_human[lh[i][1]]
 
-    torch.save(xtrain_primates, '../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
-    torch.save(ytrain_primates, '../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
-    torch.save(xtest_primates, '../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
-    torch.save(ytest_primates, '../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+    torch.save(xtrain_primates, '../data/5fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+    torch.save(ytrain_primates, '../data/5fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+    torch.save(xtest_primates, '../data/5fold_cross_validation/train/xtest_primates_%s.pt' % i)
+    torch.save(ytest_primates, '../data/5fold_cross_validation/train/ytest_primates_%s.pt' % i)
 
-    torch.save(xtrain_human, '../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
-    torch.save(ytrain_human, '../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
-    torch.save(xtest_human, '../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
-    torch.save(ytest_human, '../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
+    torch.save(xtrain_human, '../data/5fold_cross_validation/train/xtrain_human_%s.pt' % i)
+    torch.save(ytrain_human, '../data/5fold_cross_validation/train/ytrain_human_%s.pt' % i)
+    torch.save(xtest_human, '../data/5fold_cross_validation/train/xtest_human_%s.pt' % i)
+    torch.save(ytest_human, '../data/5fold_cross_validation/train/ytest_human_%s.pt' % i)

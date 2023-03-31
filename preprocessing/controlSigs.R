@@ -2,19 +2,19 @@ library(tidyverse)
 library(cmapR)
 library(ggplot2)
 library(ggpubr)
-
 library(doFuture)
-
-# parallel set number of workers
-cores <- 15
+# parallel: set number of workers
+cores <- 11
 registerDoFuture()
-plan(multiprocess,workers = cores)
+plan(multisession,workers = cores)
+library(doRNG)
 
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
 ### Load data and keep only well-inferred and landmark genes----------------------------------------------------
 geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
+# geneInfo <-  geneInfo %>% filter(feature_space == "landmark") # keep landmarks
 # Keep only protein-coding genes
 geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
 
@@ -26,7 +26,7 @@ sigInfo <- sigInfo %>% filter(quality_replicates==1)
 sigInfo <- sigInfo %>% filter(pert_time<=24)
 
 # Filter based on TAS
-sigInfo <- sigInfo %>% filter(tas<=0.3)
+# sigInfo <- sigInfo %>% filter(tas<=0.3)
 
 # Duplicate information
 sigInfo <- sigInfo %>% mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
@@ -139,7 +139,7 @@ for (i in 1:length(tas_thresholds_upper)){
 png(file="duplicate_vs_random_distribution_untreated.png",width=16,height=8,units = "in",res=300)
 
 p <- ggarrange(plotlist=plotList,ncol=4,nrow=2,common.legend = TRUE,legend = 'right',
-               labels = paste0(c('TAS>=0.15','TAΣ>=0.2','TAS>=0.25','TAS>=0.3','TAS>=0.35',
+               labels = paste0(c('TAS>=0.15','TAS>=0.2','TAS>=0.25','TAS>=0.3','TAS>=0.35',
                                  'TAS>=0.4','TAS>=0.45','TAS>=0.5'),',Number of signatures:',num_of_sigs),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),
                hjust=-0.15)
@@ -168,10 +168,10 @@ hist(p.adj)
 
 ## Clean save conditions ------
 cmap <- readRDS('preprocessed_data/cmap_all_controls_untreated_q1.rds')
-write.csv(t(cmap), 'preprocessed_data/cmap_untreated_tas03.csv')
+write.csv(t(cmap), 'preprocessed_data/cmap_untreated_untreated_q1.csv')
 
 # Drug condition information
-sigInfo <- sigInfo  %>% filter(tas<=0.3)
+# sigInfo <- sigInfo  %>% filter(tas<=0.3)
 sigInfo <- sigInfo %>% filter(pert_time<=24)
 conditions <- sigInfo %>%  group_by(cell_iname) %>% summarise(conditions_per_cell = n_distinct(conditionId)) %>% ungroup()
 
@@ -201,21 +201,21 @@ cell1 <- as.character(common$Var1[ind])
 cell2 <- as.character(common$Var2[ind])
 
 # For now get A375 and HT29
-sigInfo <- sigInfo %>% filter(cell_iname=='PC3' | cell_iname=='HA1E')
+sigInfo <- sigInfo %>% filter(cell_iname=='A375' | cell_iname=='HT29')
 
 # Split the data of the two cell-lines into:
 # paired: 1 dataframe with paired conditions
 # unpaired: 2 datasets one for each celline
 
-a375 <- sigInfo %>% filter(cell_iname=='PC3') %>% select(conditionId,sig_id,cell_iname) %>% unique()
-ht29 <- sigInfo %>% filter(cell_iname=='HA1E') %>% select(conditionId,sig_id,cell_iname) %>% unique()
+a375 <- sigInfo %>% filter(cell_iname=='A375') %>% select(conditionId,sig_id,cell_iname) %>% unique()
+ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% select(conditionId,sig_id,cell_iname) %>% unique()
 paired <- merge(a375,ht29,by="conditionId") %>% filter((!is.na(sig_id.x) & !is.na(sig_id.y))) %>% unique()
-write.csv(paired,'preprocessed_data/10fold_validation_spit/alldata/paired_untreated_pc3_ha1e.csv')
+write.csv(paired,'preprocessed_data/10fold_validation_spit/alldata/paired_untreated_a375_ht29.csv')
 
 sigInfo <- sigInfo %>% select(sig_id,cell_iname,conditionId) %>% unique() %>%
   filter(!(sig_id %in% unique(c(paired$sig_id.x,paired$sig_id.y)))) %>% unique()
-a375 <- sigInfo %>% filter(cell_iname=='PC3') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
-ht29 <- sigInfo %>% filter(cell_iname=='HA1E') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
+a375 <- sigInfo %>% filter(cell_iname=='A375') %>% filter(!(sig_id %in% paired$sig_id.x)) %>% unique()
+ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% filter(!(sig_id %in% paired$sig_id.y)) %>% unique()
 write.csv(a375,'preprocessed_data/10fold_validation_spit/alldata/pc3_unpaired_untreated.csv')
 write.csv(ht29,'preprocessed_data/10fold_validation_spit/alldata/ha1e_unpaired_untreated.csv') #zero
 
@@ -256,6 +256,7 @@ print(mean(corr_pear))
 ## Load ccle and keep only genes of L1000-----
 geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 geneInfo <-  geneInfo %>% filter(feature_space != "inferred")
+# geneInfo <-  geneInfo %>% filter(feature_space == "landmark") # keep only landmark
 # Keep only protein-coding genes
 geneInfo <- geneInfo %>% filter(gene_type=="protein-coding")
 
@@ -267,7 +268,7 @@ sigInfo <- sigInfo %>% filter(quality_replicates==1)
 sigInfo <- sigInfo %>% filter(pert_time<=24)
 
 # Filter based on TAS
-sigInfo <- sigInfo %>% filter(tas<=0.3)
+# sigInfo <- sigInfo %>% filter(tas<=0.3)
 
 # Duplicate information
 sigInfo <- sigInfo %>% mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
@@ -295,8 +296,9 @@ colnames(ccle)[(ind+1):ncol(ccle)] <- genes_missing
 print(all(rownames(cmap)==geneInfo$gene_id))
 df_genes <- left_join(data.frame(gene_symbol=rownames(cmap)),
                       geneInfo %>% select(gene_symbol,gene_id) %>% unique())
-print(all(rownames(cmap)==geneInfo$gene_symbol))
+print(all(rownames(cmap)==geneInfo$gene_id))
 rownames(cmap) <- geneInfo$gene_symbol  
+print(all(rownames(cmap)==geneInfo$gene_symbol))
 
 ccle <- ccle %>% select(rownames(cmap))
 ccle <- t(ccle)

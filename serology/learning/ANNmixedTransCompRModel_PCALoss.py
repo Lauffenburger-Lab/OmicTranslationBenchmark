@@ -25,7 +25,7 @@ print2log = logger.info
 
 parser = argparse.ArgumentParser(prog='TransCompR mixed with ANNs approaches')
 parser.add_argument('--filter_pcs', action='store', default=False)
-parser.add_argument('--latent_dim', action='store', default=None)
+parser.add_argument('--latent_dim', action='store', default=32)
 # parser.add_argument('--outPattern', action='store')
 args = parser.parse_args()
 filter_pcs = args.filter_pcs
@@ -1207,7 +1207,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #     print2log('Classification accuracy: %s' % class_acc)
 #     print2log('Classification F1 score: %s' % f1)
 #
-#     torch.save(adverse_classifier, '../results_intermediate_encoders/pretrained_models/pre_trained_classifier_adverse_%s.pt' % i)
+#     torch.save(adverse_classifier, '../results_intermediate_encoders/pretrained_models/5fold/pre_trained_classifier_adverse_%s.pt' % i)
 
 ### Train whole translational model
 print2log('Train translation model')
@@ -1248,8 +1248,11 @@ class_criterion = torch.nn.CrossEntropyLoss()
 pear_matrix_primates = np.zeros((model_params['no_folds'],Xm.shape[1]))
 pear_matrix_human = np.zeros((model_params['no_folds'],Xh.shape[1]))
 
-pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2))
-pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
+# pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2))
+# pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
+
+pear_matrix_primates_latent = np.zeros((model_params['no_folds'],nComps2,nComps2))
+pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1,nComps1))
 
 for i in range(model_params["no_folds"]):
     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
@@ -1429,6 +1432,7 @@ for i in range(model_params["no_folds"]):
             conditions_protect = conditions_protect * 1
 
             conditions = np.multiply(conditions_protect,conditions)
+            # conditions = np.copy(conditions_protect)
 
             mask = torch.tensor(conditions).to(device).detach()
             pos_mask = mask
@@ -1521,6 +1525,16 @@ for i in range(model_params["no_folds"]):
             cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_latent = 2 * tp / (2 * tp + fp + fn)
+            # Classification in basal also
+            labels = classifier(latent_base_vectors)
+            true_labels = torch.cat((ytrain_human[dataIndex_1, 0],
+                                     ytrain_primates[dataIndex_2, 0]), 0).long().to(device)
+            entropy_global = class_criterion(labels, true_labels)
+            _, predicted = torch.max(labels, 1)
+            predicted = predicted.cpu().numpy()
+            cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
+            tn, fp, fn, tp = cf_matrix.ravel()
+            f1_latent_global = 2 * tp / (2 * tp + fp + fn)
 
             # Protection classification
             labels = protection_classifier(latent_base_vectors)
@@ -1532,6 +1546,16 @@ for i in range(model_params["no_folds"]):
             cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_protection = 2 * tp / (2 * tp + fp + fn)
+            # Protection in latent
+            labels = protection_classifier(latent_vectors)
+            true_labels = torch.cat((ytrain_human[dataIndex_1, 1],
+                                     ytrain_primates[dataIndex_2, 1]), 0).long().to(device)
+            protection_entropy_latent = class_criterion(labels, true_labels)
+            _, predicted = torch.max(labels, 1)
+            predicted = predicted.cpu().numpy()
+            cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
+            tn, fp, fn, tp = cf_matrix.ravel()
+            f1_protection_latent = 2 * tp / (2 * tp + fp + fn)
 
             # Species classification loss
             labels = species_classifier(latent_vectors)
@@ -1557,7 +1581,7 @@ for i in range(model_params["no_folds"]):
 
             # loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params['cosine_loss'] * cosineLoss + Vsp.Regularization(model_params["v_reg"])
             loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params[
-                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * entropy + model_params['reg_classifier'] * entropy_species + model_params['reg_classifier'] *protection_entropy - model_params[
+                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * (entropy+entropy_global) + model_params['reg_classifier'] * entropy_species + model_params['reg_classifier'] *(protection_entropy+protection_entropy_latent) - model_params[
                        'reg_adv'] * adv_entropy + classifier.L2Regularization(
                 model_params['state_class_reg']) + species_classifier.L2Regularization(
                 model_params['species_class_reg'])+ encoder_interm_1.L2Regularization(
@@ -1596,13 +1620,15 @@ for i in range(model_params["no_folds"]):
             outString += ', Cosine Loss={:.4f}'.format(cosineLoss.item())
             outString += ', loss={:.4f}'.format(loss.item())
             outString += ', F1 latent={:.4f}'.format(f1_latent)
+            outString += ', F1 latent Global={:.4f}'.format(f1_latent_global)
             outString +=', F1 Protection={:.4f}'.format(f1_protection)
+            outString += ', F1 Protection latent={:.4f}'.format(f1_protection_latent)
             outString += ', F1 basal={:.4f}'.format(f1_basal)
             # if e % model_params["adversary_steps"] == 0 and e>0:
             outString += ', F1 basal trained={:.4f}'.format(f1_basal_trained)
             # else:
             #    outString += ', F1 basal trained= %s'%f1_basal_trained
-        if (e % 100 == 0):
+        if (e % 500 == 0):
             print2log(outString)
     print2log(outString)
     decoder_1.eval()
@@ -1623,13 +1649,6 @@ for i in range(model_params["no_folds"]):
     x_2 = xtest_primates.float().to(device)
     x1_transformed = torch.tensor(pca_space_1.transform(xtest_human.numpy())).float().to(device)
     x2_transformed = torch.tensor(pca_space_2.transform(xtest_primates.numpy())).float().to(device)
-
-    conditions = np.concatenate((ytest_human.numpy(), ytest_primates.numpy()))
-    size = conditions.size
-    conditions = conditions.reshape(size, 1)
-    conditions = conditions == conditions.transpose()
-    conditions = conditions * 1
-    mask = torch.tensor(conditions).to(device).detach()
 
     # z_species_1 = torch.cat((torch.ones(x_1.shape[0], 1),
     #                          torch.zeros(x_1.shape[0], 1)), 1).to(device)
@@ -1656,6 +1675,16 @@ for i in range(model_params["no_folds"]):
     tn, fp, fn, tp = cf_matrix.ravel()
     class_acc = (tp + tn) / predicted.size
     f1 = 2 * tp / (2 * tp + fp + fn)
+    # Global classification also
+    labels = classifier(torch.cat((z_latent_base_1, z_latent_base_2), 0))
+    true_labels = torch.cat((ytest_human[:, 0],
+                             ytest_primates[:, 0]), 0).long()
+    _, predicted = torch.max(labels, 1)
+    predicted = predicted.cpu().numpy()
+    cf_matrix = confusion_matrix(true_labels.numpy(), predicted, labels=[0, 1])
+    tn, fp, fn, tp = cf_matrix.ravel()
+    class_acc = (tp + tn) / predicted.size
+    f1_global = 2 * tp / (2 * tp + fp + fn)
 
     # Protection classification
     labels = protection_classifier(torch.cat((z_latent_base_1, z_latent_base_2), 0))
@@ -1666,6 +1695,15 @@ for i in range(model_params["no_folds"]):
     cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
     tn, fp, fn, tp = cf_matrix.ravel()
     f1_protection = 2 * tp / (2 * tp + fp + fn)
+    # Protection classification also in latent
+    labels = protection_classifier(torch.cat((z_latent_1, z_latent_2), 0))
+    true_labels = torch.cat((ytest_human[:, 1],
+                             ytest_primates[:, 1]), 0).long().to(device)
+    _, predicted = torch.max(labels, 1)
+    predicted = predicted.cpu().numpy()
+    cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
+    tn, fp, fn, tp = cf_matrix.ravel()
+    f1_protection_latent = 2 * tp / (2 * tp + fp + fn)
 
     # Species classifier
     labels = species_classifier(torch.cat((z_latent_1, z_latent_2), 0))
@@ -1688,6 +1726,8 @@ for i in range(model_params["no_folds"]):
     print2log('Classification F1 score: %s' % f1)
     print2log('Classification species F1 score: %s' % species_f1)
     print2log('Classification Protection F1 score: %s' % f1_protection)
+    print2log('Classification F1 score in global: %s' % f1_global)
+    print2log('Classification Protection F1 score in latent: %s' % f1_protection_latent)
 
     xhat_1 = decoder_1(z_latent_1)
     xhat_2 = decoder_2(z_latent_2)
@@ -1702,6 +1742,7 @@ for i in range(model_params["no_folds"]):
     pearson_1_latent =  pearson_r(z_latent_1.detach(), x1_transformed.detach())
     pearson_2_latent = pearson_r(z_latent_2.detach(), x2_transformed.detach())
 
+
     valPear_1.append(torch.mean(pearson_1).item())
     valPear_2.append(torch.mean(pearson_2).item())
     valR2_1.append(torch.mean(r2_1).item())
@@ -1715,8 +1756,26 @@ for i in range(model_params["no_folds"]):
 
     pear_matrix_primates[i, :] = pearson_2.detach().cpu().numpy()
     pear_matrix_human[i, :] = pearson_1.detach().cpu().numpy()
-    pear_matrix_primates_latent[i, :] = pearson_2_latent.detach().cpu().numpy()
-    pear_matrix_human_latent[i, :] = pearson_1_latent.detach().cpu().numpy()
+    # pear_matrix_primates_latent[i, :] = pearson_2_latent.detach().cpu().numpy()
+    # pear_matrix_human_latent[i, :] = pearson_1_latent.detach().cpu().numpy()
+    df_z1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
+    df_z1.columns = ['Z' + str(d + 1) for d in range(latent_dim)]
+    df_pc1 = pd.DataFrame(x1_transformed.detach().cpu().numpy())
+    df_pc1.columns = ['PC' + str(d + 1) for d in range(latent_dim)]
+    df_z2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
+    df_z2.columns = ['Z' + str(d + 1) for d in range(latent_dim)]
+    df_pc2 = pd.DataFrame(x2_transformed.detach().cpu().numpy())
+    df_pc2.columns = ['PC' + str(d + 1) for d in range(latent_dim)]
+    df1 = pd.concat([df_z1,df_pc1],axis=1)
+    df2 = pd.concat([df_z2, df_pc2], axis=1)
+    corr_matrix_1 = df1.corr()
+    corr_matrix_1 = corr_matrix_1.loc[df_pc1.columns.values,df_z1.columns.values]
+    corr_matrix_1 = corr_matrix_1.values
+    corr_matrix_2 = df2.corr()
+    corr_matrix_2 = corr_matrix_2.loc[df_pc2.columns.values, df_z2.columns.values]
+    corr_matrix_2 = corr_matrix_2.values
+    pear_matrix_primates_latent[i, :, :] = corr_matrix_2
+    pear_matrix_human_latent[i, :, :] = corr_matrix_1
 
     # Translate to other species
     # z_species_train_1 = torch.cat((torch.ones(xtrain_human.shape[0], 1),
@@ -1761,19 +1820,19 @@ for i in range(model_params["no_folds"]):
     valF1KNNTrans.append(f1_translation)
     valF1ClassTrans.append(species_f1_trans)
 
-    torch.save(decoder_1, '../results_intermediate_encoders/models/decoder_human_%s.pt' % i)
-    torch.save(decoder_2, '../results_intermediate_encoders/models/decoder_primates_%s.pt' % i)
-    torch.save(prior_d, '../results_intermediate_encoders/models/priorDiscr_%s.pt' % i)
-    torch.save(local_d, '../results_intermediate_encoders/models/localDiscr_%s.pt' % i)
-    torch.save(encoder_1, '../results_intermediate_encoders/models/encoder_human_%s.pt' % i)
-    torch.save(encoder_2, '../results_intermediate_encoders/models/encoder_primates_%s.pt' % i)
-    torch.save(classifier, '../results_intermediate_encoders/models/classifier_%s.pt' % i)
-    torch.save(species_classifier, '../results_intermediate_encoders/models/species_classifier_%s.pt' % i)
+    torch.save(decoder_1, '../results_intermediate_encoders/models/5fold/decoder_human_%s.pt' % i)
+    torch.save(decoder_2, '../results_intermediate_encoders/models/5fold/decoder_primates_%s.pt' % i)
+    torch.save(prior_d, '../results_intermediate_encoders/models/5fold/priorDiscr_%s.pt' % i)
+    torch.save(local_d, '../results_intermediate_encoders/models/5fold/localDiscr_%s.pt' % i)
+    torch.save(encoder_1, '../results_intermediate_encoders/models/5fold/encoder_human_%s.pt' % i)
+    torch.save(encoder_2, '../results_intermediate_encoders/models/5fold/encoder_primates_%s.pt' % i)
+    torch.save(classifier, '../results_intermediate_encoders/models/5fold/classifier_%s.pt' % i)
+    torch.save(species_classifier, '../results_intermediate_encoders/models/5fold/species_classifier_%s.pt' % i)
     # torch.save(Vsp, '../results_intermediate_encoders/models/Vspecies_%s.pt' % i)
-    torch.save(encoder_interm_1,'../results_intermediate_encoders/models/encoder_intermediate_human_%s.pt' % i)
-    torch.save(encoder_interm_2,'../results_intermediate_encoders/models/encoder_intermediate_primates_%s.pt' % i)
-    torch.save(adverse_classifier, '../results_intermediate_encoders/models/classifier_adverse_%s.pt' % i)
-    torch.save(protection_classifier,'../results_intermediate_encoders/models/protection_classifier_%s.pt' % i)
+    torch.save(encoder_interm_1,'../results_intermediate_encoders/models/5fold/encoder_intermediate_human_%s.pt' % i)
+    torch.save(encoder_interm_2,'../results_intermediate_encoders/models/5fold/encoder_intermediate_primates_%s.pt' % i)
+    torch.save(adverse_classifier, '../results_intermediate_encoders/models/5fold/classifier_adverse_%s.pt' % i)
+    torch.save(protection_classifier,'../results_intermediate_encoders/models/5fold/protection_classifier_%s.pt' % i)
 
 df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Species,'AccuracySpecies':valAccSpecies,'F1Protection':valF1Protection,
                           'recon_pear_primates':valPear_2 ,'recon_pear_human':valPear_1,
@@ -1824,33 +1883,45 @@ ax.yaxis.set_tick_params(labelsize = 5)
 plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 
 
+pear_matrix_primates_latent = pear_matrix_primates_latent.mean(0)
+pear_matrix_human_latent = pear_matrix_human_latent.mean(0)
+
 pear_matrix_primates_latent = pd.DataFrame(pear_matrix_primates_latent)
-pear_matrix_primates_latent.columns = ['PC'+str(d+1) for d in range(latent_dim)]
+# pear_matrix_primates_latent.columns = ['PC'+str(d+1) for d in range(latent_dim)]
+pear_matrix_primates_latent.columns = ['Z'+str(d+1) for d in range(latent_dim)]
+pear_matrix_primates_latent.index = ['PC'+str(d+1) for d in range(latent_dim)]
 pear_matrix_primates_latent.to_csv('../results_intermediate_encoders/10foldvalidation_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
-pear_matrix_primates_latent = pd.melt(pear_matrix_primates_latent)
-pear_matrix_primates_latent.columns = ['PC','pearson']
-sns.set_theme(style="whitegrid")
+# pear_matrix_primates_latent = pd.melt(pear_matrix_primates_latent)
+# pear_matrix_primates_latent.columns = ['PC','pearson']
+# sns.set_theme(style="whitegrid")
 plt.figure(figsize=(9,12), dpi= 80)
-ax = sns.boxplot(x="pearson", y="PC", data=pear_matrix_primates_latent,orient='h') #order=grouped.index
-ax.axhline(n2,ls='--',color='red')
-plt.legend(loc='lower left')
-plt.gca().set(title='Per principal component performance of primate encoder in 10-fold cross-validation',
-              xlabel = 'pearson correlation',
-              ylabel='PC')
-# plt.xlim(0,1)
-plt.savefig('../results_intermediate_encoders/perFeature_encoder_'+str(latent_dim)+'dim500ep_primates.png', bbox_inches='tight',dpi=600)
+# ax = sns.boxplot(x="pearson", y="PC", data=pear_matrix_primates_latent,orient='h') #order=grouped.index
+# ax.axhline(n2,ls='--',color='red')
+# plt.legend(loc='lower left')
+# plt.gca().set(title='Per principal component performance of primate encoder in 10-fold cross-validation',
+#               xlabel = 'pearson correlation',
+#               ylabel='PC')
+# #plt.xlim(0,1)
+# plt.savefig('../results_intermediate_encoders/perFeature_encoder_'+str(latent_dim)+'dim500ep_primates.png', bbox_inches='tight',dpi=600)
+sns.clustermap(pear_matrix_primates_latent,cmap='RdBu_r', center=0,vmin=-0.75, vmax=0.75)
+plt.savefig('../results_intermediate_encoders/perFeature_PCA_avgCorrelation_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 pear_matrix_human_latent = pd.DataFrame(pear_matrix_human_latent)
-pear_matrix_human_latent.columns = ['PC'+str(d+1) for d in range(latent_dim)]
+# pear_matrix_human_latent.columns = ['PC'+str(d+1) for d in range(latent_dim)]
+pear_matrix_human_latent.columns = ['Z'+str(d+1) for d in range(latent_dim)]
+pear_matrix_human_latent.index = ['PC'+str(d+1) for d in range(latent_dim)]
 pear_matrix_human_latent.to_csv('../results_intermediate_encoders/10foldvalidation_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
-pear_matrix_human_latent = pd.melt(pear_matrix_human_latent)
-pear_matrix_human_latent.columns = ['PC','pearson']
-sns.set_theme(style="whitegrid")
+# pear_matrix_human_latent = pd.melt(pear_matrix_human_latent)
+# pear_matrix_human_latent.columns = ['PC','pearson']
+# sns.set_theme(style="whitegrid")
 plt.figure(figsize=(9,12), dpi= 80)
-ax = sns.boxplot(x="pearson", y="PC", data=pear_matrix_human_latent,orient='h') #order=grouped.index
-ax.axhline(n1,ls='--',color='red')
-plt.legend(loc='lower left')
-plt.gca().set(title='Per principal component performance of human encoder in 10-fold cross-validation',
-              xlabel = 'pearson correlation',
-              ylabel='PC')
-# plt.xlim(0,1)
-plt.savefig('../results_intermediate_encoders/perFeature_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+# ax = sns.boxplot(x="pearson", y="PC", data=pear_matrix_human_latent,orient='h') #order=grouped.index
+# ax.axhline(n1,ls='--',color='red')
+# plt.legend(loc='lower left')
+# plt.gca().set(title='Per principal component performance of human encoder in 10-fold cross-validation',
+#               xlabel = 'pearson correlation',
+#               ylabel='PC')
+# #plt.xlim(0,1)
+# plt.savefig('../results_intermediate_encoders/perFeature_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+sns.clustermap(pear_matrix_human_latent,cmap='RdBu_r', center=0,vmin=-0.75, vmax=0.75)
+plt.savefig('../results_intermediate_encoders/perFeature_PCA_avgCorrelation_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+

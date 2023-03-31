@@ -14,7 +14,7 @@ human_expr <- human_expr[,-inds]
 cols <- colnames(human_expr)
 # human_expr <- human_expr - colMeans(human_expr)
 human_expr <- scale(human_expr)
-hist(human_expr)
+hist(human_expr,100)
 data.table::fwrite(human_expr,'data/human_exprs.csv',row.names = T)
 data.table::fwrite(human_hiv,'data/human_metadata.csv',row.names = T)
 
@@ -31,7 +31,7 @@ primates_expr <- log10(primates_expr+1)
 controls <- primates_expr[which(primates_nhp$Immunization_Ag=='Sham'),]
 controlsMed <- apply(controls,2,median)
 primates_expr <- primates_expr - controlsMed
-hist(primates_expr)
+hist(primates_expr,100)
 # primates_expr <- primates_expr - colMeans(primates_expr)
 primates_expr <- scale(primates_expr)
 primates_expr[is.nan(primates_expr)] <- 0. 

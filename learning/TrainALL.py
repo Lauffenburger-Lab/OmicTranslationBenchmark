@@ -41,39 +41,84 @@ def seed_everything(seed=42):
     
 # Read data
 # cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_landmarks_2_1.csv',index_col = 0)
-cmap = pd.read_csv('cmap_all_genes_q1_tas03.csv',index_col = 0)
+cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_landmarks_HT29_A375.csv',index_col = 0)
 
 gene_size = len(cmap.columns)
 samples = cmap.index.values
 
-sampleInfo_1 = pd.read_csv('10fold_validation_spit/alldata/pc3_unpaired.csv',index_col=0)
-sampleInfo_2 = pd.read_csv('10fold_validation_spit/alldata/ha1e_unpaired.csv',index_col=0)
-sampleInfo_paired = pd.read_csv('10fold_validation_spit/alldata/paired_pc3_ha1e.csv',index_col=0)
+sampleInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/a375_unpaired.csv',index_col=0)
+sampleInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/ht29_unpaired.csv',index_col=0)
+sampleInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_a375_ht29.csv',index_col=0)
 
 
-model_params = {'encoder_1_hiddens':[4096,2048],
-                'encoder_2_hiddens':[4096,2048],
-                'latent_dim': 1024,
-                'decoder_1_hiddens':[2048,4096],
-                'decoder_2_hiddens':[2048,4096],
+# model_params = {'encoder_1_hiddens':[4096,2048],
+#                 'encoder_2_hiddens':[4096,2048],
+#                 'latent_dim': 1024,
+#                 'decoder_1_hiddens':[2048,4096],
+#                 'decoder_2_hiddens':[2048,4096],
+#                 'dropout_decoder':0.2,
+#                 'dropout_encoder':0.1,
+#                 'encoder_activation':torch.nn.ELU(),
+#                 'decoder_activation':torch.nn.ELU(),
+#                 'V_dropout':0.25,
+#                 'state_class_hidden':[512,256,128],
+#                 'state_class_drop_in':0.5,
+#                 'state_class_drop':0.25,
+#                 'no_states':2,
+#                 'adv_class_hidden':[512,256,128],
+#                 'adv_class_drop_in':0.3,
+#                 'adv_class_drop':0.1,
+#                 'no_adv_class':2,
+#                 'encoding_lr':0.001,
+#                 'adv_lr':0.001,
+#                 'schedule_step_adv':300,
+#                 'gamma_adv':0.5,
+#                 'schedule_step_enc':300,
+#                 'gamma_enc':0.8,
+#                 'batch_size_1':178,
+#                 'batch_size_2':154,
+#                 'batch_size_paired':90,
+#                 'epochs':1000,
+#                 'prior_beta':1.0,
+#                 'no_folds':10,
+#                 'v_reg':1e-04,
+#                 'state_class_reg':1e-02,
+#                 'enc_l2_reg':0.01,
+#                 'dec_l2_reg':0.01,
+#                 'lambda_mi_loss':100,
+#                 'effsize_reg': 10,
+#                 'cosine_loss': 40,
+#                 'adv_penalnty':50,
+#                 'reg_adv':500,
+#                 'reg_classifier': 500,
+#                 'similarity_reg' : 1.,
+#                 'adversary_steps':5,
+#                 'autoencoder_wd': 0,
+#                 'adversary_wd': 0}
+
+model_params = {'encoder_1_hiddens':[640,384],
+                'encoder_2_hiddens':[640,384],
+                'latent_dim': 292,
+                'decoder_1_hiddens':[384,640],
+                'decoder_2_hiddens':[384,640],
                 'dropout_decoder':0.2,
                 'dropout_encoder':0.1,
                 'encoder_activation':torch.nn.ELU(),
                 'decoder_activation':torch.nn.ELU(),
                 'V_dropout':0.25,
-                'state_class_hidden':[512,256,128],
+                'state_class_hidden':[256,128,64],
                 'state_class_drop_in':0.5,
                 'state_class_drop':0.25,
                 'no_states':2,
-                'adv_class_hidden':[512,256,128],
+                'adv_class_hidden':[256,128,64],
                 'adv_class_drop_in':0.3,
                 'adv_class_drop':0.1,
                 'no_adv_class':2,
                 'encoding_lr':0.001,
                 'adv_lr':0.001,
-                'schedule_step_adv':300,
+                'schedule_step_adv':200,
                 'gamma_adv':0.5,
-                'schedule_step_enc':300,
+                'schedule_step_enc':200,
                 'gamma_enc':0.8,
                 'batch_size_1':178,
                 'batch_size_2':154,
@@ -86,15 +131,15 @@ model_params = {'encoder_1_hiddens':[4096,2048],
                 'enc_l2_reg':0.01,
                 'dec_l2_reg':0.01,
                 'lambda_mi_loss':100,
-                'effsize_reg': 10,
-                'cosine_loss': 40,
-                'adv_penalnty':50,
-                'reg_adv':500,
-                'reg_classifier': 500,
-                'similarity_reg' : 1.,
-                'adversary_steps':5,
-                'autoencoder_wd': 0,
-                'adversary_wd': 0}
+                'effsize_reg': 100,
+                'cosine_loss': 10,
+                'adv_penalnty':100,
+                'reg_adv':1000,
+                'reg_classifier': 1000,
+                'similarity_reg' : 10,
+                'adversary_steps':4,
+                'autoencoder_wd': 0.,
+                'adversary_wd': 0.}
 
 # Create a train generators
 def getSamples(N, batchSize):
@@ -172,7 +217,7 @@ adverse_classifier = Classifier(in_channel=model_params['latent_dim'],
                                 num_classes=model_params['no_adv_class'],
                                 drop_in=model_params['adv_class_drop_in'],
                                 drop=model_params['adv_class_drop']).to(device)
-pretrained_adv_class = torch.load('MI_results/models/CPA_approach/pre_trained_classifier_adverse_1.pt')
+pretrained_adv_class = torch.load('../results/MI_results/models/CPA_approach/pre_trained_classifier_adverse_1.pt')
 adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
 
 Vsp = SpeciesCovariate(2, model_params['latent_dim'], dropRate=model_params['V_dropout']).to(device)
@@ -423,15 +468,15 @@ classifier.eval()
 adverse_classifier.eval()
 Vsp.eval()
 
-torch.save(decoder_1,'alldata_cpa_decoder_pc3.pt')
-torch.save(decoder_2,'alldata_cpa_decoder_ha1e.pt')
-torch.save(encoder_1,'alldata_cpa_encoder_pc3.pt')
-torch.save(encoder_2,'alldata_cpa_encoder_ha1e.pt')
-torch.save(prior_d,'alldata_cpa_priord_pc3_ha1e.pt')
-torch.save(local_d,'alldata_cpa_locald_pc3_ha1e.pt')
-torch.save(classifier,'alldata_cpa_classifier_pc3_ha1e.pt')
-torch.save(adverse_classifier,'alldata_cpa_adverseclassifier_pc3_ha1e.pt')
-torch.save(Vsp,'alldata_cpa_Vsp_pc3_ha1e.pt')
+torch.save(decoder_1,'alldata_landmarks_cpa_decoder_a375.pt')
+torch.save(decoder_2,'alldata_landmarks_cpa_decoder_ht29.pt')
+torch.save(encoder_1,'alldata_landmarks_cpa_encoder_a375.pt')
+torch.save(encoder_2,'alldata_landmarks_cpa_encoder_ht29.pt')
+torch.save(prior_d,'alldata_landmarks_cpa_priord_a375_ht29.pt')
+torch.save(local_d,'alldata_landmarks_cpa_locald_a375_ht29.pt')
+torch.save(classifier,'alldata_landmarks_cpa_classifier_a375_ht29.pt')
+torch.save(adverse_classifier,'alldata_landmarks_cpa_adverseclassifier_a375_ht29.pt')
+torch.save(Vsp,'alldata_landmarks_cpa_Vsp_a375_ht29.pt')
 
 print2log('Evaluate mode')
 
@@ -480,8 +525,8 @@ print2log('Accuracy:%s'%class_acc)
 Embs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
 Embs_1.index = np.concatenate((sampleInfo_paired['sig_id.x'].values,sampleInfo_1.sig_id.values))
 Embs_1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_1.to_csv('trained_embs_all/AllEmbs_CPA_pc3.csv')
-display(Embs_1)
+Embs_1.to_csv('../results/trained_embs_all/AllEmbs_landmarks_CPA_a375.csv')
+# display(Embs_1)
 
 
 # In[28]:
@@ -491,8 +536,8 @@ display(Embs_1)
 Embs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
 Embs_2.index = np.concatenate((sampleInfo_paired['sig_id.y'].values,sampleInfo_2.sig_id.values))
 Embs_2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_2.to_csv('trained_embs_all/AllEmbs_CPA_ha1e.csv')
-display(Embs_2)
+Embs_2.to_csv('../results/trained_embs_all/AllEmbs_landmarks_CPA_ht29.csv')
+# display(Embs_2)
 
 
 # In[29]:
@@ -564,7 +609,7 @@ print2log('Pdeudo-accuracy of direct translation from cell2 to cell1: %s'%acc_1)
 
 
 z_latent_1_equivalent  = encoder_1(x_1_equivalent)
-z_latent_1_equivalent = Vsp(z_latent_1_equivalent, z_species_2)
+z_latent_1_equivalent = Vsp(z_latent_1_equivalent,1 - z_species_1[0:paired_inds,:])
 x_hat_2_equivalent = decoder_2(z_latent_1_equivalent).detach()
 r2_2 = r_square(x_hat_2_equivalent.detach().flatten(), x_2_equivalent.detach().flatten())
 pearson_2 = pearson_r(x_hat_2_equivalent.detach().flatten(), x_2_equivalent.detach().flatten())
@@ -584,7 +629,7 @@ print2log('Pdeudo-accuracy cell1 to cell2: %s'%acc_2)
 
 
 z_latent_2_equivalent  = encoder_2(x_2_equivalent)
-z_latent_2_equivalent = Vsp(z_latent_2_equivalent, z_species_1)
+z_latent_2_equivalent = Vsp(z_latent_2_equivalent, 1 - z_species_2[0:paired_inds,:])
 x_hat_1_equivalent = decoder_1(z_latent_2_equivalent).detach()
 r2_1 = r_square(x_hat_1_equivalent.detach().flatten(), x_1_equivalent.detach().flatten())
 pearson_1 = pearson_r(x_hat_1_equivalent.detach().flatten(), x_1_equivalent.detach().flatten())
