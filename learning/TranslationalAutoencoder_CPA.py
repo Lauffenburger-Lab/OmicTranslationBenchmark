@@ -57,7 +57,7 @@ def seed_everything(seed=42):
 # Read data
 #cmap = pd.read_csv('cmap_landmarks_HT29_A375.csv',index_col = 0)
 # cmap = pd.read_csv('cmap_landmarks_HA1E_PC3.csv',index_col = 0)
-cmap = pd.read_csv('cmap_HT29_A375.csv',index_col = 0)
+cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_HT29_A375.csv',index_col = 0)
 #cmap_tf = pd.read_csv('../L1000_2021_11_23/cmap_compounds_tfs_repq1_tas03.tsv',
 #                       sep='\t', low_memory=False, index_col=0)
 
@@ -116,7 +116,7 @@ model_params = {'encoder_1_hiddens':[4096,2048],
                 'batch_size_paired':90,
                 'epochs':1000,
                 'prior_beta':1.0,
-                'no_folds':10,
+                'no_folds':5,
                 'v_reg':1e-04,
                 'state_class_reg':1e-02,
                 'enc_l2_reg':0.01,
@@ -133,51 +133,51 @@ model_params = {'encoder_1_hiddens':[4096,2048],
                 'adversary_wd': 0}
 
 
-# ### Pre-train encoder and then classifier to have apre-trained discriminator
-
-# In[6]:
-
-
-#class_criterion = torch.nn.CrossEntropyLoss()
-#NUM_EPOCHS= 1000
-#bs = 512
-#bs_1 = model_params['batch_size_1']
-#bs_2 =  model_params['batch_size_2']
-#bs_paired =  model_params['batch_size_paired']
-
-
-# In[7]:
-
-
-#for i in range(10):
+# # ### Pre-train encoder and then classifier to have apre-trained discriminator
+#
+# # In[6]:
+#
+# 
+# class_criterion = torch.nn.CrossEntropyLoss()
+# NUM_EPOCHS= 1000
+# bs = 512
+# bs_1 = model_params['batch_size_1']
+# bs_2 =  model_params['batch_size_2']
+# bs_paired =  model_params['batch_size_paired']
+#
+#
+# # In[7]:
+#
+#
+# for i in range(1,2):
 #    # Network
 #    encoder = SimpleEncoder(gene_size,model_params['encoder_1_hiddens'],model_params['latent_dim'],
-#                              dropRate=model_params['dropout_encoder'], 
+#                              dropRate=model_params['dropout_encoder'],
 #                              activation=model_params['encoder_activation']).to(device)
 #    prior_d = PriorDiscriminator(model_params['latent_dim']).to(device)
 #    local_d = LocalDiscriminator(model_params['latent_dim'],model_params['latent_dim']).to(device)
-#    
+#
 #    adverse_classifier = Classifier(in_channel=model_params['latent_dim'],
 #                                    hidden_layers=model_params['adv_class_hidden'],
 #                                    num_classes=model_params['no_adv_class'],
 #                                    drop_in=0.5,
 #                                    drop=0.3).to(device)
-#    
-#    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
-#    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
-#    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
-#    
-#    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
-#    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
-#    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
-#    
+#
+#    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
+#    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
+#    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+#
+#    valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+#    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+#    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+#
 #    N_paired = len(trainInfo_paired)
 #    N_1 = len(trainInfo_1)
 #    N_2 = len(trainInfo_2)
 #    N = N_1
 #    if N_2>N:
 #        N=N_2
-#    
+#
 #    allParams = list(encoder.parameters())
 #    allParams = allParams + list(prior_d.parameters()) + list(local_d.parameters())
 #    allParams = allParams + list(adverse_classifier.parameters())
@@ -190,7 +190,7 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #        prior_d.train()
 #        local_d.train()
 #        adverse_classifier.train()
-#        
+#
 #        trainloader_1 = getSamples(N_1, bs_1)
 #        len_1 = len(trainloader_1)
 #        trainloader_2 = getSamples(N_2, bs_2)
@@ -200,39 +200,39 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #
 #        lens = [len_1,len_2,len_paired]
 #        maxLen = np.max(lens)
-#        
+#
 #        if maxLen>lens[0]:
 #            trainloader_suppl = getSamples(N_1, bs_1)
 #            for jj in range(maxLen-lens[0]):
 #                trainloader_1.insert(jj,trainloader_suppl[jj])
-#        
+#
 #        if maxLen>lens[1]:
 #            trainloader_suppl = getSamples(N_2, bs_2)
 #            for jj in range(maxLen-lens[1]):
 #                trainloader_2.insert(jj,trainloader_suppl[jj])
-#        
+#
 #        if maxLen>lens[2]:
 #            trainloader_suppl = getSamples(N_paired, bs_paired)
 #            for jj in range(maxLen-lens[2]):
 #                trainloader_paired.insert(jj,trainloader_suppl[jj])
-#        
+#
 #        for j in range(maxLen):
 #            dataIndex_1 = trainloader_1[j]
 #            dataIndex_2 = trainloader_2[j]
 #            dataIndex_paired = trainloader_paired[j]
-#            
+#
 #            df_pairs = trainInfo_paired.iloc[dataIndex_paired,:]
 #            df_1 = trainInfo_1.iloc[dataIndex_1,:]
 #            df_2 = trainInfo_2.iloc[dataIndex_2,:]
 #            paired_inds = len(df_pairs)
-#            
-#            
+#
+#
 #            X_1 = torch.tensor(np.concatenate((cmap.loc[df_pairs['sig_id.x']].values,
 #                                                 cmap.loc[df_1.sig_id].values))).float().to(device)
 #            X_2 = torch.tensor(np.concatenate((cmap.loc[df_pairs['sig_id.y']].values,
 #                                                 cmap.loc[df_2.sig_id].values))).float().to(device)
-#            
-#            
+#
+#
 #            conditions = np.concatenate((df_pairs.conditionId.values,
 #                                         df_1.conditionId.values,
 #                                         df_pairs.conditionId.values,
@@ -246,8 +246,8 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #            neg_mask = 1 - mask
 #            log_2 = math.log(2.)
 #            optimizer.zero_grad()
-#                        
-#            #if iteration % model_params["adversary_steps"] == 0:            
+#
+#            #if iteration % model_params["adversary_steps"] == 0:
 #            z_1 = encoder(X_1)
 #            z_2 = encoder(X_2)
 #            latent_vectors = torch.cat((z_1, z_2), 0)
@@ -260,12 +260,12 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #            cf_matrix = confusion_matrix(true_labels.cpu().numpy(),predicted)
 #            tn, fp, fn, tp = cf_matrix.ravel()
 #            f1 = 2*tp/(2*tp+fp+fn)
-#            
-#            
+#
+#
 #            #z_un = local_d(torch.cat((z_1, z_2), 0))
 #            z_un = local_d(latent_vectors)
 #            res_un = torch.matmul(z_un, z_un.t())
-#            
+#
 #            p_samples = res_un * pos_mask.float()
 #            q_samples = res_un * neg_mask.float()
 #
@@ -282,14 +282,14 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #            term_a = torch.log(prior_d(prior)).mean()
 #            term_b = torch.log(1.0 - prior_d(latent_vectors)).mean()
 #            prior_loss = -(term_a + term_b) * model_params['prior_beta']
-#            
+#
 #            # Remove signal from z_basal
 #            loss = mi_loss + prior_loss + adv_entropy + adverse_classifier.L2Regularization(model_params['state_class_reg']) +encoder.L2Regularization(model_params['enc_l2_reg'])
-#                   
+#
 #
 #            loss.backward()
 #            optimizer.step()
-#            
+#
 #        scheduler.step()
 #        outString = 'Split {:.0f}: Epoch={:.0f}/{:.0f}'.format(i+1,e+1,NUM_EPOCHS)
 #        outString += ', MI Loss={:.4f}'.format(mi_loss.item())
@@ -304,18 +304,18 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #    prior_d.eval()
 #    local_d.eval()
 #    adverse_classifier.eval()
-#    
+#
 #    paired_val_inds = len(valInfo_paired)
 #    x_1 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.x']].values,
 #                                          cmap.loc[valInfo_1.sig_id].values))).float().to(device)
 #    x_2 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.y']].values,
 #                                          cmap.loc[valInfo_2.sig_id].values))).float().to(device)
-#    
-#    
+#
+#
 #    z_latent_1 = encoder(x_1)
 #    z_latent_2 = encoder(x_2)
-#    
-#    
+#
+#
 #    labels = adverse_classifier(torch.cat((z_latent_1, z_latent_2), 0))
 #    true_labels = torch.cat((torch.ones(z_latent_1.shape[0]).view(z_latent_1.shape[0],1),
 #                             torch.zeros(z_latent_2.shape[0]).view(z_latent_2.shape[0],1)),0).long()
@@ -325,12 +325,12 @@ model_params = {'encoder_1_hiddens':[4096,2048],
 #    tn, fp, fn, tp = cf_matrix.ravel()
 #    class_acc = (tp+tn)/predicted.size
 #    f1 = 2*tp/(2*tp+fp+fn)
-#        
-##    print2log('Classification accuracy: %s'%class_acc)
-##    print2log('Classification F1 score: %s'%f1)
-##    
-##    torch.save(encoder,'MI_results/models/CPA_approach/pre_trained_master_encoder_%s.pt'%i)
-##    torch.save(adverse_classifier,'MI_results/models/CPA_approach/pre_trained_classifier_adverse_%s.pt'%i)
+#
+#    print2log('Classification accuracy: %s'%class_acc)
+#    print2log('Classification F1 score: %s'%f1)
+#
+#    torch.save(encoder,'../results/MI_results/models/CPA_approach/5fold_validation_spit/pre_trained_master_encoder_%s.pt'%i)
+#    torch.save(adverse_classifier,'../results/MI_results/models/CPA_approach/5fold_validation_spit/pre_trained_classifier_adverse_%s.pt'%i)
 
 
 # ### Train the whole model
@@ -397,9 +397,9 @@ crossCorrelation = []
 valF1 = []
 valClassAcc = []
 
-for i in range(10):
+for i in range(model_params['no_folds']):
     # Network
-    #encoder = torch.load('MI_results/models/CPA_approach/pre_trained_master_encoder_2.pt')
+    #encoder = torch.load('../results/MI_results/models/CPA_approach/pre_trained_master_encoder_2.pt')
     #master_encoder = SimpleEncoder(gene_size,[640,384],292,dropRate=0.1, activation=torch.nn.ELU())#.to(device)
     decoder_1 = Decoder(model_params['latent_dim'],model_params['decoder_1_hiddens'],gene_size,
                         dropRate=model_params['dropout_decoder'], 
@@ -428,18 +428,18 @@ for i in range(10):
                                     num_classes=model_params['no_adv_class'],
                                     drop_in=model_params['adv_class_drop_in'],
                                     drop=model_params['adv_class_drop']).to(device)
-    pretrained_adv_class = torch.load('MI_results/models/CPA_approach/pre_trained_classifier_adverse_1.pt')
+    pretrained_adv_class = torch.load('../results/MI_results/models/CPA_approach/5fold_validation_spit/pre_trained_classifier_adverse_1.pt')
     adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
     
     Vsp = SpeciesCovariate(2,model_params['latent_dim'],dropRate=model_params['V_dropout']).to(device)
     
-    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
-    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
-    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_paired_%s.csv'%i,index_col=0)#.sample(frac=0.8)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_a375_%s.csv'%i,index_col=0)#.sample(frac=0.8)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)#.sample(frac=0.8)
     
-    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
-    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
-    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+    valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+    valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+    valInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
 
     #trainInfo_2 = pd.concat((trainInfo_2,
     #                         valInfo_2,
@@ -824,15 +824,15 @@ for i in range(10):
     valSpearDirect.append(spearDirect)
     valAccDirect.append([accDirect_2,accDirect_1])
     
-    torch.save(decoder_1,'MI_results/models/CPA_approach/decoder_a375_%s.pt'%i)
-    torch.save(decoder_2,'MI_results/models/CPA_approach/decoder_ht29_%s.pt'%i)
-    torch.save(prior_d,'MI_results/models/CPA_approach/priorDiscr_%s.pt'%i)
-    torch.save(local_d,'MI_results/models/CPA_approach/localDiscr_%s.pt'%i)
-    torch.save(encoder_1,'MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
-    torch.save(encoder_2,'MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
-    torch.save(classifier,'MI_results/models/CPA_approach/classifier_%s.pt'%i)
-    torch.save(Vsp,'MI_results/models/CPA_approach/Vspecies_%s.pt'%i)
-    torch.save(adverse_classifier,'MI_results/models/CPA_approach/classifier_adverse_%s.pt'%i)
+    # torch.save(decoder_1,'../results/MI_results/models/CPA_approach/5fold_validation_spit/decoder_a375_%s.pt'%i)
+    # torch.save(decoder_2,'../results/MI_results/models/CPA_approach/5fold_validation_spit/decoder_ht29_%s.pt'%i)
+    # torch.save(prior_d,'../results/MI_results/models/CPA_approach/5fold_validation_spit/priorDiscr_%s.pt'%i)
+    # torch.save(local_d,'../results/MI_results/models/CPA_approach/5fold_validation_spit/localDiscr_%s.pt'%i)
+    # torch.save(encoder_1,'../results/MI_results/models/CPA_approach/5fold_validation_spit/encoder_a375_%s.pt'%i)
+    # torch.save(encoder_2,'../results/MI_results/models/CPA_approach/5fold_validation_spit/encoder_ht29_%s.pt'%i)
+    # torch.save(classifier,'../results/MI_results/models/CPA_approach/5fold_validation_spit/classifier_%s.pt'%i)
+    # torch.save(Vsp,'../results/MI_results/models/CPA_approach/5fold_validation_spit/Vspecies_%s.pt'%i)
+    # torch.save(adverse_classifier,'../results/MI_results/models/CPA_approach/5fold_validation_spit/classifier_adverse_%s.pt'%i)
 
 
 # In[12]:
@@ -933,7 +933,7 @@ df_result = pd.DataFrame({'F1_score':valF1,'ClassAccuracy':valClassAcc,
 # In[24]:
 
 
-df_result.to_csv('MI_results/allgenes_10foldvalidation_withCPA_1000ep512bs_a375_ht29.csv')
+df_result.to_csv('../results/MI_results/allgenes_5foldvalidation_withCPA_1000ep512bs_a375_ht29_downsampled.csv')
 
 
 # ## Evaluate embeddings
@@ -941,92 +941,92 @@ df_result.to_csv('MI_results/allgenes_10foldvalidation_withCPA_1000ep512bs_a375_
 # In[25]:
 
 
-for i in range(10):
-    # Network
-    #encoder_1 = torch.load('MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
-    #encoder_2 = torch.load('MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
-    #Vsp = torch.load('MI_results/models/CPA_approach/Vspecies_%s.pt'%i)
-    
-    #autoencoder_a375 = torch.load('my_results/models/notvae/autoencoder_mmd_a375_%s.pt'%i)
-    #autoencoder_ht29 = torch.load('my_results/models/notvae/autoencoder_mmd_ht29_%s.pt'%i)
-    
-    trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
-    trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
-    trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
-    
-    valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
-    valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
-    valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
-    
-    #encoder_1.eval()
-    #encoder_2.eval()
-    #Vsp.eval()
-    #autoencoder_a375.eval()
-    #autoencoder_ht29.eval()
-    
-    paired_val_inds = len(valInfo_paired)
-    x_1 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.x']].values,
-                                          cmap.loc[valInfo_1.sig_id].values))).float().to(device)
-    x_2 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.y']].values,
-                                          cmap.loc[valInfo_2.sig_id].values))).float().to(device)
-    
-    z_base_1 = encoder_1(x_1)
-    z_base_2 = encoder_2(x_2)
-    
-    z_species_1 = torch.cat((torch.ones(x_1.shape[0],1),
-                             torch.zeros(x_1.shape[0],1)),1).to(device)
-    z_species_2 = torch.cat((torch.zeros(x_2.shape[0],1),
-                             torch.ones(x_2.shape[0],1)),1).to(device)
-    
-    z_latent_1 = Vsp(z_base_1,z_species_1)
-    z_latent_2 = Vsp(z_base_2,z_species_2)
-    
-    valEmbs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
-    valEmbs_1.index = np.concatenate((valInfo_paired['sig_id.x'].values,valInfo_1.sig_id.values))
-    valEmbs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
-    valEmbs_2.index = np.concatenate((valInfo_paired['sig_id.y'].values,valInfo_2.sig_id.values))
-    
-    valEmbs_base_1 = pd.DataFrame(z_base_1.detach().cpu().numpy())
-    valEmbs_base_1.index = np.concatenate((valInfo_paired['sig_id.x'].values,valInfo_1.sig_id.values))
-    valEmbs_base_2 = pd.DataFrame(z_base_2.detach().cpu().numpy())
-    valEmbs_base_2.index = np.concatenate((valInfo_paired['sig_id.y'].values,valInfo_2.sig_id.values))
-    
-    # Training embeddigns
-    paired_inds = len(trainInfo_paired)
-    x_1 = torch.tensor(np.concatenate((cmap.loc[trainInfo_paired['sig_id.x']].values,
-                                          cmap.loc[trainInfo_1.sig_id].values))).float().to(device)
-    x_2 = torch.tensor(np.concatenate((cmap.loc[trainInfo_paired['sig_id.y']].values,
-                                          cmap.loc[trainInfo_2.sig_id].values))).float().to(device)
-    z_base_1 = encoder_1(x_1)
-    z_base_2 = encoder_2(x_2)
-    
-    z_species_1 = torch.cat((torch.ones(x_1.shape[0],1),
-                             torch.zeros(x_1.shape[0],1)),1).to(device)
-    z_species_2 = torch.cat((torch.zeros(x_2.shape[0],1),
-                             torch.ones(x_2.shape[0],1)),1).to(device)
-    
-    z_latent_1 = Vsp(z_base_1,z_species_1)
-    z_latent_2 = Vsp(z_base_2,z_species_2)
-    
-    trainEmbs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
-    trainEmbs_1.index = np.concatenate((trainInfo_paired['sig_id.x'].values,trainInfo_1.sig_id.values))
-    trainEmbs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
-    trainEmbs_2.index = np.concatenate((trainInfo_paired['sig_id.y'].values,trainInfo_2.sig_id.values))
-    
-    trainEmbs_base_1 = pd.DataFrame(z_base_1.detach().cpu().numpy())
-    trainEmbs_base_1.index = np.concatenate((trainInfo_paired['sig_id.x'].values,trainInfo_1.sig_id.values))
-    trainEmbs_base_2 = pd.DataFrame(z_base_2.detach().cpu().numpy())
-    trainEmbs_base_2.index = np.concatenate((trainInfo_paired['sig_id.y'].values,trainInfo_2.sig_id.values))
-    
-    valEmbs_1.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_%s_a375.csv'%i)
-    valEmbs_2.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_%s_ht29.csv'%i)
-    trainEmbs_1.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_%s_a375.csv'%i)
-    trainEmbs_2.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_%s_ht29.csv'%i)
-    
-    valEmbs_base_1.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_base_%s_a375.csv'%i)
-    valEmbs_base_2.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_base_%s_ht29.csv'%i)
-    trainEmbs_base_1.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_base_%s_a375.csv'%i)
-    trainEmbs_base_2.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_base_%s_ht29.csv'%i)
+# for i in range(10):
+#     # Network
+#     #encoder_1 = torch.load('MI_results/models/CPA_approach/encoder_a375_%s.pt'%i)
+#     #encoder_2 = torch.load('MI_results/models/CPA_approach/encoder_ht29_%s.pt'%i)
+#     #Vsp = torch.load('MI_results/models/CPA_approach/Vspecies_%s.pt'%i)
+#
+#     #autoencoder_a375 = torch.load('my_results/models/notvae/autoencoder_mmd_a375_%s.pt'%i)
+#     #autoencoder_ht29 = torch.load('my_results/models/notvae/autoencoder_mmd_ht29_%s.pt'%i)
+#
+#     trainInfo_paired = pd.read_csv('10fold_validation_spit/train_paired_%s.csv'%i,index_col=0)
+#     trainInfo_1 = pd.read_csv('10fold_validation_spit/train_a375_%s.csv'%i,index_col=0)
+#     trainInfo_2 = pd.read_csv('10fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)
+#
+#     valInfo_paired = pd.read_csv('10fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
+#     valInfo_1 = pd.read_csv('10fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
+#     valInfo_2 = pd.read_csv('10fold_validation_spit/val_ht29_%s.csv'%i,index_col=0)
+#
+#     #encoder_1.eval()
+#     #encoder_2.eval()
+#     #Vsp.eval()
+#     #autoencoder_a375.eval()
+#     #autoencoder_ht29.eval()
+#
+#     paired_val_inds = len(valInfo_paired)
+#     x_1 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.x']].values,
+#                                           cmap.loc[valInfo_1.sig_id].values))).float().to(device)
+#     x_2 = torch.tensor(np.concatenate((cmap.loc[valInfo_paired['sig_id.y']].values,
+#                                           cmap.loc[valInfo_2.sig_id].values))).float().to(device)
+#
+#     z_base_1 = encoder_1(x_1)
+#     z_base_2 = encoder_2(x_2)
+#
+#     z_species_1 = torch.cat((torch.ones(x_1.shape[0],1),
+#                              torch.zeros(x_1.shape[0],1)),1).to(device)
+#     z_species_2 = torch.cat((torch.zeros(x_2.shape[0],1),
+#                              torch.ones(x_2.shape[0],1)),1).to(device)
+#
+#     z_latent_1 = Vsp(z_base_1,z_species_1)
+#     z_latent_2 = Vsp(z_base_2,z_species_2)
+#
+#     valEmbs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
+#     valEmbs_1.index = np.concatenate((valInfo_paired['sig_id.x'].values,valInfo_1.sig_id.values))
+#     valEmbs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
+#     valEmbs_2.index = np.concatenate((valInfo_paired['sig_id.y'].values,valInfo_2.sig_id.values))
+#
+#     valEmbs_base_1 = pd.DataFrame(z_base_1.detach().cpu().numpy())
+#     valEmbs_base_1.index = np.concatenate((valInfo_paired['sig_id.x'].values,valInfo_1.sig_id.values))
+#     valEmbs_base_2 = pd.DataFrame(z_base_2.detach().cpu().numpy())
+#     valEmbs_base_2.index = np.concatenate((valInfo_paired['sig_id.y'].values,valInfo_2.sig_id.values))
+#
+#     # Training embeddigns
+#     paired_inds = len(trainInfo_paired)
+#     x_1 = torch.tensor(np.concatenate((cmap.loc[trainInfo_paired['sig_id.x']].values,
+#                                           cmap.loc[trainInfo_1.sig_id].values))).float().to(device)
+#     x_2 = torch.tensor(np.concatenate((cmap.loc[trainInfo_paired['sig_id.y']].values,
+#                                           cmap.loc[trainInfo_2.sig_id].values))).float().to(device)
+#     z_base_1 = encoder_1(x_1)
+#     z_base_2 = encoder_2(x_2)
+#
+#     z_species_1 = torch.cat((torch.ones(x_1.shape[0],1),
+#                              torch.zeros(x_1.shape[0],1)),1).to(device)
+#     z_species_2 = torch.cat((torch.zeros(x_2.shape[0],1),
+#                              torch.ones(x_2.shape[0],1)),1).to(device)
+#
+#     z_latent_1 = Vsp(z_base_1,z_species_1)
+#     z_latent_2 = Vsp(z_base_2,z_species_2)
+#
+#     trainEmbs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
+#     trainEmbs_1.index = np.concatenate((trainInfo_paired['sig_id.x'].values,trainInfo_1.sig_id.values))
+#     trainEmbs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
+#     trainEmbs_2.index = np.concatenate((trainInfo_paired['sig_id.y'].values,trainInfo_2.sig_id.values))
+#
+#     trainEmbs_base_1 = pd.DataFrame(z_base_1.detach().cpu().numpy())
+#     trainEmbs_base_1.index = np.concatenate((trainInfo_paired['sig_id.x'].values,trainInfo_1.sig_id.values))
+#     trainEmbs_base_2 = pd.DataFrame(z_base_2.detach().cpu().numpy())
+#     trainEmbs_base_2.index = np.concatenate((trainInfo_paired['sig_id.y'].values,trainInfo_2.sig_id.values))
+#
+#     valEmbs_1.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_%s_a375.csv'%i)
+#     valEmbs_2.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_%s_ht29.csv'%i)
+#     trainEmbs_1.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_%s_a375.csv'%i)
+#     trainEmbs_2.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_%s_ht29.csv'%i)
+#
+#     valEmbs_base_1.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_base_%s_a375.csv'%i)
+#     valEmbs_base_2.to_csv('MI_results/embs/CPA_approach/validation/valEmbs_base_%s_ht29.csv'%i)
+#     trainEmbs_base_1.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_base_%s_a375.csv'%i)
+#     trainEmbs_base_2.to_csv('MI_results/embs/CPA_approach/train/trainEmbs_base_%s_ht29.csv'%i)
 
 
 # ## Train on all data
@@ -1118,9 +1118,9 @@ for i in range(10):
 #     #decoder_ht29 = Decoder(1024,[2048,4096],gene_size,dropRate=0.1, activation=torch.nn.ELU())
 #     #autoencoder_ht29 = VAE(encoder_ht29,decoder_ht29,device).to(device)
     
-#     trainInfo_paired = pd.read_csv('10fold_validation_spit/alldata/paired_pc3_ha1e.csv',index_col=0)
-#     trainInfo_a375 = pd.read_csv('10fold_validation_spit/alldata/pc3_unpaired.csv',index_col=0)
-#     trainInfo_ht29 = pd.read_csv('10fold_validation_spit/alldata/ha1e_unpaired.csv',index_col=0)
+#     trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/alldata/paired_pc3_ha1e.csv',index_col=0)
+#     trainInfo_a375 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/alldata/pc3_unpaired.csv',index_col=0)
+#     trainInfo_ht29 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/alldata/ha1e_unpaired.csv',index_col=0)
     
     
     

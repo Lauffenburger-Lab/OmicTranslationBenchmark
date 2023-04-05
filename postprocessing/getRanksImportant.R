@@ -4,35 +4,122 @@ library(factoextra)
 library(ggplot2)
 library(ggpubr)
 library(umap)
-
-geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
-## Translation load------------
-df <- read.csv('../results/Importance_results/imImportance_resultsportant_scores_a375_to_ht29_allgenes.csv') %>% column_to_rownames('X')
-# df <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_per_sample_allgenes.csv')
-df <- df %>% unique()
-rownames( df ) <- NULL
-df <- df %>% column_to_rownames('X')
-colnames(df) <- str_remove_all(colnames(df),'X')
-df_ranked <- apply(-abs(df),1,rank)
-df_ranked <- df_ranked/nrow(df)
-df_aggragated <- apply(df_ranked,1,median)
-top1000 <- names(df_aggragated[order(df_aggragated)])[1:1000]
-#top1000 <- str_remove_all(top1000,'X')
-df_lands <- read.csv('../results/Importance_results/important_scores_a375_to_ht29_lands.csv')  %>% column_to_rownames('X')
-#df_ranked <- apply(-abs(df),2,rank)
-#df_ranked <- df_ranked/nrow(df)
-#png('../figures/ranks_of_self_a375_translate_allgenes.png',width=16,height=8,units = "in",res=300)
-#hist(diag(df_ranked*100),breaks = 40,main= 'Distribution of self-gene ranks in ~10k genes',xlab='Percentage rank (%)')
-#axis(side=1, at=seq(0,100, 10), labels=seq(0,100, 10))
-#dev.off()
-#plot(ecdf(diag(df_ranked*100)),main='Cumulative probability distribution',xlab='Percentage rank (%)')
+setEPS(paper='a4',pointsize=3)
 
 geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 lands <- geneInfo %>% filter(feature_space=='landmark')
 lands <- as.character(lands$gene_id)
+## Translation load------------
+df1 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_pc3_allgenes_withclass_noabs.csv',header=T) %>% 
+  column_to_rownames('V1')
+df2 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_ha1e_allgenes_withclass_noabs.csv',header=T) %>% 
+  column_to_rownames('V1')
+df <- 0.5*(df1+df2)
+df <- abs(df)
+rownames(df) <- rownames(df1)
+# df <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_per_sample_allgenes.csv')
+df <- distinct(df)
+df_ranked <- apply(-abs(df),1,rank)
+df_ranked <- df_ranked/nrow(df)
+pr1 <- 20
+pr_sum <- round(length(which(diag(df_ranked*100)>=pr1))/nrow(df),4)*100
+pr2 <- diag(df_ranked*100)[which(cumsum(diag(df_ranked*100))>=0.5)[1]]
+df_aggragated <- apply(df_ranked,1,median)
+top1000 <- names(df_aggragated[order(df_aggragated)])[1:1000]
+#top1000 <- str_remove_all(top1000,'X')
+df_lands <- df[which(rownames(df) %in% lands),which(colnames(df) %in% lands)]
+df_ranked_lands <- apply(-abs(df_lands),1,rank)
+df_ranked_lands <- df_ranked_lands/nrow(df_lands)
+pr1 <- 20
+pr_sum_lands <- round(length(which(diag(df_ranked_lands*100)>=pr1))/nrow(df_lands),4)*100
+pr2_lands <- diag(df_ranked_lands*100)[which(cumsum(diag(df_ranked_lands*100))>=0.5)[1]]
+# png('../figures/ranks_of_self_translate_pc3_ha1e_allgenes.png',width=12,height=8,units = "in",res=300)
+postscript('../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',width=12,height=6,paper='letter')
+hist(diag(df_ranked*100),breaks = 40,
+     main= 'Distribution of self-gene ranks in ~10k genes',xlab='Percentage rank (%)',ylab='Counts',
+     cex.axis=2,cex.lab=2,cex.main = 2)
+abline(v=pr1,col="red",lwd=2,lty='dashed')
+text(pr1+20, 1000, paste0('~',pr_sum,'% of genes'),cex = 2)
+dev.off()
+#png('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.png',width=12,height=8,units = "in",res=300)
+postscript('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',width=12,height=6,paper='letter')
+hist(diag(df_ranked_lands*100),breaks = 40,
+     main= 'Subset distribution of self-gene ranks in landmarks',xlab='Percentage rank (%)',ylab='Counts',
+     cex.axis=2,cex.lab=2,cex.main = 2)
+abline(v=pr1,col="red",lwd=2,lty='dashed')
+text(pr1+20, 130, paste0('~',pr_sum_lands,'% of genes'),cex = 2)
+dev.off()
+#plot(ecdf(diag(df_ranked*100)),main='Cumulative probability distribution',xlab='Percentage rank (%)')
 
 #df_aggragated <- apply(df_ranked,1,median)
 #top1000 <- names(df_aggragated[order(df_aggragated)])[1:1000]
+
+### Expression vs Importance-------------
+cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
+cmap_median <- apply(cmap,2,median)
+cmap_median <- as.data.frame(cmap_median)
+cmap_median <- cmap_median %>% rownames_to_column('gene')
+
+#plot cmap median expression of a gene vs importance score
+df <- 0.5*(df1+df2)
+rownames(df) <- rownames(df1)
+df <- apply(df,1,median)
+df <- as.data.frame(df)
+df <- df %>% rownames_to_column('gene')
+df <- left_join(df,cmap_median)
+#%>% mutate(cmap_median=abs(cmap_median)) %>% mutate(df=abs(df))
+p <- ggscatter(df,
+               x='cmap_median',y='df',rug = TRUE,
+               alpha = 0.5,size=1,color = '#1f77b4',
+               cor.coef=T,cor.coef.size = 5) + 
+  geom_hline(yintercept = 0,color='black',lty=2,size=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('median differential gene expression') + ylab('median gene importance score') + 
+  ggtitle('Relationship between diffrerential gene expression and importance score')+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/gex_vs_importance.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
+
+spearman_corr <- NULL
+spearman_corr_abs <- NULL
+for (i in 1:nrow(cmap)){
+  gex <- cmap[i,]
+  gex <- t(gex)
+  gex <- gex[df$gene,]
+  gex <- as.data.frame(gex)
+  spearman_corr[i] <- cor(gex$gex, df$df, method = "spearman")
+  spearman_corr_abs[i] <- cor(abs(gex$gex), abs(df$df), method = "spearman")
+  if (i %% 100 == 0 | i==1){
+    print(paste0('Finished sample ',i))
+  }
+}
+df_corr <- data.frame(abs_spear = spearman_corr_abs,spear = spearman_corr)
+p <- ggplot(df_corr,aes(x=abs_spear)) + geom_histogram(fill='#d3d3d3',color='black',bins = 40,lwd=1) +
+  xlab('Spearman`s correlation') + ylab('Counts') + 
+  ggtitle('Spearman`s rank correlation coefficient bewteen absolute gene importance score and absolute gene expression')+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=15,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/gex_vs_importance_spearman.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
 
 ### Importance analysis----
 ## Per sample analysis in all
@@ -224,11 +311,11 @@ library(tidyverse)
 library(ggVennDiagram)
 library(ggplot2)
 gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
-scores_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_encode_per_sample_allgenes.csv',header = T) 
+scores_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv',header = T) 
 scores_1 <- distinct(scores_1)
 rownames( scores_1 ) <- NULL
 scores_1 <- scores_1 %>% column_to_rownames('V1')
-scores_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_encode_per_sample_allgenes.csv',header = T) 
+scores_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv',header = T) 
 scores_2 <- distinct(scores_2)
 rownames( scores_2 ) <- NULL
 scores_2 <- scores_2 %>% column_to_rownames('V1')
@@ -403,9 +490,8 @@ p <- ggplot(all_embs,aes(x=`z307`,y=`z992`,col=label)) + geom_point()+
 print(p)
 
 ### Find important genes to encode into each latent variable important for classification------------------
-importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_pc3_cpa.csv',header=T) %>% column_to_rownames('V1')
-importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_ha1e_cpa.csv',header=T) %>% column_to_rownames('V1')
-
+importance_class_1 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_pc3.csv',header=T) %>% column_to_rownames('V1')
+importance_class_2 <- data.table::fread('../results/Importance_results/important_scores_to_classify_as_ha1e.csv',header=T) %>% column_to_rownames('V1')
 importance_class_1 <- apply(importance_class_1,2,mean)
 importance_class_2 <- apply(importance_class_2,2,mean)
 
@@ -448,9 +534,22 @@ top10_2 <- important_2
 df1 <- data.frame(scores_1=importance_class_1[top10_1]) %>% rownames_to_column('Genes1')
 df2 <- data.frame(scores_2=importance_class_2[top10_2]) %>% rownames_to_column('Genes2')
 
-ggplot(df1,aes(x=Genes1,y=scores_1)) + geom_bar(stat='identity',fill='#0077b3') + xlab('Latent variable') + ylab('Importance score')+
-  ggtitle('Top 20 important latent variables for cell classification') + 
-  theme(text = element_text(family = "serif",size = 14))
+p <- ggplot(df1,aes(x=reorder(Genes1, -scores_1),y=scores_1)) + geom_bar(stat='identity',fill='#0077b3') + xlab('Latent variable') + 
+  ylab('Importance score for classifying into PC3')+
+  ggtitle('Important latent variables for cell classification') + 
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/top_important_latent_variables_to_classify_pc3.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
 ggplot(df2,aes(x=Genes2,y=scores_2)) + geom_bar(stat='identity')
 
 # var_1 <- names(importance_class_1)[top10_1[1:10]]
@@ -459,24 +558,143 @@ ggplot(df2,aes(x=Genes2,y=scores_2)) + geom_bar(stat='identity')
 var_1 <- top10_1
 var_2 <- top10_1
 
-emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_pc3.csv',header = T)) %>% column_to_rownames('V1')
+emb1 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_pc3_withclass.csv',header = T)) %>% column_to_rownames('V1')
 emb1 <- emb1 %>% mutate(cell='PC3')
-emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_CPA_ha1e.csv',header = T)) %>% column_to_rownames('V1')
+emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_ha1e_withclass.csv',header = T)) %>% column_to_rownames('V1')
 emb2 <- emb2 %>% mutate(cell='HA1E')
 all_embs <- rbind(emb1,emb2)
 
 # x=`z1009`,y=`z263` for AE with classifier only and MI not CPA
-ggplot(all_embs,aes(x=`z853`,y=`z465`)) + geom_point(aes(color=cell)) +
-  ggtitle('Scatter plot using only 2 latent variable') +theme(text = element_text(family = "serif",size = 14))
+p <- ggplot(all_embs,aes(x=`z1009`,y=`z263`)) + geom_point(aes(color=cell)) +
+  ggtitle('Scatter plot using only 2 latent variable') +
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/AE_with_class_pc3_ha1e_cellspecific_latent_vars.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
 
 # Load importance to encode
 #important_scores_pc3_encode_allgenes_withclass_noabs.csv and var_x[1:2]
-imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode_cpa.csv') %>%
+
+### For only top 2 ###
+# var_1 <- c('z1009','z263')
+# var_2 <- c('z1009','z263')
+####
+
+imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv') %>%
   select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
 imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
-imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode_cpa.csv')%>%
+imp_enc_1 <- imp_enc_1 %>% mutate(gene_score = z1009*importance_class_1['z1009'] + z263*importance_class_1['z263'])
+imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv')%>%
   select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
 imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
+imp_enc_2 <- imp_enc_2 %>% mutate(gene_score = z1009*importance_class_1['z1009'] + z263*importance_class_1['z263'])
+df_corr_encode <- data.frame(cell1_corr=imp_enc_1$mean_imp,cell2_corr=imp_enc_2$mean_imp)
+spear <- cor(df_corr_encode$cell1_corr,df_corr_encode$cell2_corr,method='spearman')
+p <- ggscatter(df_corr_encode,
+               x='cell1_corr',y='cell2_corr',rug = TRUE,
+               alpha = 0.5,size=1,color = '#1f77b4') + 
+  geom_hline(yintercept = 0,color='black',lty=2,linewidth=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('average importance score for PC3') + ylab('average importance score for HA1E') + 
+  ggtitle('Gene importance score for each cell-line according to the model')+
+  annotate("text",x=-6e-05,y=6e-05,label=paste0('Spearman`s correlation ',round(spear,4)),size=5)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/scorePC3_vs_score_HA1E.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
+
+## See for every z-latent
+df_corr_encode <- data.frame(cell1_corr=imp_enc_1$z1009,cell2_corr=imp_enc_2$z1009)
+spear <- cor(df_corr_encode$cell1_corr,df_corr_encode$cell2_corr,method='spearman')
+p <- ggscatter(df_corr_encode,
+               x='cell1_corr',y='cell2_corr',rug = TRUE,
+               alpha = 0.5,size=1,color = '#1f77b4') + 
+  geom_hline(yintercept = 0,color='black',lty=2,linewidth=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('z1009 importance score for PC3') + ylab('z1009 importance score for HA1E') + 
+  ggtitle('Gene importance score for each cell-line according to the model')+
+  annotate("text",x=-1e-03,y=2e-03,label=paste0('Spearman`s correlation ',round(spear,4)),size=5)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/z1009_scorePC3_vs_score_HA1E.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
+df_corr_encode <- data.frame(cell1_corr=imp_enc_1$z263,cell2_corr=imp_enc_2$z263)
+spear <- cor(df_corr_encode$cell1_corr,df_corr_encode$cell2_corr,method='spearman')
+p <- ggscatter(df_corr_encode,
+               x='cell1_corr',y='cell2_corr',rug = TRUE,
+               alpha = 0.5,size=1,color = '#1f77b4') + 
+  geom_hline(yintercept = 0,color='black',lty=2,linewidth=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('z263 importance score for PC3') + ylab('z263 importance score for HA1E') + 
+  ggtitle('Gene importance score for each cell-line according to the model')+
+  annotate("text",x=-1.3e-03,y=2e-03,label=paste0('Spearman`s correlation ',round(spear,4)),size=5)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/z263_scorePC3_vs_score_HA1E.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
+
+### Find relationship between the 2 latent variables and the classification out-come
+#var_1 <- c('z1009','z263')
+#var_2 <- c('z1009','z263')
+var_1 <- top10_1[c(1,2,4,5,6,9,11)]
+var_2 <- top10_1[c(1,2,4,5,6,9,11)]
+ctrl <- trainControl(method="CV", number=10)
+train_data <- sample_n(all_embs[,which(colnames(all_embs) %in% c(var_1,'cell'))],1742)
+train_data$cell <- factor(train_data$cell,levels = c('HA1E', 'PC3'))
+test_data <- all_embs[which(!(rownames(all_embs) %in% rownames(train_data))),which(colnames(all_embs) %in% c(var_2,'cell'))]
+test_data$cell <- factor(test_data$cell,levels = c('HA1E', 'PC3'))
+mdl <- train(cell ~ ., data = train_data, method = "bayesglm", trControl = ctrl,trace=T)
+mean(mdl[["resample"]][["Accuracy"]])
+# Evaluate precision and accuracy in test set
+y <- predict(mdl,newdata = test_data[,1:(ncol(test_data)-1)])
+results <- confusionMatrix(factor(test_data$cell,levels = c('HA1E', 'PC3')),y)
+results$byClass
+params <- summary(mdl)
+print(params)
+params <- params[["coefficients"]]
+a_z263 <- params[2,1]
+b_z1009 <-  params[3,1]
+
+df_1 <- imp_enc_1 %>% mutate(mean_score=a_z263*z263+b_z1009*z1009)
+df_1 <- df_1 %>% rownames_to_column('gene')
+df_2 <- imp_enc_2 %>% mutate(mean_score=a_z263*z263+b_z1009*z1009)
+df_2 <- df_2 %>% rownames_to_column('gene')
 
 ### kmeans approach where I use all vars not just the top 2
 kmeans_1 <- kmeans(as.matrix(imp_enc_1[,1:ncol(imp_enc_1)-1]),centers = 3,iter.max = 1000, nstart = 200)
@@ -508,13 +726,18 @@ if (mean(df_class_2$score[df_class_2$cluster==cl1])<mean(df_class_2$score[df_cla
   print('Cannot discern two cell-lines')
 }
 
+#df_1 <- imp_enc_1 %>% rownames_to_column('gene')
+#df_2 <- imp_enc_2 %>% rownames_to_column('gene')
+geneInfo$gene_id <- as.character(geneInfo$gene_id)
 df1 <- left_join(df_1,geneInfo,by=c("gene"="gene_id"))
 g1 <- df1$gene
 df2 <- left_join(df_2,geneInfo,by=c("gene"="gene_id"))
-df1 <- df1 %>% filter(!(gene %in% df2$gene))
-df2 <- df2 %>% filter(!(gene %in% g1))
+#df1 <- df1 %>% filter(!(gene %in% df2$gene))
+#df2 <- df2 %>% filter(!(gene %in% g1))
 df1 <- df1 %>% filter(mean_score>0)
+df1 <- df1 %>% arrange(-mean_score)
 df2 <- df2 %>% filter(mean_score<0)
+df2 <- df2 %>% arrange(mean_score)
 ####
 
 gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
@@ -648,8 +871,8 @@ important_forCommon_1 <- data.table::fread('../results/Importance_results/import
 important_forCommon_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv',header=T) %>% column_to_rownames('V1')
 
 ### kmeans approach
-kmeans_1 <- kmeans(x,centers = 1,iter.max = 1000, nstart = 200)
-df_1 <-  data.frame(gene=rownames(important_forCommon_1),mean_score = important_forCommon_1$mean_imp,cluster =kmeans_1$cluster)
+kmeans_1 <- kmeans(as.matrix(imp_enc_1[,1:ncol(imp_enc_1)-1]),centers = 3,iter.max = 1000, nstart = 200)
+df_1 <-  data.frame(gene=rownames(imp_enc_1),mean_score = imp_enc_1$mean_imp,cluster =kmeans_1$cluster)
 df_1_summary <- df_1 %>% group_by(cluster) %>% summarise(counts = n()) %>% arrange(counts)
 cl1 <- df_1_summary$cluster[1]
 cl2 <- df_1_summary$cluster[2]
