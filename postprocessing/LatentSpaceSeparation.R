@@ -184,12 +184,12 @@ for (i in 0:9){
   
   d_val_basal = effectsize::cohens_d(as.matrix(all_dists %>% filter(model=='CPA-based model') %>% filter(set!='Train') %>% 
                                             filter(space!='latent') %>% filter(is_same=='Same cell-line') %>% select(value)),
-                                as.matrix(all_dists %>% filter(model=='CPA-based model') %>% 
+                                as.matrix(all_dists %>% filter(model=='CPA-based model') %>% filter(set!='Train') %>% 
                                             filter(space!='latent') %>%filter(is_same!='Same cell-line')%>% select(value)),
                                 ci=0.95)
   d_val = effectsize::cohens_d(as.matrix(all_dists %>% filter(model=='CPA-based model') %>% filter(set!='Train') %>% 
                                                  filter(space=='latent') %>% filter(is_same=='Same cell-line') %>% select(value)),
-                                     as.matrix(all_dists %>% filter(model=='CPA-based model') %>% 
+                                     as.matrix(all_dists %>% filter(model=='CPA-based model') %>% filter(set!='Train') %>% 
                                                  filter(space=='latent') %>%filter(is_same!='Same cell-line')%>% select(value)),
                                      ci=0.95)
   d_train_basal = effectsize::cohens_d(as.matrix(all_dists %>% filter(model=='CPA-based model') %>% filter(set=='Train') %>% 

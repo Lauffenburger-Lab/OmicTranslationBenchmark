@@ -1,4 +1,5 @@
 library(tidyverse)
+library(caret)
 library(Rtsne)
 library(factoextra)
 library(ggplot2)
@@ -661,6 +662,60 @@ print(p)
 ggsave(
   '../figures/z263_scorePC3_vs_score_HA1E.eps',
   plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
+
+### Build classifier for fewer and fewer genes
+gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
+gex <-  gex[rownames(all_embs),]
+gex <- gex %>% mutate(cell=all_embs$cell)
+gex <- gex %>% mutate(cell=ifelse(cell=='PC3',1,0))
+gex$cell <- factor(gex$cell,levels = c(0,1))
+gc()
+
+# Order the genes based on the importance
+ordered_1 <- rownames(imp_enc_1)[order(-imp_enc_1$mean_imp)]
+ordered_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)]
+
+# Train test split
+train_indices <- createDataPartition(gex$cell, p = 0.75, list = FALSE)
+# Subset your data into training and testing sets based on the indices
+train_data <- gex[train_indices, ]
+test_data <- gex[-train_indices, ]
+gc()
+
+genes_to_keep <- c(1,3,5,10,15,20,25,30,35,40,45,50,70,100,150,200)
+F1 <- NULL
+for (i in 1:length(genes_to_keep)){
+  df <- train_data %>% 
+    select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]],'cell'))))
+  # Define training control method
+  ctrl <- trainControl(method = "cv", number = 10)
+  mdl <- train(cell ~ ., data = df, method = "glm", trControl = ctrl,trace=F,family='binomial')
+  y <- predict(mdl,newdata =test_data %>%
+                 select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]])))))
+  conf <- confusionMatrix(test_data$cell,y)
+  F1[i] <- conf$byClass['F1']
+  message(paste0('Done top ',genes_to_keep[i],' genes'))
+}
+
+gene_results <- data.frame(genes_number=genes_to_keep,F1=F1)
+ggplot(gene_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + geom_point(color='black')+
+  geom_smooth(se=T,color='#4878CF') + ylim(c(0,100)) +
+  scale_y_continuous(breaks=seq(0,100,20),limits = c(0,100))+
+  geom_hline(yintercept = 50,color='red',lty='dashed',linewidth=1) + 
+  annotate('text',x=50,y=47,label = "50% random F1 threshold",size=6)+
+  xlab(paste0('number of important genes used from each cell-line'))+ ylab(paste0('F1 score (%)'))+theme_minimal()+
+  ggtitle('GLM performance for classifying cell-line')+
+  theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
+        legend.text=element_text(size=16))
+ggsave(
+  '../figures/glm_performance_using_important_genes.eps',
   device = cairo_ps,
   scale = 1,
   width = 12,

@@ -433,9 +433,9 @@ for i in range(model_params['no_folds']):
     
     Vsp = SpeciesCovariate(2,model_params['latent_dim'],dropRate=model_params['V_dropout']).to(device)
     
-    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_paired_%s.csv'%i,index_col=0)#.sample(frac=0.8)
-    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_a375_%s.csv'%i,index_col=0)#.sample(frac=0.8)
-    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_ht29_%s.csv'%i,index_col=0)#.sample(frac=0.8)
+    trainInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_paired_%s.csv'%i,index_col=0).sample(n=5)
+    trainInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_a375_%s.csv'%i,index_col=0).sample(n=5)
+    trainInfo_2 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/train_ht29_%s.csv'%i,index_col=0).sample(n=3)
     
     valInfo_paired = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_paired_%s.csv'%i,index_col=0)
     valInfo_1 = pd.read_csv('../preprocessing/preprocessed_data/5fold_validation_spit/val_a375_%s.csv'%i,index_col=0)
