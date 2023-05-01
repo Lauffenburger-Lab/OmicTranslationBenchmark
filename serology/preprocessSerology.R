@@ -35,7 +35,7 @@ hist(primates_expr,100)
 # primates_expr <- primates_expr - colMeans(primates_expr)
 primates_expr <- scale(primates_expr)
 primates_expr[is.nan(primates_expr)] <- 0. 
-hist(primates_expr)
+hist(primates_expr,100)
 data.table::fwrite(primates_expr,'data/primates_exprs.csv',row.names = T)
 data.table::fwrite(primates_nhp,'data/primates_metadata.csv',row.names = T)
 
