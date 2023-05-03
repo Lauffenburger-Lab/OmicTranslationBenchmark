@@ -149,11 +149,11 @@ model_params = {'encoder_1_hiddens':[64],
                 'intermediate_dropout':0.1,
                 'inter_dropIn': 0.1,
                 'state_class_hidden':[32,16,8],#[32,16,8,4],
-                'state_class_drop_in':0.25,
+                'state_class_drop_in':0.5,
                 'state_class_drop':0.1,
                 'no_states':2,
-                'protect_class_hidden':[32,24,16,8,4,2],#[32,16,8,4,2],
-                'protect_class_drop_in':0.1,
+                'protect_class_hidden':[32,16,8],#[32,16,8,4,2],
+                'protect_class_drop_in':0.5,
                 'protect_class_drop':0.1,
                 'protect_states':2,
                 'species_class_hidden':[32,16,8],
@@ -172,7 +172,7 @@ model_params = {'encoder_1_hiddens':[64],
                 'gamma_enc':0.8,
                 'batch_size_1':35,
                 'batch_size_2':15,
-                'epochs':1000, # it was 1000 for only Vsp
+                'epochs':2000, # it was 1000 for only Vsp
                 'prior_beta':1.0,
                 'no_folds':k_folds,
                 'v_reg':1e-04,
@@ -182,14 +182,15 @@ model_params = {'encoder_1_hiddens':[64],
                 'dec_l2_reg':1e-06,
                 'lambda_mi_loss':10.,
                 'effsize_reg': 1.,
-                'cosine_loss': 20,
+                'cosine_loss': 30,
                 'adv_penalnty':1.,
                 'reg_adv':100,
                 'reg_classifier': 10.,
-                'similarity_reg' : 1e-01,
+                'similarity_reg' : 1.,
                 'adversary_steps':4,
                 'autoencoder_wd': 0.,
                 'adversary_wd': 0.}
+
 
 ### Begin pre-training decoder
 NUM_EPOCHS= model_params['epochs']
@@ -301,7 +302,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #         if (e % 200 == 0):
 #             print2log(outString)
 #     print2log(outString)
-#     torch.save(decoder_2, '../results_intermediate_encoders_2/pretrained_models/decoder_primates_%s.pt' % i)
+#     torch.save(decoder_2, '../results_intermediate_encoders/pretrained_models/decoder_primates_%s.pt' % i)
 
 # print2log('Train decoder for human')
 # for i in range(model_params['no_folds']):
@@ -387,12 +388,12 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #         if (e % 200 == 0):
 #             print2log(outString)
 #     print2log(outString)
-#     torch.save(decoder_1, '../results_intermediate_encoders_2/pretrained_models/decoder_human_%s.pt' % i)
+#     torch.save(decoder_1, '../results_intermediate_encoders/pretrained_models/decoder_human_%s.pt' % i)
 #
 # print2log('Evaluate translation using decoders')
 # for i in range(model_params['no_folds']):
-#     decoder_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/decoder_human_%s.pt' % i)
-#     decoder_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/decoder_primates_%s.pt' % i)
+#     decoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/decoder_human_%s.pt' % i)
+#     decoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/decoder_primates_%s.pt' % i)
 #     xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
 #     ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
 #     xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
@@ -471,12 +472,12 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # #                           'r2_mean_primates':mean_primates ,'r2_var_primates':var_primates})
 # df_result = pd.DataFrame({'r2_human':r2_human ,'pear_human':pear_human,
 #                           'r2_primates':r2_primates ,'pear_primates':pear_primates})
-# df_result.to_csv('../results_intermediate_encoders_2/10foldvalidation_pretrained_decoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep.csv')
+# df_result.to_csv('../results_intermediate_encoders/10foldvalidation_pretrained_decoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep.csv')
 # print2log(df_result)
 #
 # pear_matrix_primates = pd.DataFrame(pear_matrix_primates)
 # pear_matrix_primates.columns = primates_exprs.columns
-# pear_matrix_primates.to_csv('../results_intermediate_encoders_2/10foldvalidation_pretrained_decoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
+# pear_matrix_primates.to_csv('../results_intermediate_encoders/10foldvalidation_pretrained_decoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
 # pear_matrix_primates = pd.melt(pear_matrix_primates)
 # pear_matrix_primates.columns = ['feature','pearson']
 # grouped = pear_matrix_primates.groupby(['feature']).median().sort_values(by='pearson',ascending=False)
@@ -494,12 +495,12 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #     else:
 #         label.set_visible(False)
 # #plt.xlim(0,1)
-# plt.savefig('../results_intermediate_encoders_2/perFeature_performance_pretrained_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
+# plt.savefig('../results_intermediate_encoders/perFeature_performance_pretrained_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 #
 #
 # pear_matrix_human = pd.DataFrame(pear_matrix_human)
 # pear_matrix_human.columns = human_exprs.columns
-# pear_matrix_human.to_csv('../results_intermediate_encoders_2/10foldvalidation_pretrained_decoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
+# pear_matrix_human.to_csv('../results_intermediate_encoders/10foldvalidation_pretrained_decoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
 # pear_matrix_human = pd.melt(pear_matrix_human)
 # pear_matrix_human.columns = ['feature','pearson']
 # grouped = pear_matrix_human.groupby(['feature']).median().sort_values(by='pearson',ascending=False)
@@ -513,7 +514,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #               ylabel='feature names')
 # plt.xlim(0,1)
 # ax.yaxis.set_tick_params(labelsize = 5)
-# plt.savefig('../results_intermediate_encoders_2/perFeature_performance_pretrained_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+# plt.savefig('../results_intermediate_encoders/perFeature_performance_pretrained_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 #
 #
 # ## Train encoders
@@ -599,7 +600,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #         if (e % 200 == 0):
 #             print2log(outString)
 #     print2log(outString)
-#     torch.save(encoder_2, '../results_intermediate_encoders_2/pretrained_models/encoder_primates_%s.pt' % i)
+#     torch.save(encoder_2, '../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
 #
 # print2log('Train basal encoder for human')
 # for i in range(model_params['no_folds']):
@@ -679,7 +680,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #         if (e % 200 == 0):
 #             print2log(outString)
 #     print2log(outString)
-#     torch.save(encoder_1, '../results_intermediate_encoders_2/pretrained_models/encoder_human_%s.pt' % i)
+#     torch.save(encoder_1, '../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt' % i)
 #
 # mean_human = []
 # var_human = []
@@ -715,7 +716,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #
 #     N = N_2
 #
-#     encoder_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_primates_%s.pt' % i)
+#     encoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
 #     # encoder_2 = SimpleEncoder(gene_size_primates, model_params['encoder_2_hiddens'], model_params['latent_dim2'],
 #     #                     dropRate=model_params['dropout_encoder'],dropIn=0,
 #     #                     activation=model_params['encoder_activation']).to(device)
@@ -825,9 +826,9 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #         if (e % 200 == 0):
 #             print2log(outString)
 #     print2log(outString)
-#     torch.save(encoder_2, '../results_intermediate_encoders_2/pretrained_models/encoder_primates_%s.pt' % i)
-#     # torch.save(Vsp, '../results_intermediate_encoders_2/pretrained_models/pre_trained_Vsp_%s.pt' % i)
-#     torch.save(encoder_interm_2, '../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
+#     torch.save(encoder_2, '../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
+#     # torch.save(Vsp, '../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt' % i)
+#     torch.save(encoder_interm_2, '../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
 #
 # print2log('Train encoder for human')
 # for i in range(model_params['no_folds']):
@@ -849,12 +850,12 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #
 #     N = N_1
 #
-#     encoder_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_human_%s.pt' % i)
+#     encoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt' % i)
 #     # encoder_1 = SimpleEncoder(gene_size_human, model_params['encoder_1_hiddens'], model_params['latent_dim1'],
 #     #                     dropRate=model_params['dropout_encoder'],dropIn=0,
 #     #                     activation=model_params['encoder_activation']).to(device)
 #     # Vsp = SpeciesCovariate(2, model_params['latent_dim1'], dropRate=model_params['V_dropout']).to(device)
-#     # pretrained_Vsp = torch.load('../results_intermediate_encoders_2/pretrained_models/pre_trained_Vsp_%s.pt' % i)
+#     # pretrained_Vsp = torch.load('../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt' % i)
 #     # Vsp.load_state_dict(pretrained_Vsp.state_dict())
 #     encoder_interm_1 = SimpleEncoder(model_params['latent_dim1'],
 #                                      model_params['intermediateEncoder1'],
@@ -960,17 +961,17 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #         if (e % 200 == 0):
 #             print2log(outString)
 #     print2log(outString)
-#     torch.save(encoder_1, '../results_intermediate_encoders_2/pretrained_models/encoder_human_%s.pt' % i)
-#     # torch.save(Vsp,'../results_intermediate_encoders_2/pretrained_models/pre_trained_Vsp_%s.pt' % i)
-#     torch.save(encoder_interm_2,'../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+#     torch.save(encoder_1, '../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt' % i)
+#     # torch.save(Vsp,'../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt' % i)
+#     torch.save(encoder_interm_2,'../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
 #
 # print2log('Evaluate translation using encoders')
 # for i in range(model_params['no_folds']):
-#     encoder_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_human_%s.pt' % i)
-#     encoder_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_primates_%s.pt' % i)
-#     # Vsp = torch.load('../results_intermediate_encoders_2/pretrained_models/pre_trained_Vsp_%s.pt' % i)
-#     encoder_interm_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_human_%s.pt' % i)
-#     encoder_interm_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
+#     encoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt' % i)
+#     encoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
+#     # Vsp = torch.load('../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt' % i)
+#     encoder_interm_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+#     encoder_interm_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
 #
 #     encoder_1.eval()
 #     encoder_2.eval()
@@ -1022,12 +1023,12 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #
 # df_result = pd.DataFrame({'r2_human':r2_human ,'pear_human':pear_human,
 #                           'r2_primates':r2_primates ,'pear_primates':pear_primates})
-# df_result.to_csv('../results_intermediate_encoders_2/10foldvalidation_pretrained_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep.csv')
+# df_result.to_csv('../results_intermediate_encoders/10foldvalidation_pretrained_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep.csv')
 # print2log(df_result)
 #
 # pear_matrix_primates = pd.DataFrame(pear_matrix_primates)
 # pear_matrix_primates.columns = ['PC'+str(d+1) for d in range(latent_dim)]
-# pear_matrix_primates.to_csv('../results_intermediate_encoders_2/10foldvalidation_pretrained_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
+# pear_matrix_primates.to_csv('../results_intermediate_encoders/10foldvalidation_pretrained_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
 # pear_matrix_primates = pd.melt(pear_matrix_primates)
 # pear_matrix_primates.columns = ['PC','pearson']
 # # grouped = pear_matrix_primates.groupby(['PC']).median().sort_values(by='pearson',ascending=False)
@@ -1046,12 +1047,12 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # #     else:
 # #         label.set_visible(False)
 # # plt.xlim(0,1)
-# plt.savefig('../results_intermediate_encoders_2/perFeature_performance_pretrained_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
+# plt.savefig('../results_intermediate_encoders/perFeature_performance_pretrained_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 #
 #
 # pear_matrix_human = pd.DataFrame(pear_matrix_human)
 # pear_matrix_human.columns = ['PC'+str(d+1) for d in range(latent_dim)]
-# pear_matrix_human.to_csv('../results_intermediate_encoders_2/10foldvalidation_pretrained_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
+# pear_matrix_human.to_csv('../results_intermediate_encoders/10foldvalidation_pretrained_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
 # pear_matrix_human = pd.melt(pear_matrix_human)
 # pear_matrix_human.columns = ['PC','pearson']
 # # grouped = pear_matrix_human.groupby(['PC']).median().sort_values(by='pearson',ascending=False)
@@ -1066,7 +1067,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #               ylabel='PC')
 # # plt.xlim(0,1)
 # # ax.yaxis.set_tick_params(labelsize = 5)
-# plt.savefig('../results_intermediate_encoders_2/perFeature_performance_pretrained_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+# plt.savefig('../results_intermediate_encoders/perFeature_performance_pretrained_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 
 
 
@@ -1075,10 +1076,10 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 # class_criterion = torch.nn.CrossEntropyLoss()
 # for i in range(model_params["no_folds"]):
 #     # # Network
-#     # pre_encoder_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_human_%s.pt'%i)
-#     # pre_encoder_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_primates_%s.pt' % i)
-#     # # pre_encoder_interm_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_human_%s.pt' % i)
-#     # # pre_encoder_interm_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
+#     # pre_encoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt'%i)
+#     # pre_encoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
+#     # # pre_encoder_interm_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+#     # # pre_encoder_interm_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
 #     pre_encoder_1 = SimpleEncoder(gene_size_human, model_params['encoder_1_hiddens'], nComps1,
 #                               dropRate=model_params['dropout_encoder'],
 #                               activation=model_params['encoder_activation']).to(device)
@@ -1207,7 +1208,7 @@ pear_matrix_human_latent = np.zeros((model_params['no_folds'],nComps1))
 #     print2log('Classification accuracy: %s' % class_acc)
 #     print2log('Classification F1 score: %s' % f1)
 #
-#     torch.save(adverse_classifier, '../results_intermediate_encoders_2/pretrained_models/5fold/pre_trained_classifier_adverse_%s.pt' % i)
+#     torch.save(adverse_classifier, '../results_intermediate_encoders/pretrained_models/10fold/pre_trained_classifier_adverse_%s.pt' % i)
 
 ### Train whole translational model
 print2log('Train translation model')
@@ -1242,7 +1243,7 @@ valClassAccGlobal = []
 # NUM_EPOCHS = int(NUM_EPOCHS/2)
 # model_params['epochs'] = NUM_EPOCHS
 bs_1 = 70
-bs_2 =  40
+bs_2 =  30
 model_params['schedule_step_enc'] = int(model_params['schedule_step_enc']/2)
 # model_params['encoding_lr'] = model_params['encoding_lr']/10
 # model_params['adv_lr'] = model_params['adv_lr']/10
@@ -1278,18 +1279,18 @@ for i in range(model_params["no_folds"]):
         N = N_2
 
     # # Network
-    # # pre_encoder_1 = torch.load('../results_intermediate_encoders_2/models/pre_encoder_human_%s.pt'%i)
-    # # pre_encoder_2 = torch.load('../results_intermediate_encoders_2/models/pre_encoder_primates_%s.pt' % i)
-    # pre_encoder_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_human_%s.pt' % i)
-    # pre_encoder_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_primates_%s.pt' % i)
-    # pre_decoder_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/decoder_human_%s.pt' % i)
-    # pre_decoder_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/decoder_primates_%s.pt' % i)
-    # #pre_classifier = torch.load('../results_intermediate_encoders_2/models/pre_classifier_%s.pt' % i)
-    # #pre_species_classifier = torch.load('../results_intermediate_encoders_2/models/pre_species_classifier_%s.pt' % i)
-    # # pre_prior_d = torch.load('../results_intermediate_encoders_2/models/pre_prior_d_%s.pt' % i)
-    # # pre_local_d = torch.load('../results_intermediate_encoders_2/models/pre_local_d_%s.pt' % i)
-    # pre_encoder_interm_1 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_human_%s.pt' % i)
-    # pre_encoder_interm_2 = torch.load('../results_intermediate_encoders_2/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
+    # # pre_encoder_1 = torch.load('../results_intermediate_encoders/models/pre_encoder_human_%s.pt'%i)
+    # # pre_encoder_2 = torch.load('../results_intermediate_encoders/models/pre_encoder_primates_%s.pt' % i)
+    # pre_encoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_human_%s.pt' % i)
+    # pre_encoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_primates_%s.pt' % i)
+    # pre_decoder_1 = torch.load('../results_intermediate_encoders/pretrained_models/decoder_human_%s.pt' % i)
+    # pre_decoder_2 = torch.load('../results_intermediate_encoders/pretrained_models/decoder_primates_%s.pt' % i)
+    # #pre_classifier = torch.load('../results_intermediate_encoders/models/pre_classifier_%s.pt' % i)
+    # #pre_species_classifier = torch.load('../results_intermediate_encoders/models/pre_species_classifier_%s.pt' % i)
+    # # pre_prior_d = torch.load('../results_intermediate_encoders/models/pre_prior_d_%s.pt' % i)
+    # # pre_local_d = torch.load('../results_intermediate_encoders/models/pre_local_d_%s.pt' % i)
+    # pre_encoder_interm_1 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_human_%s.pt' % i)
+    # pre_encoder_interm_2 = torch.load('../results_intermediate_encoders/pretrained_models/encoder_intermediate_primates_%s.pt' % i)
 
     decoder_1 = Decoder(nComps1, model_params['decoder_1_hiddens'], gene_size_human,
                         dropRate=model_params['dropout_decoder'],dropIn= model_params['decoder_dropIn'],
@@ -1323,6 +1324,11 @@ for i in range(model_params["no_folds"]):
                             num_classes=model_params['protect_states'],
                             drop_in=model_params['protect_class_drop_in'],
                             drop=model_params['protect_class_drop']).to(device)
+    # protection_classifier_global = Classifier(in_channel=model_params['latent_dim1'],
+    #                                    hidden_layers=model_params['protect_class_hidden'],
+    #                                    num_classes=model_params['protect_states'],
+    #                                    drop_in=model_params['protect_class_drop_in'],
+    #                                    drop=model_params['protect_class_drop']).to(device)
     # protection_classifier.out_linear.bias.data.fill_(0.9282193) # ln(pos/neg)
 
     # classifier.load_state_dict(pre_classifier.state_dict())
@@ -1332,7 +1338,7 @@ for i in range(model_params["no_folds"]):
                             drop_in=model_params['species_class_drop_in'],
                             drop=model_params['species_class_drop']).to(device)
     # species_classifier.load_state_dict(pre_species_classifier.state_dict())
-    pretrained_adv_class = torch.load('../results_intermediate_encoders_2/pretrained_models/pre_trained_classifier_adverse_%s.pt'%i)
+    pretrained_adv_class = torch.load('../results_intermediate_encoders/pretrained_models/pre_trained_classifier_adverse_%s.pt'%i)
     adverse_classifier = Classifier(in_channel=model_params['latent_dim1'],
                                     hidden_layers=model_params['adv_class_hidden'],
                                     num_classes=model_params['no_adv_class'],
@@ -1341,8 +1347,8 @@ for i in range(model_params["no_folds"]):
     adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
 
     # Vsp = SpeciesCovariate(2, model_params['latent_dim1'], dropRate=model_params['V_dropout']).to(device)
-    # pretrained_Vsp = torch.load('../results_intermediate_encoders_2/pretrained_models/pre_trained_Vsp_%s.pt'%i)
-    # pretrained_Vsp = torch.load('../results_intermediate_encoders_2/models/pre_Vspecies_%s.pt' % i)
+    # pretrained_Vsp = torch.load('../results_intermediate_encoders/pretrained_models/pre_trained_Vsp_%s.pt'%i)
+    # pretrained_Vsp = torch.load('../results_intermediate_encoders/models/pre_Vspecies_%s.pt' % i)
     # Vsp.load_state_dict(pretrained_Vsp.state_dict())
 
     encoder_interm_1 = SimpleEncoder(model_params['latent_dim1'],
@@ -1361,7 +1367,7 @@ for i in range(model_params["no_folds"]):
     allParams = list(encoder_1.parameters()) + list(encoder_2.parameters())
     allParams = allParams + list(decoder_1.parameters()) + list(decoder_2.parameters())
     allParams = allParams + list(prior_d.parameters()) + list(local_d.parameters())
-    allParams = allParams + list(classifier.parameters())
+    allParams = allParams + list(classifier.parameters()) + list(protection_classifier.parameters())
     allParams = allParams + list(species_classifier.parameters())
     # allParams = allParams + list(Vsp.parameters())
     allParams = allParams + list(encoder_interm_1.parameters()) + list(encoder_interm_2.parameters())
@@ -1375,7 +1381,11 @@ for i in range(model_params["no_folds"]):
                                                 step_size=model_params['schedule_step_enc'],
                                                 gamma=model_params['gamma_enc'])
 
-    trainLoss = []
+    mLoss = torch.mean(torch.sum((xtrain_human - torch.mean(xtrain_human,0)*torch.ones(xtrain_human.shape))**2, dim=1))
+    mLoss = mLoss + torch.mean(torch.sum((xtrain_primates - torch.mean(xtrain_primates,0)*torch.ones(xtrain_primates.shape))**2, dim=1))
+
+    # trainLossMEAN = []
+    # trainLossSTD = []
     for e in range(0, NUM_EPOCHS):
         decoder_1.train()
         decoder_2.train()
@@ -1411,6 +1421,7 @@ for i in range(model_params["no_folds"]):
             for jj in range(maxLen - lens[1]):
                 trainloader_2.insert(jj, trainloader_suppl[jj])
 
+        # trainLoss = []
         for j in range(maxLen):
             dataIndex_1 = trainloader_1[j]
             dataIndex_2 = trainloader_2[j]
@@ -1611,6 +1622,8 @@ for i in range(model_params["no_folds"]):
             r2_2 = r_square(y_pred_2.detach(), X_2.detach())
             mse_2 = torch.mean(torch.mean((y_pred_2.detach() - X_2.detach()) ** 2, dim=1))
 
+            # trainLoss.append(loss.item())
+
             # iteration += iteration
 
         if model_params['schedule_step_adv'] is not None:
@@ -1645,12 +1658,24 @@ for i in range(model_params["no_folds"]):
             outString += ', no_protected={:.2f}'.format(no_protected.item())
             # else:
             #    outString += ', F1 basal trained= %s'%f1_basal_trained
-        if (e % 500 == 0):
+        # trainLossMEAN.append(np.mean(trainLoss))
+        # trainLossSTD.append(np.std(trainLoss))
+        if (e % 250 == 0):
             print2log(outString)
             # print2log(no_protected)
-        # trainLoss.append(loss.item())
     print2log(outString)
-    # plt.plot(np.arange(0,NUM_EPOCHS),trainLoss)
+    # T = np.array(range(len(trainLossMEAN)))
+    # plt.plot(T, trainLossMEAN)
+    # plt.xlim([0, len(T)])
+    # curColor = plt.gca().lines[-1].get_color()
+    # plt.fill_between(T,
+    #                  np.array(trainLossMEAN) - np.array(trainLossSTD),
+    #                  np.array(trainLossMEAN) + np.array(trainLossSTD),
+    #                  color=curColor, alpha=0.2)
+    # plt.plot([0, len(T)], np.array([1, 1]) * mLoss.item(), 'black', linestyle='--')
+    # plt.ylabel('Loss')
+    # plt.xlabel('Epoch')
+    # plt.yscale('log')
     # plt.show()
     decoder_1.eval()
     decoder_2.eval()
@@ -1845,19 +1870,19 @@ for i in range(model_params["no_folds"]):
     valF1KNNTrans.append(f1_translation)
     valF1ClassTrans.append(species_f1_trans)
 
-    torch.save(decoder_1, '../results_intermediate_encoders_2/models/5fold/decoder_human_%s.pt' % i)
-    torch.save(decoder_2, '../results_intermediate_encoders_2/models/5fold/decoder_primates_%s.pt' % i)
-    torch.save(prior_d, '../results_intermediate_encoders_2/models/5fold/priorDiscr_%s.pt' % i)
-    torch.save(local_d, '../results_intermediate_encoders_2/models/5fold/localDiscr_%s.pt' % i)
-    torch.save(encoder_1, '../results_intermediate_encoders_2/models/5fold/encoder_human_%s.pt' % i)
-    torch.save(encoder_2, '../results_intermediate_encoders_2/models/5fold/encoder_primates_%s.pt' % i)
-    torch.save(classifier, '../results_intermediate_encoders_2/models/5fold/classifier_%s.pt' % i)
-    torch.save(species_classifier, '../results_intermediate_encoders_2/models/5fold/species_classifier_%s.pt' % i)
-    # torch.save(Vsp, '../results_intermediate_encoders_2/models/Vspecies_%s.pt' % i)
-    torch.save(encoder_interm_1,'../results_intermediate_encoders_2/models/5fold/encoder_intermediate_human_%s.pt' % i)
-    torch.save(encoder_interm_2,'../results_intermediate_encoders_2/models/5fold/encoder_intermediate_primates_%s.pt' % i)
-    torch.save(adverse_classifier, '../results_intermediate_encoders_2/models/5fold/classifier_adverse_%s.pt' % i)
-    torch.save(protection_classifier,'../results_intermediate_encoders_2/models/5fold/protection_classifier_%s.pt' % i)
+    torch.save(decoder_1, '../results_intermediate_encoders/models/10fold/decoder_human_%s.pt' % i)
+    torch.save(decoder_2, '../results_intermediate_encoders/models/10fold/decoder_primates_%s.pt' % i)
+    torch.save(prior_d, '../results_intermediate_encoders/models/10fold/priorDiscr_%s.pt' % i)
+    torch.save(local_d, '../results_intermediate_encoders/models/10fold/localDiscr_%s.pt' % i)
+    torch.save(encoder_1, '../results_intermediate_encoders/models/10fold/encoder_human_%s.pt' % i)
+    torch.save(encoder_2, '../results_intermediate_encoders/models/10fold/encoder_primates_%s.pt' % i)
+    torch.save(classifier, '../results_intermediate_encoders/models/10fold/classifier_%s.pt' % i)
+    torch.save(species_classifier, '../results_intermediate_encoders/models/10fold/species_classifier_%s.pt' % i)
+    # torch.save(Vsp, '../results_intermediate_encoders/models/Vspecies_%s.pt' % i)
+    torch.save(encoder_interm_1,'../results_intermediate_encoders/models/10fold/encoder_intermediate_human_%s.pt' % i)
+    torch.save(encoder_interm_2,'../results_intermediate_encoders/models/10fold/encoder_intermediate_primates_%s.pt' % i)
+    torch.save(adverse_classifier, '../results_intermediate_encoders/models/10fold/classifier_adverse_%s.pt' % i)
+    torch.save(protection_classifier,'../results_intermediate_encoders/models/10fold/protection_classifier_%s.pt' % i)
 
 df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Species,'AccuracySpecies':valAccSpecies,
                           'F1_global': valF1Global, 'Accuracy_global': valClassAccGlobal,
@@ -1867,12 +1892,12 @@ df_result = pd.DataFrame({'F1':valF1,'Accuracy':valClassAcc,'F1Species':valF1Spe
                           'latent_human_pear':valPear_1_latent,'latent_mouse_pear':valPear_2_latent,
                           'KNNTranslationF1':valF1KNNTrans,'ClassifierTranslationF1':valF1ClassTrans})
 
-df_result.to_csv('../results_intermediate_encoders_2/10foldvalidation_wholeModel_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_serology.csv')
+df_result.to_csv('../results_intermediate_encoders/10foldvalidation_wholeModel_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_serology.csv')
 
 
 pear_matrix_primates = pd.DataFrame(pear_matrix_primates)
 pear_matrix_primates.columns = primates_exprs.columns
-pear_matrix_primates.to_csv('../results_intermediate_encoders_2/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
+pear_matrix_primates.to_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
 pear_matrix_primates = pd.melt(pear_matrix_primates)
 pear_matrix_primates.columns = ['feature','pearson']
 grouped = pear_matrix_primates.groupby(['feature']).median().sort_values(by='pearson',ascending=False)
@@ -1890,10 +1915,10 @@ for ind, label in enumerate(ax.get_yticklabels()):
     else:
         label.set_visible(False)
 #plt.xlim(0,1)
-plt.savefig('../results_intermediate_encoders_2/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
+plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 pear_matrix_human = pd.DataFrame(pear_matrix_human)
 pear_matrix_human.columns = human_exprs.columns
-pear_matrix_human.to_csv('../results_intermediate_encoders_2/10foldvalidation_decoder_'+str(latent_dim)+'dim500ep_perFeature_human.csv')
+pear_matrix_human.to_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
 pear_matrix_human = pd.melt(pear_matrix_human)
 pear_matrix_human.columns = ['feature','pearson']
 grouped = pear_matrix_human.groupby(['feature']).median().sort_values(by='pearson',ascending=False)
@@ -1907,7 +1932,7 @@ plt.gca().set(title='Per feature performance of human decoder in 10-fold cross-v
               ylabel='feature names')
 plt.xlim(0,1)
 ax.yaxis.set_tick_params(labelsize = 5)
-plt.savefig('../results_intermediate_encoders_2/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 
 
 pear_matrix_primates_latent = pear_matrix_primates_latent.mean(0)
@@ -1917,7 +1942,7 @@ pear_matrix_primates_latent = pd.DataFrame(pear_matrix_primates_latent)
 # pear_matrix_primates_latent.columns = ['PC'+str(d+1) for d in range(latent_dim)]
 pear_matrix_primates_latent.columns = ['Z'+str(d+1) for d in range(latent_dim)]
 pear_matrix_primates_latent.index = ['PC'+str(d+1) for d in range(latent_dim)]
-pear_matrix_primates_latent.to_csv('../results_intermediate_encoders_2/10foldvalidation_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
+pear_matrix_primates_latent.to_csv('../results_intermediate_encoders/10foldvalidation_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
 # pear_matrix_primates_latent = pd.melt(pear_matrix_primates_latent)
 # pear_matrix_primates_latent.columns = ['PC','pearson']
 # sns.set_theme(style="whitegrid")
@@ -1929,14 +1954,14 @@ plt.figure(figsize=(9,12), dpi= 80)
 #               xlabel = 'pearson correlation',
 #               ylabel='PC')
 # #plt.xlim(0,1)
-# plt.savefig('../results_intermediate_encoders_2/perFeature_encoder_'+str(latent_dim)+'dim500ep_primates.png', bbox_inches='tight',dpi=600)
+# plt.savefig('../results_intermediate_encoders/perFeature_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 sns.clustermap(pear_matrix_primates_latent,cmap='RdBu_r', center=0,vmin=-0.75, vmax=0.75)
-plt.savefig('../results_intermediate_encoders_2/perFeature_PCA_avgCorrelation_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
+plt.savefig('../results_intermediate_encoders/perFeature_PCA_avgCorrelation_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 pear_matrix_human_latent = pd.DataFrame(pear_matrix_human_latent)
 # pear_matrix_human_latent.columns = ['PC'+str(d+1) for d in range(latent_dim)]
 pear_matrix_human_latent.columns = ['Z'+str(d+1) for d in range(latent_dim)]
 pear_matrix_human_latent.index = ['PC'+str(d+1) for d in range(latent_dim)]
-pear_matrix_human_latent.to_csv('../results_intermediate_encoders_2/10foldvalidation_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
+pear_matrix_human_latent.to_csv('../results_intermediate_encoders/10foldvalidation_encoders_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
 # pear_matrix_human_latent = pd.melt(pear_matrix_human_latent)
 # pear_matrix_human_latent.columns = ['PC','pearson']
 # sns.set_theme(style="whitegrid")
@@ -1948,7 +1973,7 @@ plt.figure(figsize=(9,12), dpi= 80)
 #               xlabel = 'pearson correlation',
 #               ylabel='PC')
 # #plt.xlim(0,1)
-# plt.savefig('../results_intermediate_encoders_2/perFeature_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+# plt.savefig('../results_intermediate_encoders/perFeature_encoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 sns.clustermap(pear_matrix_human_latent,cmap='RdBu_r', center=0,vmin=-0.75, vmax=0.75)
-plt.savefig('../results_intermediate_encoders_2/perFeature_PCA_avgCorrelation_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
+plt.savefig('../results_intermediate_encoders/perFeature_PCA_avgCorrelation_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 

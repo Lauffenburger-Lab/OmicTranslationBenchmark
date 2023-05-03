@@ -1,0 +1,87 @@
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
+library(factoextra)
+library(Rtsne)
+
+### Load embeddings and data and combine them---------------
+#Load data
+human_expr <- data.table::fread('data/human_exprs.csv') %>% column_to_rownames('V1')
+human_hiv <- data.table::fread('data/human_metadata.csv') %>% column_to_rownames('V1')
+primates_expr <- data.table::fread('data/primates_exprs.csv') %>% column_to_rownames('V1')
+primates_nhp <- data.table::fread('data/primates_metadata.csv') %>% column_to_rownames('V1')
+#Load embeddings
+z_human <- data.table::fread('results_intermediate_encoders/embs/z_human.csv') %>% column_to_rownames('V1')
+latent_dim <- ncol(z_human)
+z_human <- z_human %>% mutate(protected = human_hiv$infect)
+z_human <- z_human %>% mutate(vaccinated = human_hiv$trt)
+z_human <- z_human %>% mutate(species = 'human')
+z_human_base <- data.table::fread('results_intermediate_encoders/embs/z_human_base.csv') %>% column_to_rownames('V1')
+z_human_base <- z_human_base %>% mutate(protected = human_hiv$infect)
+z_human_base <- z_human_base %>% mutate(vaccinated = human_hiv$trt)
+z_human_base <- z_human_base %>% mutate(species = 'human')
+z_primates <- data.table::fread('results_intermediate_encoders/embs/z_primates.csv') %>% column_to_rownames('V1')
+z_primates <- z_primates %>% mutate(protected = primates_nhp$ProtectBinary)
+z_primates <- z_primates %>% mutate(vaccinated = primates_nhp$Vaccine)
+z_primates <- z_primates %>% mutate(species = 'primates')
+z_primates_base <- data.table::fread('results_intermediate_encoders/embs/z_primates_base.csv') %>% column_to_rownames('V1')
+z_primates_base <- z_primates_base %>% mutate(protected = primates_nhp$ProtectBinary)
+z_primates_base <- z_primates_base %>% mutate(vaccinated = primates_nhp$Vaccine)
+z_primates_base <- z_primates_base %>% mutate(species = 'primates')
+
+z_latent <- rbind(z_human,z_primates)
+z_latent_base <- rbind(z_human_base,z_primates_base)
+
+### Dimensionality reduction and visualization-----------
+pca <- prcomp(z_latent_base[,1:latent_dim])
+fviz_eig(pca, addlabels = TRUE,ncp = 15)
+df_pca<- pca$x[,1:2]
+df_pca <- as.data.frame(df_pca)
+colnames(df_pca) <- c('PC1','PC2')
+df_pca <- df_pca %>% mutate(protected = z_latent_base$protected)
+df_pca$protected <- factor(df_pca$protected)
+df_pca <- df_pca %>% mutate(vaccinated = z_latent_base$vaccinated)
+df_pca$vaccinated <- factor(df_pca$vaccinated)
+df_pca <- df_pca %>% mutate(species = z_latent_base$species)
+df_pca$species <- factor(df_pca$species)
+pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=protected,shape=species))+
+  scale_color_manual(values = c('#4878CF','#D65F5F'))+
+  ggtitle('PCA plot of the global latent space') +
+  xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
+  theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
+        legend.text=element_text(size=16))
+print(pca_plot)
+
+## Perform tsne
+perpl = DescTools::RoundTo(sqrt(nrow(z_latent_base)), multiple = 5, FUN = round)
+#perpl= 50
+init_dim = 10
+iter = 1000
+emb_size = latent_dim
+set.seed(42)
+tsne_all <- Rtsne(z_latent_base[,1:latent_dim], 
+                  dims = 2, perplexity=perpl, 
+                  verbose=TRUE, 
+                  max_iter = iter,
+                  initial_dims = init_dim,
+                  check_duplicates = T,
+                  normalize = T,pca_scale = F,
+                  num_threads = 15)
+df_all <- data.frame(V1 = tsne_all$Y[,1], V2 =tsne_all$Y[,2])
+df_all <- df_all %>% mutate(protected = z_latent_base$protected)
+df_all$protected <- factor(df_all$protected)
+df_all <- df_all %>% mutate(vaccinated = z_latent_base$vaccinated)
+df_all$vaccinated <- factor(df_all$vaccinated)
+df_all <- df_all %>% mutate(species = z_latent_base$species)
+df_all$species <- factor(df_all$species)
+
+
+gtsne <- ggplot(df_all, aes(V1, V2),alpha=0.2)+
+  geom_point(aes(col =protected,shape=species)) + labs(title="t-SNE plot of global latent space") + 
+  scale_color_manual(values = c('#4878CF','#D65F5F'))+
+  xlab('t-SNE 1') + ylab('t-SNE 2')+theme_minimal()+
+  theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
+       legend.text=element_text(size=16))
+print(gtsne)
