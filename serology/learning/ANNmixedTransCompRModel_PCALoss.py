@@ -16,6 +16,7 @@ from evaluationUtils import r_square,get_cindex,pearson_r,pseudoAccuracy
 import argparse
 import logging
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 import seaborn as sns
 sns.set()
 
@@ -149,11 +150,11 @@ model_params = {'encoder_1_hiddens':[64],
                 'intermediate_dropout':0.1,
                 'inter_dropIn': 0.1,
                 'state_class_hidden':[32,16,8],#[32,16,8,4],
-                'state_class_drop_in':0.5,
+                'state_class_drop_in':0.25,
                 'state_class_drop':0.1,
                 'no_states':2,
                 'protect_class_hidden':[32,16,8],#[32,16,8,4,2],
-                'protect_class_drop_in':0.5,
+                'protect_class_drop_in':0.25,
                 'protect_class_drop':0.1,
                 'protect_states':2,
                 'species_class_hidden':[32,16,8],
@@ -166,13 +167,13 @@ model_params = {'encoder_1_hiddens':[64],
                 'no_adv_class':2,
                 'encoding_lr':0.001,
                 'adv_lr':0.001,
-                'schedule_step_adv':200,
+                'schedule_step_adv':300,
                 'gamma_adv':0.5,
-                'schedule_step_enc':200,
+                'schedule_step_enc':300,
                 'gamma_enc':0.8,
                 'batch_size_1':35,
                 'batch_size_2':15,
-                'epochs':2000, # it was 1000 for only Vsp
+                'epochs':1000, # it was 1000 for only Vsp
                 'prior_beta':1.0,
                 'no_folds':k_folds,
                 'v_reg':1e-04,
@@ -180,13 +181,13 @@ model_params = {'encoder_1_hiddens':[64],
                 'species_class_reg':1e-04,
                 'enc_l2_reg':1e-06,
                 'dec_l2_reg':1e-06,
-                'lambda_mi_loss':10.,
+                'lambda_mi_loss':100.,
                 'effsize_reg': 1.,
-                'cosine_loss': 30,
+                'cosine_loss': 70,
                 'adv_penalnty':1.,
                 'reg_adv':100,
-                'reg_classifier': 10.,
-                'similarity_reg' : 1.,
+                'reg_classifier': 100.,
+                'similarity_reg' : 10.,
                 'adversary_steps':4,
                 'autoencoder_wd': 0.,
                 'adversary_wd': 0.}
@@ -1244,10 +1245,8 @@ valClassAccGlobal = []
 # model_params['epochs'] = NUM_EPOCHS
 bs_1 = 70
 bs_2 =  30
-model_params['schedule_step_enc'] = int(model_params['schedule_step_enc']/2)
-# model_params['encoding_lr'] = model_params['encoding_lr']/10
-# model_params['adv_lr'] = model_params['adv_lr']/10
-model_params['schedule_step_adv'] = int(model_params['schedule_step_adv']/2)
+# model_params['schedule_step_enc'] = int(model_params['schedule_step_enc']/2)
+# model_params['schedule_step_adv'] = int(model_params['schedule_step_adv']/2)
 class_criterion = torch.nn.CrossEntropyLoss()
 
 pear_matrix_primates = np.zeros((model_params['no_folds'],Xm.shape[1]))
@@ -1437,11 +1436,11 @@ for i in range(model_params["no_folds"]):
             # z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
             #                          torch.zeros(X_1.shape[0], 1)), 1).to(device)
 
-            conditions = np.concatenate((ytrain_human[dataIndex_1, 0], ytrain_primates[dataIndex_2, 0]))
-            size = conditions.size
-            conditions = conditions.reshape(size, 1)
-            conditions = conditions == conditions.transpose()
-            conditions = conditions * 1
+            # conditions = np.concatenate((ytrain_human[dataIndex_1, 0], ytrain_primates[dataIndex_2, 0]))
+            # size = conditions.size
+            # conditions = conditions.reshape(size, 1)
+            # conditions = conditions == conditions.transpose()
+            # conditions = conditions * 1
 
             conditions_protect = np.concatenate((ytrain_human[dataIndex_1, 1], ytrain_primates[dataIndex_2, 1]))
             size = conditions_protect.size
@@ -1449,8 +1448,8 @@ for i in range(model_params["no_folds"]):
             conditions_protect = conditions_protect == conditions_protect.transpose()
             conditions_protect = conditions_protect * 1
 
-            conditions = np.multiply(conditions_protect,conditions)
-            # conditions = np.copy(conditions_protect)
+            # conditions = np.multiply(conditions_protect,conditions)
+            conditions = np.copy(conditions_protect)
 
             mask = torch.tensor(conditions).to(device).detach()
             pos_mask = mask
@@ -1459,7 +1458,7 @@ for i in range(model_params["no_folds"]):
             optimizer_adv.zero_grad()
             optimizer.zero_grad()
 
-            # if e % model_params['adversary_steps']==0:
+            # if e % model_params['adversary_steps']==0 or e % model_params['adversary_steps']+1==0 or e % model_params['adversary_steps']+2==0:
             z_base_1 = encoder_1(X_1)
             z_base_2 = encoder_2(X_2)
             latent_base_vectors = torch.cat((z_base_1, z_base_2), 0)
@@ -1487,7 +1486,7 @@ for i in range(model_params["no_folds"]):
             latent_base_vectors = torch.cat((z_base_1, z_base_2), 0)
             # latent_vectors = torch.cat((z_1, z_2), 0)
 
-            #z_un = local_d(latent_vectors)
+            # z_un = local_d(latent_vectors)
             z_un = local_d(latent_base_vectors)
             res_un = torch.matmul(z_un, z_un.t())
 
@@ -1500,16 +1499,19 @@ for i in range(model_params["no_folds"]):
             # y_pred_1 = decoder_1(z_1)
             y_pred_1 = decoder_1(z_1)
             fitLoss_1 = torch.mean(torch.sum((y_pred_1 - X_1) ** 2, dim=1))
-            L2Loss_1 = encoder_1.L2Regularization(model_params['enc_l2_reg'])  + decoder_1.L2Regularization(model_params['dec_l2_reg'])
+            L2Loss_1 = encoder_1.L2Regularization(model_params['enc_l2_reg']) + decoder_1.L2Regularization(
+                model_params['dec_l2_reg'])
             loss_1 = fitLoss_1 + L2Loss_1
 
             # y_pred_2 = decoder_2(z_2)
             y_pred_2 = decoder_2(z_2)
             fitLoss_2 = torch.mean(torch.sum((y_pred_2 - X_2) ** 2, dim=1))
-            L2Loss_2 = encoder_2.L2Regularization(model_params['enc_l2_reg'])  + decoder_2.L2Regularization(model_params['dec_l2_reg'])
+            L2Loss_2 = encoder_2.L2Regularization(model_params['enc_l2_reg']) + decoder_2.L2Regularization(
+                model_params['dec_l2_reg'])
             loss_2 = fitLoss_2 + L2Loss_2
 
-            silimalityLoss = torch.sum(torch.cdist(latent_base_vectors, latent_base_vectors) * mask.float()) / mask.float().sum()
+            silimalityLoss = torch.sum(
+                torch.cdist(latent_base_vectors, latent_base_vectors) * mask.float()) / mask.float().sum()
             w1 = latent_base_vectors.norm(p=2, dim=1, keepdim=True)
             w2 = latent_base_vectors.norm(p=2, dim=1, keepdim=True)
             cosineLoss = torch.mm(latent_base_vectors, latent_base_vectors.t()) / (w1 * w2.t()).clamp(min=1e-6)
@@ -1525,12 +1527,12 @@ for i in range(model_params["no_folds"]):
             Eq = (Eq * neg_mask.float()).sum() / neg_mask.float().sum()
             mi_loss = Eq - Ep
 
-            #prior = torch.rand_like(latent_vectors)
+            # prior = torch.rand_like(latent_vectors)
             prior = torch.rand_like(latent_base_vectors)
 
             term_a = torch.log(prior_d(prior)).mean()
             term_b = torch.log(1.0 - prior_d(latent_base_vectors)).mean()
-            #term_b = torch.log(1.0 - prior_d(latent_vectors)).mean()
+            # term_b = torch.log(1.0 - prior_d(latent_vectors)).mean()
             prior_loss = -(term_a + term_b) * model_params['prior_beta']
 
             # Classification loss
@@ -1564,9 +1566,9 @@ for i in range(model_params["no_folds"]):
             cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_protection = 2 * tp / (2 * tp + fp + fn)
-            sens = tp/(tp+fn)
+            sens = tp / (tp + fn)
             spec = tn / (tn + fp)
-            acc =(tp+tn)/labels.shape[0]
+            acc = (tp + tn) / labels.shape[0]
             # Protection in latent
             labels = protection_classifier(latent_vectors)
             true_labels = torch.cat((ytrain_human[dataIndex_1, 1],
@@ -1577,7 +1579,7 @@ for i in range(model_params["no_folds"]):
             cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted, labels=[0, 1])
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_protection_latent = 2 * tp / (2 * tp + fp + fn)
-            no_protected = torch.sum(true_labels)/true_labels.shape[0]
+            no_protected = torch.sum(true_labels) / true_labels.shape[0]
             # no_protected = true_labels
 
             # Species classification loss
@@ -1602,17 +1604,18 @@ for i in range(model_params["no_folds"]):
             tn, fp, fn, tp = cf_matrix.ravel()
             f1_basal = 2 * tp / (2 * tp + fp + fn)
 
+
             # loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params['cosine_loss'] * cosineLoss + Vsp.Regularization(model_params["v_reg"])
             loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params['lambda_mi_loss'] * mi_loss + prior_loss - model_params[
-                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * (entropy_global+entropy) + model_params['reg_classifier'] * entropy_species + model_params['reg_classifier'] *(protection_entropy+protection_entropy_latent) - model_params[
-                       'reg_adv'] * adv_entropy + classifier.L2Regularization(
+                'cosine_loss'] * cosineLoss + model_params['reg_classifier'] * (entropy_global) + model_params['reg_classifier'] * entropy_species + model_params['reg_classifier'] *(protection_entropy) - model_params[
+                        'reg_adv'] * adv_entropy + classifier.L2Regularization(
                 model_params['state_class_reg']) + species_classifier.L2Regularization(
                 model_params['species_class_reg'])+ encoder_interm_1.L2Regularization(
                 model_params['intermediate_enc_l2_reg'])+ encoder_interm_2.L2Regularization(model_params['intermediate_enc_l2_reg'])
 
             loss.backward()
             optimizer.step()
-            
+
 
             pearson_1 = pearson_r(y_pred_1.detach(), X_1.detach())
             r2_1 = r_square(y_pred_1.detach(), X_1.detach())
@@ -1622,9 +1625,9 @@ for i in range(model_params["no_folds"]):
             r2_2 = r_square(y_pred_2.detach(), X_2.detach())
             mse_2 = torch.mean(torch.mean((y_pred_2.detach() - X_2.detach()) ** 2, dim=1))
 
-            # trainLoss.append(loss.item())
+        # trainLoss.append(loss.item())
 
-            # iteration += iteration
+        # iteration += iteration
 
         if model_params['schedule_step_adv'] is not None:
             scheduler_adv.step()
@@ -1660,7 +1663,7 @@ for i in range(model_params["no_folds"]):
             #    outString += ', F1 basal trained= %s'%f1_basal_trained
         # trainLossMEAN.append(np.mean(trainLoss))
         # trainLossSTD.append(np.std(trainLoss))
-        if (e % 250 == 0):
+        if (e % 200 == 0):
             print2log(outString)
             # print2log(no_protected)
     print2log(outString)
@@ -1897,6 +1900,10 @@ df_result.to_csv('../results_intermediate_encoders/10foldvalidation_wholeModel_'
 
 pear_matrix_primates = pd.DataFrame(pear_matrix_primates)
 pear_matrix_primates.columns = primates_exprs.columns
+mu = pear_matrix_primates.mean(1).mean()
+se = pear_matrix_primates.mean(1).std()/np.sqrt(model_params['no_folds'])
+pm_symbol = "\u00B1"
+text = f"r = {mu:.4f} {pm_symbol} {se:.4f}"
 pear_matrix_primates.to_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_primates.csv')
 pear_matrix_primates = pd.melt(pear_matrix_primates)
 pear_matrix_primates.columns = ['feature','pearson']
@@ -1915,9 +1922,16 @@ for ind, label in enumerate(ax.get_yticklabels()):
     else:
         label.set_visible(False)
 #plt.xlim(0,1)
+ax.text(-0.83, 10,text, fontsize=20)
+rect = patches.Rectangle((-0.85, 4), 0.77, 7, linewidth=2, edgecolor='black', facecolor='none')
+ax.add_patch(rect)
 plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 pear_matrix_human = pd.DataFrame(pear_matrix_human)
 pear_matrix_human.columns = human_exprs.columns
+mu = pear_matrix_human.mean(1).mean()
+se = pear_matrix_human.mean(1).std()/np.sqrt(model_params['no_folds'])
+pm_symbol = "\u00B1"
+text = f"r = {mu:.4f} {pm_symbol} {se:.4f}"
 pear_matrix_human.to_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
 pear_matrix_human = pd.melt(pear_matrix_human)
 pear_matrix_human.columns = ['feature','pearson']
@@ -1932,6 +1946,9 @@ plt.gca().set(title='Per feature performance of human decoder in 10-fold cross-v
               ylabel='feature names')
 plt.xlim(0,1)
 ax.yaxis.set_tick_params(labelsize = 5)
+ax.text(0.1, 10,text, fontsize=20)
+rect = patches.Rectangle((0.08, 6.5), 0.38, 4, linewidth=2, edgecolor='black', facecolor='none')
+ax.add_patch(rect)
 plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 
 

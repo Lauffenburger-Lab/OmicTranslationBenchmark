@@ -81,6 +81,16 @@ z_primates_base_all = torch.zeros((10,Xp.shape[0],latent_dim)).to(device)
 z_primates_all = torch.zeros((10,Xp.shape[0],latent_dim)).to(device)
 for i in range(10):
 
+    xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i)
+    xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i)
+    xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i)
+    xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i)
+
+    ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+    ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
+    ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+    ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+
     # Network
     encoder_1 = torch.load('../results_intermediate_encoders/models/10fold/encoder_human_%s.pt' % i).to(device)
     encoder_2 = torch.load('../results_intermediate_encoders/models/10fold/encoder_primates_%s.pt' % i).to(device)
@@ -102,6 +112,58 @@ for i in range(10):
     z_primates_base_all[i, :, :] = z_latent_base_2.detach()
     z_human_all[i, :, :] = z_latent_1.detach()
     z_primates_all[i, :, :] = z_latent_2.detach()
+
+    ### Save embeddings for these split
+    z_latent_base_1 = encoder_1(xtrain_human.float().to(device))
+    z_latent_base_2 = encoder_2(xtrain_primates.float().to(device))
+    z_latent_1 = encoder_interm_1(z_latent_base_1)
+    z_latent_2 = encoder_interm_2(z_latent_base_2)
+    z_human_base = pd.DataFrame(z_latent_base_1.detach().cpu().numpy())
+    z_human_base.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_human_base['protected'] = ytrain_human[:,1].numpy()
+    z_human_base['vaccinated'] = ytrain_human[:, 0].numpy()
+    z_human_base.to_csv('../results_intermediate_encoders/embs/10fold/z_human_base_train_%s.csv'%i)
+    z_primates_base = pd.DataFrame(z_latent_base_2.detach().cpu().numpy())
+    z_primates_base.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_primates_base['protected'] = ytrain_primates[:, 1].numpy()
+    z_primates_base['vaccinated'] = ytrain_primates[:, 0].numpy()
+    z_primates_base.to_csv('../results_intermediate_encoders/embs/10fold/z_primates_base_train_%s.csv'%i)
+    z_human = pd.DataFrame(z_latent_1.detach().cpu().numpy())
+    z_human.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_human['protected'] = ytrain_human[:, 1].numpy()
+    z_human['vaccinated'] = ytrain_human[:, 0].numpy()
+    z_human.to_csv('../results_intermediate_encoders/embs/10fold/z_human_train_%s.csv'%i)
+    z_primates = pd.DataFrame(z_latent_2.detach().cpu().numpy())
+    z_primates.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_primates['protected'] = ytrain_primates[:, 1].numpy()
+    z_primates['vaccinated'] = ytrain_primates[:, 0].numpy()
+    z_primates.to_csv('../results_intermediate_encoders/embs/10fold/z_primates_train_%s.csv'%i)
+
+    z_latent_base_1 = encoder_1(xtest_human.float().to(device))
+    z_latent_base_2 = encoder_2(xtest_primates.float().to(device))
+    z_latent_1 = encoder_interm_1(z_latent_base_1)
+    z_latent_2 = encoder_interm_2(z_latent_base_2)
+    z_human_base = pd.DataFrame(z_latent_base_1.detach().cpu().numpy())
+    z_human_base.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_human_base['protected'] = ytest_human[:, 1].numpy()
+    z_human_base['vaccinated'] = ytest_human[:, 0].numpy()
+    z_human_base.to_csv('../results_intermediate_encoders/embs/10fold/z_human_base_val_%s.csv' % i)
+    z_primates_base = pd.DataFrame(z_latent_base_2.detach().cpu().numpy())
+    z_primates_base.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_primates_base['protected'] = ytest_primates[:, 1].numpy()
+    z_primates_base['vaccinated'] = ytest_primates[:, 0].numpy()
+    z_primates_base.to_csv('../results_intermediate_encoders/embs/10fold/z_primates_base_val_%s.csv' % i)
+    z_human = pd.DataFrame(z_latent_1.detach().cpu().numpy())
+    z_human.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_human['protected'] = ytest_human[:, 1].numpy()
+    z_human['vaccinated'] = ytest_human[:, 0].numpy()
+    z_human.to_csv('../results_intermediate_encoders/embs/10fold/z_human_val_%s.csv' % i)
+    z_primates = pd.DataFrame(z_latent_2.detach().cpu().numpy())
+    z_primates.columns = ['z' + str(i) for i in range(latent_dim)]
+    z_primates['protected'] = ytest_primates[:, 1].numpy()
+    z_primates['vaccinated'] = ytest_primates[:, 0].numpy()
+    z_primates.to_csv('../results_intermediate_encoders/embs/10fold/z_primates_val_%s.csv' % i)
+
     print2log('Finished using model %s'%i)
 
 ### Covert to dataframe and save
