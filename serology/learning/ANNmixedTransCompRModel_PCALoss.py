@@ -173,7 +173,7 @@ model_params = {'encoder_1_hiddens':[64],
                 'gamma_enc':0.8,
                 'batch_size_1':35,
                 'batch_size_2':15,
-                'epochs':1000, # it was 1000 for only Vsp
+                'epochs':2000, # it was 1000 for only Vsp
                 'prior_beta':1.0,
                 'no_folds':k_folds,
                 'v_reg':1e-04,
@@ -187,7 +187,7 @@ model_params = {'encoder_1_hiddens':[64],
                 'adv_penalnty':1.,
                 'reg_adv':100,
                 'reg_classifier': 100.,
-                'similarity_reg' : 10.,
+                'similarity_reg' : 40.,
                 'adversary_steps':4,
                 'autoencoder_wd': 0.,
                 'adversary_wd': 0.}
