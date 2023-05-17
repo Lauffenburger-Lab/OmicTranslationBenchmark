@@ -6,7 +6,7 @@ library(ggpubr)
 library(factoextra)
 #library(Rtsne)
 #library(plotly)
-#library(ggridges)
+library(ggridges)
 
 ### Load embeddings and data and combine them
 #Load data
@@ -54,13 +54,14 @@ for (i in 1:10){
   df_pca$vaccinated <- factor(df_pca$vaccinated)
   df_pca <- df_pca %>% mutate(species = z_latent_base$species)
   df_pca$species <- factor(df_pca$species)
-  pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=protected,shape=species,alpha=vaccinated))+
+  pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +
+    geom_point(aes(col=protected,shape=species,alpha=vaccinated),size=2)+
     scale_color_manual(values = c('#4878CF','#D65F5F'))+
     scale_alpha_manual(values = c(0.5,1))+
     ggtitle('') +
     xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
-    theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
-          legend.text=element_text(size=16))
+    theme(text = element_text(size=20),plot.title = element_text(hjust = 0.5),
+          legend.text=element_text(size=20))
   #print(pca_plot)
   plotList[[i]] <- pca_plot
   
@@ -77,11 +78,21 @@ for (i in 1:10){
 # Visualize all subplots
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),
-               font.label = list(size = 10, color = "black", face = "plain", family = 'Arial'),
+               font.label = list(size = 14, color = "black", face = "plain", family = 'Arial'),
                hjust=-0.15)
 annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
-                                   color = "black",face = 'plain',family = 'Arial', size = 14))
+                                   color = "black",face = 'plain',family = 'Arial', size = 20))
 
+
+ggsave(
+  'results_intermediate_encoders/pca_2d_global_train_2000ep.eps', 
+  device = cairo_ps,
+  scale = 1,
+  width = 18,
+  height = 18,
+  units = "in",
+  dpi = 600,
+)
 png(file="results_intermediate_encoders/pca_2d_global_train_2000ep.png",width=16,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),

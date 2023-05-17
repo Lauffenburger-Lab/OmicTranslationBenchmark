@@ -35,8 +35,6 @@ def seed_everything(seed=42):
     torch.backends.cudnn.benchmark = False
 
 ccle = pd.read_csv('../preprocessing/preprocessed_data/ccle_l1000genes_landmarks.csv',index_col = 0).transpose()
-cells = ['PC3','HA1E']
-ccle = ccle.loc[cells,:]
 
 gene_size = len(ccle.columns)
 samples = ccle.index.values
@@ -46,6 +44,8 @@ std_scaler = StandardScaler()
 ccle_scaled = std_scaler.fit_transform(ccle.to_numpy())
 ccle = pd.DataFrame(ccle_scaled, columns=genes)
 ccle.index = samples
+cells = ['A375','HT29']
+ccle = ccle.loc[cells,:]
 
 # model_params = {'encoder_1_hiddens':[4096,2048],
 #                 'encoder_2_hiddens':[4096,2048],
@@ -147,9 +147,9 @@ encoder_2 = SimpleEncoder(gene_size, model_params['encoder_2_hiddens'], model_pa
 
 Vsp = SpeciesCovariate(2, model_params['latent_dim'], dropRate=model_params['V_dropout']).to(device)
 
-encoder_1=torch.load('../results/trained_models/alldata_landmarks_cpa_encoder_pc3.pt')
-encoder_2=torch.load('../results/trained_models/alldata_landmarks_cpa_encoder_ha1e.pt')
-Vsp = torch.load('../results/trained_models/alldata_landmarks_cpa_Vsp_pc3_ha1e.pt')
+encoder_1=torch.load('../results/trained_models/alldata_landmarks_cpa_encoder_a375.pt')
+encoder_2=torch.load('../results/trained_models/alldata_landmarks_cpa_encoder_ht29.pt')
+Vsp = torch.load('../results/trained_models/alldata_landmarks_cpa_Vsp_a375_ht29.pt')
 
 encoder_1.eval()
 encoder_2.eval()
@@ -175,13 +175,13 @@ Embs_base_1 = pd.DataFrame(z_base_latent_1.detach().cpu().numpy())
 # Embs_base_1.index = np.concatenate((sampleInfo_paired['sig_id.x'].values,sampleInfo_1.sig_id.values))
 Embs_base_1.index = [cells[0]]
 Embs_base_1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_base_1.to_csv('../results/trained_embs_all/ControlsBasalCCLE_landmarks_CPA_pc3.csv')
+Embs_base_1.to_csv('../results/trained_embs_all/ControlsBasalCCLE_landmarks_CPA_a375.csv')
 
 Embs_base_2 = pd.DataFrame(z_base_latent_2.detach().cpu().numpy())
 # Embs_base_2.index = np.concatenate((sampleInfo_paired['sig_id.y'].values,sampleInfo_2.sig_id.values))
 Embs_base_2.index = [cells[1]]
 Embs_base_2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_base_2.to_csv('../results/trained_embs_all/ControlsBasalCCLE_landmarks_CPA_ha1e.csv')
+Embs_base_2.to_csv('../results/trained_embs_all/ControlsBasalCCLE_landmarks_CPA_ht29.csv')
 
 
 ### Save embeddings ###
@@ -189,10 +189,10 @@ Embs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
 # Embs_1.index = np.concatenate((sampleInfo_paired['sig_id.x'].values,sampleInfo_1.sig_id.values))
 Embs_1.index = [cells[0]]
 Embs_1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_1.to_csv('../results/trained_embs_all/ControlsCCLE_landmarks_CPA_pc3.csv')
+Embs_1.to_csv('../results/trained_embs_all/ControlsCCLE_landmarks_CPA_a375.csv')
 
 Embs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
 # Embs_2.index = np.concatenate((sampleInfo_paired['sig_id.y'].values,sampleInfo_2.sig_id.values))
 Embs_2.index = [cells[1]]
 Embs_2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-Embs_2.to_csv('../results/trained_embs_all/ControlsCCLE_landmarks_CPA_ha1e.csv')
+Embs_2.to_csv('../results/trained_embs_all/ControlsCCLE_landmarks_CPA_ht29.csv')
