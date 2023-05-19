@@ -34,33 +34,33 @@ results_acc$task <- factor(results_acc$task,
 
 # Plot results
 p1 <- ggboxplot(results_f1,x='task',y='F1',color = 'task') +
-  scale_y_continuous(breaks = seq(0,1,0.2),minor_breaks = waiver(),limits = c(0,1))+
+  scale_y_continuous(breaks = seq(0.5,1,0.1),minor_breaks = waiver(),limits = c(0.5,1))+
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "black",linewidth=1)+
   theme(panel.grid.major = element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         panel.grid.minor =  element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         axis.text.x = element_blank(),
-        text = element_text(family = 'Arial',size=20))
+        text = element_text(family = 'Arial',size=24))
 print(p1)
 
 p2 <- ggboxplot(results_acc,x='task',y='Accuracy',color = 'task') +
-  scale_y_continuous(breaks = seq(0,1,0.2),minor_breaks = waiver(),limits = c(0,1))+
+  scale_y_continuous(breaks = seq(0.5,1,0.1),minor_breaks = waiver(),limits = c(0.5,1))+
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "black",linewidth=1)+
   theme(panel.grid.major = element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         panel.grid.minor =  element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         axis.text.x = element_blank(),
-        text = element_text(family = 'Arial',size=20))
+        text = element_text(family = 'Arial',size=24))
 print(p2)
 
 # combine into one plot
-p <- ggarrange(plotlist=list(p1,p2),ncol=1,nrow=2,common.legend = TRUE,legend = 'bottom')
+p <- ggarrange(plotlist=list(p1,p2),ncol=2,nrow=1,common.legend = TRUE,legend = 'bottom')
 annotate_figure(p, top = text_grob("Classification performance", 
-                                   color = "black",face = 'plain', size = 20))
+                                   color = "black",face = 'plain', size = 24))
 ggsave(
   'results_intermediate_encoders/classification_performance.eps', 
   device = cairo_ps,
   scale = 1,
   width = 18,
-  height = 18,
+  height = 12,
   units = "in",
   dpi = 600,
 )

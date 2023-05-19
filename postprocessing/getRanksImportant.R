@@ -4,8 +4,9 @@ library(Rtsne)
 library(factoextra)
 library(ggplot2)
 library(ggpubr)
+library(ggpattern)
 library(umap)
-setEPS(paper='a4',pointsize=3)
+# setEPS(paper='a3',pointsize=3)
 
 geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
 lands <- geneInfo %>% filter(feature_space=='landmark')
@@ -35,23 +36,60 @@ pr1 <- 20
 pr_sum_lands <- round(length(which(diag(df_ranked_lands*100)>=pr1))/nrow(df_lands),4)*100
 pr2_lands <- diag(df_ranked_lands*100)[which(cumsum(diag(df_ranked_lands*100))>=0.5)[1]]
 # png('../figures/ranks_of_self_translate_pc3_ha1e_allgenes.png',width=12,height=8,units = "in",res=300)
-postscript('../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',width=12,height=6,paper='letter')
-hist(diag(df_ranked*100),breaks = 40,
-     main= 'Distribution of self-gene ranks in ~10k genes',xlab='Percentage rank (%)',ylab='Counts',
-     cex.axis=2,cex.lab=2,cex.main = 2)
-abline(v=pr1,col="red",lwd=2,lty='dashed')
-text(pr1+20, 1000, paste0('~',pr_sum,'% of genes'),cex = 2)
-dev.off()
+# postscript('../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',width=16,height=6,paper='letter')
+# hist(diag(df_ranked*100),breaks = 40,
+#      main= 'Distribution of self-gene ranks in ~10k genes',xlab='Percentage rank (%)',ylab='Counts',
+#      cex.axis=3,cex.lab=3,cex.main = 3)
+# abline(v=pr1,col="red",lwd=2,lty='dashed')
+# text(pr1+20, 1000, paste0('~',pr_sum,'% of genes'),cex = 3)
+# dev.off()
+p <- ggplot(data.frame(ranks=diag(df_ranked*100)),aes(x=ranks)) + 
+  geom_histogram(fill='#d3d3d3',color='black',bins = 40,lwd=1)+
+  xlab('Percentage rank (%)') + ylab('Counts') + 
+  ggtitle('Distribution of self-gene ranks in ~10k genes')+
+  geom_vline(xintercept =pr1,color='red',linewidth = 1, lty = 'dashed')+
+  annotate('text',x =pr1+30, y=1000,label= paste0('~',pr_sum,'% of genes'),size=15)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 6,
+  units = "in",
+  dpi = 600,
+)
 #png('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.png',width=12,height=8,units = "in",res=300)
-postscript('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',width=12,height=6,paper='letter')
-hist(diag(df_ranked_lands*100),breaks = 40,
-     main= 'Subset distribution of self-gene ranks in landmarks',xlab='Percentage rank (%)',ylab='Counts',
-     cex.axis=2,cex.lab=2,cex.main = 2)
-abline(v=pr1,col="red",lwd=2,lty='dashed')
-text(pr1+20, 130, paste0('~',pr_sum_lands,'% of genes'),cex = 2)
-dev.off()
+# postscript('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',width=13,height=6,paper='letter')
+# hist(diag(df_ranked_lands*100),breaks = 40,
+#      main= 'Subset distribution of self-gene ranks in landmarks',xlab='Percentage rank (%)',ylab='Counts',
+#      cex.axis=3,cex.lab=3,cex.main = 3)
+# abline(v=pr1,col="red",lwd=2,lty='dashed')
+# text(pr1+20, 130, paste0('~',pr_sum_lands,'% of genes'),cex = 3)
+# dev.off()
 #plot(ecdf(diag(df_ranked*100)),main='Cumulative probability distribution',xlab='Percentage rank (%)')
-
+p <- ggplot(data.frame(ranks=diag(df_ranked_lands*100)),aes(x=ranks)) + 
+  geom_histogram(fill='#d3d3d3',color='black',bins = 40,lwd=1)+
+  xlab('Percentage rank (%)') + ylab('Counts') + 
+  ggtitle('Subset distribution of self-gene ranks in landmarks')+
+  geom_vline(xintercept =pr1,color='red',linewidth = 1, lty = 'dashed')+
+  annotate('text',x =pr1+30, y=130,label= paste0('~',pr_sum_lands,'% of genes'),size=15)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+print(p)
+ggsave(
+  '../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',
+  plot = p,
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 6,
+  units = "in",
+  dpi = 600,
+)
 #df_aggragated <- apply(df_ranked,1,median)
 #top1000 <- names(df_aggragated[order(df_aggragated)])[1:1000]
 
@@ -117,7 +155,7 @@ ggsave(
   device = cairo_ps,
   scale = 1,
   width = 12,
-  height = 9,
+  height = 6,
   units = "in",
   dpi = 600,
 )
@@ -508,7 +546,7 @@ if (max(df_class_1$score[df_class_1$cluster==cl1])<=min(df_class_1$score[df_clas
 } else{
   th <- mean(min(df_class_1$score[df_class_1$cluster==cl1]),max(df_class_1$score[df_class_1$cluster==cl2]))
 }
-important_1 <- df_class_1 %>% filter(score>=th) %>% select(latent_variable)
+important_1 <- df_class_1 %>% filter(score>=th) %>% dplyr::select(latent_variable)
 important_1 <- important_1$latent_variable
 
 kmeans_class2 <-  kmeans(as.matrix(importance_class_2),centers = 3,iter.max = 100, nstart = 50)
@@ -523,7 +561,7 @@ if (max(df_class_2$score[df_class_2$cluster==cl1])<=min(df_class_2$score[df_clas
 } else{
   th <- mean(min(df_class_2$score[df_class_2$cluster==cl1]),max(df_class_2$score[df_class_2$cluster==cl2]))
 }
-important_2 <- df_class_2 %>% filter(score<=th) %>% select(latent_variable)
+important_2 <- df_class_2 %>% filter(score<=th) %>% dplyr::select(latent_variable)
 important_2 <- important_2$latent_variable
   
 # top10_1 <- order(-abs(importance_class_1))[1:10]
@@ -591,11 +629,11 @@ ggsave(
 ####
 
 imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv') %>%
-  select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
+  dplyr::select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
 imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
 imp_enc_1 <- imp_enc_1 %>% mutate(gene_score = z1009*importance_class_1['z1009'] + z263*importance_class_1['z263'])
 imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv')%>%
-  select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
+  dplyr::select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
 imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
 imp_enc_2 <- imp_enc_2 %>% mutate(gene_score = z1009*importance_class_1['z1009'] + z263*importance_class_1['z263'])
 df_corr_encode <- data.frame(cell1_corr=imp_enc_1$mean_imp,cell2_corr=imp_enc_2$mean_imp)
@@ -670,7 +708,124 @@ ggsave(
   dpi = 600,
 )
 
-### Build classifier for fewer and fewer genes
+### Perform GSEA in using the scores of latent z1-z3 (or all latents and plot average score)--------------
+library(fgsea)
+library(EGSEAdata)
+# library(topGO)
+# library(org.Hs.eg.db)
+# library(GO.db)
+# GOs_description <- data.frame(GOTERM)
+# GOs_description <- GOs_description %>% filter(Ontology=="BP") %>% dplyr::select(go_id,Term) %>% unique()
+egsea.data(species = "human",returnInfo = TRUE)
+kegg_list <-  kegg.pathways$human$kg.sets
+# genes <- factor(x = rep(1,nrow(imp_enc_1)),levels = c(0,1))
+# names(genes) <- rownames(imp_enc_1)
+# GOobject <- new("topGOdata",ontology = "BP", allGenes = genes, annot=annFUN.org, mapping="org.Hs.eg.db", 
+#                 ID = "entrez", nodeSize = 10)
+# term.genes <- genesInTerm(GOobject, GOobject@graph@nodes)
+
+print("running fgsea for enrichment space for cell 1")
+n_permutations <- 20000
+genesets_list <-apply(imp_enc_1 %>% dplyr::select(-gene_score,-mean_imp),
+                      MARGIN = 2,fgsea,
+                      pathways = kegg_list,
+                      minSize=5,
+                      maxSize=500,
+                      nperm = n_permutations)
+print("fgsea finished, preparing outputs for cell 1")
+# Prepare output
+NES_cell1 <- genesets_list[[1]]$NES
+padj_cell1 <- genesets_list[[1]]$padj
+pval_cell1 <- genesets_list[[1]]$pval
+# ###only for when I use only mean score
+# NES_cell1 <- as.matrix(NES_cell1)
+# padj_cell1 <- as.matrix(padj_cell1)
+# pval_cell1 <- as.matrix(pval_cell1)
+# ###
+for (i in 2:length(genesets_list)) {
+  NES_cell1 <- cbind(NES_cell1,genesets_list[[i]]$NES)
+  padj_cell1 <- cbind(padj_cell1,genesets_list[[i]]$padj)
+  pval_cell1 <- cbind(pval_cell1,genesets_list[[i]]$pval)
+}
+colnames(NES_cell1) <- names(genesets_list)
+rownames(NES_cell1) <- genesets_list[[1]]$pathway
+colnames(pval_cell1) <- names(genesets_list)
+rownames(pval_cell1) <- genesets_list[[1]]$pathway
+colnames(padj_cell1) <- names(genesets_list)
+rownames(padj_cell1) <- genesets_list[[1]]$pathway
+
+print("running fgsea for enrichment space for cell 2")
+genesets_list <-apply(imp_enc_2 %>% dplyr::select(-gene_score,-mean_imp),
+                      MARGIN = 2,fgsea,
+                      pathways = kegg_list,
+                      minSize=5,
+                      maxSize=500,
+                      nperm = n_permutations)
+print("fgsea finished, preparing outputs for cell 2")
+# Prepare output
+NES_cell2 <- genesets_list[[1]]$NES
+padj_cell2 <- genesets_list[[1]]$padj
+pval_cell2 <- genesets_list[[1]]$pval
+# ###only for when I use only mean score
+# NES_cell2 <- as.matrix(NES_cell2)
+# padj_cell2 <- as.matrix(padj_cell2)
+# pval_cell2 <- as.matrix(pval_cell2)
+# ###
+for (i in 2:length(genesets_list)) {
+  NES_cell2 <- cbind(NES_cell2,genesets_list[[i]]$NES)
+  padj_cell2 <- cbind(padj_cell2,genesets_list[[i]]$padj)
+  pval_cell2 <- cbind(pval_cell2,genesets_list[[i]]$pval)
+}
+colnames(NES_cell2) <- names(genesets_list)
+rownames(NES_cell2) <- genesets_list[[1]]$pathway
+colnames(pval_cell2) <- names(genesets_list)
+rownames(pval_cell2) <- genesets_list[[1]]$pathway
+colnames(padj_cell2) <- names(genesets_list)
+rownames(padj_cell2) <- genesets_list[[1]]$pathway
+
+### Process and visualize outcome
+# gather cell-line 1 results
+padj_cell1 <- as.data.frame(padj_cell1) %>% rownames_to_column('kegg_path') %>% 
+  gather('latent_var','p.adj',-kegg_path)
+NES_cell1 <- as.data.frame(NES_cell1) %>% rownames_to_column('kegg_path') %>% 
+  gather('latent_var','NES',-kegg_path)
+df_kegg_cell_1 <- left_join(NES_cell1,padj_cell1)
+colnames(df_kegg_cell_1)[3:4] <- c('NES.1','p.adj.1')
+# gather cell-line 2 results
+padj_cell2 <- as.data.frame(padj_cell2) %>% rownames_to_column('kegg_path') %>% 
+  gather('latent_var','p.adj',-kegg_path)
+NES_cell2 <- as.data.frame(NES_cell2) %>% rownames_to_column('kegg_path') %>% 
+  gather('latent_var','NES',-kegg_path)
+df_kegg_cell_2 <- left_join(NES_cell2,padj_cell2)
+colnames(df_kegg_cell_2)[3:4] <- c('NES.2','p.adj.2')
+# combine
+df_kegg <- left_join(df_kegg_cell_1,df_kegg_cell_2)
+df_kegg <- df_kegg %>% mutate(significant = ifelse(p.adj.1<0.05,ifelse(p.adj.2<0.05,'both','PC3'),
+                                                   ifelse(p.adj.2<0.05,'HA1E','not-significant')))
+df_kegg <- rbind(df_kegg %>% dplyr::select(kegg_path,latent_var,c('NES'='NES.1'),significant) %>% unique() %>% mutate(cell='PC3'),
+                 df_kegg %>% dplyr::select(kegg_path,latent_var,c('NES'='NES.2'),significant) %>% unique() %>% mutate(cell='HA1E'))
+df_kegg <- df_kegg %>% unique()
+saveRDS(df_kegg,'../results/Importance_results/kegg_enrichment_imp_genes.rds')
+df_kegg <- df_kegg %>% filter(significant!='not-significant')
+# df_kegg <- left_join(df_kegg,GOs_description,by=c("kegg_path"="go_id"))
+# p <- ggplot(df_kegg,aes(x=NES,y=kegg_path,fill=cell,pattern=significant)) + ylab('KEGG Pathways')+xlab('Normalized Enrichment Score')+
+#   geom_bar_pattern(stat='identity',position = "dodge")+
+#   theme_classic()+
+#   theme(text = element_text(size=25),
+#         plot.title = element_text(hjust = 0.5),
+#         legend.position="top")+
+#   facet_wrap(~latent_var)
+
+p <- ggplot(df_kegg,aes(x=latent_var,y=kegg_path,fill=NES)) + ylab('KEGG Pathways')+xlab('Latent variable')+
+  geom_tile()+
+  scale_fill_gradient2()+
+  theme_classic()+
+  theme(text = element_text(size=25),
+        plot.title = element_text(hjust = 0.5),
+        legend.position="top")+
+  facet_wrap(~cell)
+print(p)
+### Build classifier for fewer and fewer genes-------------------------------
 gex <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header = T) %>% column_to_rownames('V1')
 gex <-  gex[rownames(all_embs),]
 gex <- gex %>% mutate(cell=all_embs$cell)
@@ -693,12 +848,12 @@ genes_to_keep <- c(1,3,5,10,15,20,25,30,35,40,45,50,70,100,150,200)
 F1 <- NULL
 for (i in 1:length(genes_to_keep)){
   df <- train_data %>% 
-    select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]],'cell'))))
+    dplyr::select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]],'cell'))))
   # Define training control method
   ctrl <- trainControl(method = "cv", number = 10)
   mdl <- train(cell ~ ., data = df, method = "glm", trControl = ctrl,trace=F,family='binomial')
   y <- predict(mdl,newdata =test_data %>%
-                 select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]])))))
+                 dplyr::select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]])))))
   conf <- confusionMatrix(test_data$cell,y)
   F1[i] <- conf$byClass['F1']
   message(paste0('Done top ',genes_to_keep[i],' genes'))
@@ -723,12 +878,43 @@ ggsave(
   units = "in",
   dpi = 600,
 )
+saveRDS(gene_results,'../results/Importance_results/glm_genenumber_vs_f1.rds')
+### Seems like 25 genes from each cell-line are enough
+### Get these and put them to gProfiler
+saveRDS(imp_enc_1,'../results/Importance_results/imp_enc_1.rds')
+saveRDS(imp_enc_2,'../results/Importance_results/imp_enc_2.rds')
+genes_1 <- data.frame(gene_id = ordered_1[1:25])
+genes_1 <- left_join(genes_1,geneInfo %>% dplyr::select(gene_id,gene_symbol))
+fileConn<-file("output1.txt")
+writeLines(genes_1$gene_symbol, fileConn)
+close(fileConn)
+saveRDS(genes_1,'../results/Importance_results/top25_genes_pc3.rds')
+genes_2 <- data.frame(gene_id = ordered_2[1:25])
+genes_2 <- left_join(genes_2,geneInfo %>% dplyr::select(gene_id,gene_symbol))
+fileConn<-file("output2.txt")
+writeLines(genes_2$gene_symbol, fileConn)
+close(fileConn)
+saveRDS(genes_2,'../results/Importance_results/top25_genes_ha1e.rds')
+
+# cmap_filtered <- cmap[,unique(c(genes_2$gene_id,genes_1$gene_id))]
+# pca_filt <- prcomp(cmap_filtered,scale = F)
+# fviz_screeplot(pca_filt)
+# df_pca<- pca_filt$x[,1:2]
+# df_pca <- as.data.frame(df_pca)
+# df_pca  <- df_pca %>% mutate(cell=rownames(cmap_filtered))
+# df_pca <- df_pca %>% mutate(cell = ifelse(grepl('HA1E',cell),'HA1E','PC3'))
+# pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=cell))+
+#   ggtitle('PCA plot of transcriptomic data for 2 cell-lines') + xlab('PC1')+ ylab('PC2')+
+#   theme(text = element_text(size=13))
+# print(pca_plot)
 
 ### Find relationship between the 2 latent variables and the classification out-come
 #var_1 <- c('z1009','z263')
 #var_2 <- c('z1009','z263')
-var_1 <- top10_1[c(1,2,4,5,6,9,11)]
-var_2 <- top10_1[c(1,2,4,5,6,9,11)]
+# var_1 <- top10_1[c(1,2,4,5,6,9,11)]
+# var_2 <- top10_1[c(1,2,4,5,6,9,11)]
+var_1 <- top10_1
+var_2 <- top10_1
 ctrl <- trainControl(method="CV", number=10)
 train_data <- sample_n(all_embs[,which(colnames(all_embs) %in% c(var_1,'cell'))],1742)
 train_data$cell <- factor(train_data$cell,levels = c('HA1E', 'PC3'))

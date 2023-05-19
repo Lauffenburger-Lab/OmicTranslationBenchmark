@@ -4,8 +4,6 @@ library(ggplot2)
 library(ggsignif)
 library(ggpubr)
 library(factoextra)
-#library(Rtsne)
-#library(plotly)
 library(ggridges)
 
 ### Load embeddings and data and combine them
@@ -16,6 +14,8 @@ primates_expr <- data.table::fread('data/primates_exprs.csv') %>% column_to_rown
 primates_nhp <- data.table::fread('data/primates_metadata.csv') %>% column_to_rownames('V1')
 
 plotList <- NULL
+min_effect <- 2
+max_effect <- 0
 for (i in 1:10){
   #Load embeddings
   z_human <- data.table::fread(paste0('results_intermediate_encoders/embs/10fold/z_human_train_',i-1,'.csv')) %>% column_to_rownames('V1')
@@ -39,8 +39,8 @@ for (i in 1:10){
   z_latent <- rbind(z_human,z_primates)
   z_latent_base <- rbind(z_human_base,z_primates_base)
   
-  data.table::fwrite(z_latent_base,paste0('results_intermediate_encoders/embs/combined_10fold/latent_embeddings_global_',i,'.csv'))
-  data.table::fwrite(z_latent,paste0('results_intermediate_encoders/embs/combined_10fold/latent_embeddings_',i,'.csv'))
+  # data.table::fwrite(z_latent_base,paste0('results_intermediate_encoders/embs/combined_10fold/latent_embeddings_global_',i,'.csv'))
+  # data.table::fwrite(z_latent,paste0('results_intermediate_encoders/embs/combined_10fold/latent_embeddings_',i,'.csv'))
   
   ### Dimensionality reduction and visualization
   pca <- prcomp(z_latent_base[,1:latent_dim],center = T)
@@ -55,13 +55,14 @@ for (i in 1:10){
   df_pca <- df_pca %>% mutate(species = z_latent_base$species)
   df_pca$species <- factor(df_pca$species)
   pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +
-    geom_point(aes(col=protected,shape=species,alpha=vaccinated),size=2)+
+    geom_point(aes(color=protected,shape=species,size=vaccinated))+
     scale_color_manual(values = c('#4878CF','#D65F5F'))+
-    scale_alpha_manual(values = c(0.5,1))+
+    #scale_size_manual(values = c(1.5,3))+
+    #scale_alpha_manual(values = c(0.5,1))+
     ggtitle('') +
     xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
-    theme(text = element_text(size=20),plot.title = element_text(hjust = 0.5),
-          legend.text=element_text(size=20))
+    theme(text = element_text(size=24),plot.title = element_text(hjust = 0.5),
+          legend.text=element_text(size=24))
   #print(pca_plot)
   plotList[[i]] <- pca_plot
   
@@ -73,33 +74,57 @@ for (i in 1:10){
     xlab('value') + ylab('latent variable')+ theme(base_family = "Arial") +
     theme_pubr(base_family = "Arial",base_size = 14) +
     theme(plot.title = element_text(hjust = 0.5))
+  # p_base <- ggplot(z_latent_base,aes(x=species)) + geom_histogram(stat="count")
   print(p_base)
+  # print(sum(z_latent_base$species!='human')/sum(z_latent_base$species=='human'))
+  
+  mat <- as.matrix(df_pca[1:3])
+  sim_matrix <- tcrossprod(mat) / (sqrt(rowSums(mat^2)) %*% t(sqrt(rowSums(mat^2))))
+  dist <- 1 - sim_matrix
+  dist <- dist[which(df_pca$protected==1),which(df_pca$protected!=1)]
+  mu_dist_protect <- mean(dist)
+  dist <- 1 - sim_matrix
+  dist <- dist[which(df_pca$vaccinated==1),which(df_pca$vaccinated!=1)]
+  mu_dist_vacc <- mean(dist)
+  dist <- 1 - sim_matrix
+  dist <- dist[which(df_pca$species=='human'),which(df_pca$species!='human')]
+  mu_dist_spec <- mean(dist)
+  effect <- (mu_dist_protect+mu_dist_vacc+mu_dist_spec)/3
+  if (effect<=min_effect){
+    min_effect <- effect
+    min_effect_id <- i
+  }
+  if (effect>=max_effect){
+    max_effect <- effect
+    max_effect_id <- i
+  }
 }
+list_visualize <- plotList[c(min_effect_id,max_effect_id)]
 # Visualize all subplots
-p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
+p <- ggarrange(plotlist=list_visualize,ncol=1,nrow=2,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),
-               font.label = list(size = 14, color = "black", face = "plain", family = 'Arial'),
+               font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
                hjust=-0.15)
 annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
-                                   color = "black",face = 'plain',family = 'Arial', size = 20))
+                                   color = "black",face = 'plain',family = 'Arial', size = 22))
 
 
 ggsave(
-  'results_intermediate_encoders/pca_2d_global_train_2000ep.eps', 
+  'results_intermediate_encoders/pca_2d_global_train_2000ep_subset.eps', 
   device = cairo_ps,
   scale = 1,
   width = 18,
-  height = 18,
+  height = 12,
   units = "in",
   dpi = 600,
 )
-png(file="results_intermediate_encoders/pca_2d_global_train_2000ep.png",width=16,height=16,units = "in",res=600)
+png(file="results_intermediate_encoders/pca_2d_global_train_2000ep_subset.png",width=18,height=12,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),
-               font.label = list(size = 10, color = "black", face = "plain", family = 'Arial'),
+               font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
                hjust=-0.15)
 annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
-                                   color = "black",face = 'plain',family = 'Arial', size = 14))
+                                   color = "black",face = 'plain',family = 'Arial', size = 22))
 dev.off()
 
 ### Reapeat for the average of all models-------------
