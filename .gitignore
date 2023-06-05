@@ -1,3 +1,5 @@
+ARCHS
+ARCHS/*
 ARCHS/data/*
 ARCHS/ARCHS.Rproj
 ARCHS4/human_cell_lives_archs4_gene_human_v212.tsv
