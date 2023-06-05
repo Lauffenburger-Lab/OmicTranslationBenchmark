@@ -220,17 +220,19 @@ for (i in 0:9){
   
   violin_separation <- ggplot(all_dists, aes(x=set, y=value, fill = is_same)) + 
     geom_violin(position = position_dodge(width = 1),width = 1)+geom_boxplot(position = position_dodge(width = 1),width = 0.05,
-                                                                             outlier.shape = NA)+
-    scale_fill_discrete(name="Embedding distance distribution in the composed latent space",
+                                                                             size=1,outlier.shape = NA)+
+    scale_fill_discrete(name="Latent embeddings` distance distributions",
                         labels=c("Random Signatures","Same cell-line"))+
     ylim(0,2)+
     xlab("")+ylab("Cosine Distance")+ 
-    theme(axis.ticks.x=element_blank(),
-          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(),text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
-    theme_minimal(base_family = "Arial",base_size = 20) +
+    theme_minimal(base_family = "Arial",base_size = 30) +
+    theme(text = element_text(family = "Arial",size = 30),
+          axis.ticks.x=element_blank(),
+          axis.text = element_text(family = "Arial",face = 'bold'),
+          axis.text.x =element_text(family = "Arial",face = 'bold',size=28),
+          legend.position = "bottom")+
     geom_text(aes(x=set,y=max(all_dists  %>% select(value))+0.1, label=effsize),
-              data=cohen_df ,inherit.aes = FALSE,size=5)+
+              data=cohen_df ,inherit.aes = FALSE,size=5,fontface='bold')+
     facet_wrap(~ space)
   #stat_compare_means(aes(group=is_same), method = "t.test")
   violin_separation <- violin_separation + theme(legend.position = "bottom")
@@ -243,12 +245,12 @@ for (i in 0:9){
 
 png(file="../figures/MI_results/cpa_compare_basal_and_composes_space.png",width=16,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
-               labels = paste0(rep('Split ',2),seq(1,10)),
-               font.label = list(size = 10, color = "black", face = "plain", family = NULL),
+               labels = paste0(rep('Split ',2),seq(1,18)),
+               font.label = list(size = 18, color = "black", face = "plain", family = NULL),
                hjust=-0.15)
 
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
-                                   color = "black",face = 'plain', size = 14))
+                                   color = "black",face = 'plain', size = 26))
 dev.off()
 
 colnames(df_effsize)[5] <- 'value'
@@ -256,18 +258,19 @@ df_effsize$space <- factor(df_effsize$space,levels = c("latent","basal latent"))
 p  <- ggplot(df_effsize ,aes(x=space,y=value,fill=space)) + 
   geom_boxplot() +
   ylab('Cohen`s d')+
-  stat_compare_means() + #,label = "p.signif"
+  stat_compare_means(size=10) + #,label = "p.signif"
   theme(panel.background = element_rect(fill = "white",
                                         colour = "white",
-                                        size = 0.5, linetype = "solid"),
-        panel.grid.major = element_line(size = 1, linetype = 'solid',
+                                        size = 1, linetype = "solid"),
+        panel.grid.major = element_line(size = 1.5, linetype = 'solid',
                                         colour = "#EEEDEF"), 
-        panel.grid.minor = element_line(size = 1, linetype = 'solid',
+        panel.grid.minor = element_line(size = 1.5, linetype = 'solid',
                                         colour = "#EEEDEF"),
+        axis.text = element_text(face = 'bold'),
         axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
-        text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
+        text = element_text(family = "Arial",size = 42),legend.position = "bottom")+
   facet_wrap(~ set)
 print(p)
 ggsave(
@@ -302,11 +305,11 @@ ind_min <- which.min(diff)
 list_visualize <- plotList[c(ind_min,ind_max)]
 p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),c(ind_min,ind_max)),
-               font.label = list(size = 20, color = "black", face = "plain", family = 'Arial'),
+               font.label = list(size = 32, color = "black", face = "plain", family = 'Arial'),
                hjust=-0.15)
 
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
-                                   color = "black",face = 'plain', size = 20))
+                                   color = "black",face = 'plain', size = 38))
 ggsave(
   '../figures/MI_results/cpa_compare_distance_basal_and_composed_space.eps', 
   device = cairo_ps,
@@ -395,17 +398,21 @@ for (i in 0:9){
   
   violin_separation <- ggplot(all_dists, aes(x=set, y=value, fill = is_same)) + 
     geom_violin(position = position_dodge(width = 1),width = 1)+geom_boxplot(position = position_dodge(width = 1),width = 0.05,
-                                                                             outlier.shape = NA)+
-    scale_fill_discrete(name="Embedding distance distribution in the composed latent space",
-                        labels=c("Random Signatures","Same cell-line"))+
+                                                                             size=1,outlier.shape = NA)+
+    scale_fill_discrete(name="Latent embeddings` distance distributions",
+                        labels=c("Random Signatures","Same cell-line"))+ 
+    scale_x_discrete(expand = c(0.3, 0))+
     ylim(0,2)+
     xlab("")+ylab("Cosine Distance")+ 
-    theme(axis.ticks.x=element_blank(),
-          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(),text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
-    theme_minimal(base_family = "Arial",base_size = 20) +
+    theme_minimal(base_family = "Arial",base_size = 37) +
+    theme(text = element_text(family = "Arial",size = 37),
+          axis.ticks.x=element_blank(),
+          axis.text = element_text(family = "Arial",face = 'bold'),
+          legend.spacing.x = unit(5,'mm'),
+          legend.title = element_text(family = "Arial",size = 27) ,
+          legend.position = "bottom")+
     geom_text(aes(x=set,y=max(all_dists  %>% select(value))+0.1, label=effsize),
-              data=cohen_df ,inherit.aes = FALSE,size=8)
+              data=cohen_df ,inherit.aes = FALSE,size=9.5,fontface='bold')
   violin_separation <- violin_separation + theme(legend.position = "bottom")
   #print(violin_separation)
   plotList[[i+1]] <- violin_separation
@@ -468,11 +475,11 @@ ind_min <- which.min(diff)
 list_visualize <- plotList[c(ind_min,ind_max)]
 p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),c(ind_min,ind_max)),
-               font.label = list(size = 20, color = "black", face = "plain", family = 'Arial'),
-               hjust=-0.15)
+               font.label = list(size = 30, color = "black", face = "plain", family = 'Arial'),
+               hjust=-0.15,vjust = 1.1)
 
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
-                                   color = "black",face = 'plain', size = 20))
+                                   color = "black",face = 'plain', size = 32))
 ggsave(
   '../figures/MI_results/landmarks_similarity_trained_autoencoders_cell_separation_extremes.eps', 
   device = cairo_ps,
@@ -558,17 +565,21 @@ for (i in 0:9){
   
   violin_separation <- ggplot(all_dists, aes(x=set, y=value, fill = is_same)) + 
     geom_violin(position = position_dodge(width = 1),width = 1)+geom_boxplot(position = position_dodge(width = 1),width = 0.05,
-                                                                             outlier.shape = NA)+
-    scale_fill_discrete(name="Embedding distance distribution in the composed latent space",
-                        labels=c("Random Signatures","Same condition in different cell-line"))+
+                                                                             size=1,outlier.shape = NA)+
+    scale_fill_discrete(name="Latent embeddings` distance distributions",
+                        labels=c("Random Signatures","Same condition"))+
+    scale_x_discrete(expand = c(0.3, 0))+
     ylim(0,2)+
     xlab("")+ylab("Cosine Distance")+ 
-    theme(axis.ticks.x=element_blank(),
-          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(),text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
-    theme_minimal(base_family = "Arial",base_size = 20) +
+    theme_minimal(base_family = "Arial",base_size = 37) +
+    theme(text = element_text(family = "Arial",size = 37),
+          axis.ticks.x=element_blank(),
+          axis.text = element_text(family = "Arial",face = 'bold'),
+          legend.spacing.x = unit(5,'mm'),
+          legend.title = element_text(family = "Arial",size = 27) ,
+          legend.position = "bottom")+
     geom_text(aes(x=set,y=max(all_dists  %>% select(value))+0.1, label=effsize),
-              data=cohen_df ,inherit.aes = FALSE,size=8)
+              data=cohen_df ,inherit.aes = FALSE,size=9.5,fontface='bold')
   violin_separation <- violin_separation + theme(legend.position = "bottom")
   #print(violin_separation)
   plotList[[i+1]] <- violin_separation
@@ -599,11 +610,11 @@ ind_min <- which.min(diff)
 list_visualize <- plotList[c(ind_min,ind_max)]
 p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),c(ind_min,ind_max)),
-               font.label = list(size = 20, color = "black", face = "plain", family = 'Arial'),
-               hjust=-0.15)
+               font.label = list(size = 30, color = "black", face = "plain", family = 'Arial'),
+               hjust=-0.15,vjust = 1.1)
 
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
-                                   color = "black",face = 'plain', size = 20))
+                                   color = "black",face = 'plain', size = 32))
 ggsave(
   '../figures/MI_results/landmarks_similarity_trained_autoencoders_samecondition_separation_extremes.eps', 
   device = cairo_ps,
@@ -693,17 +704,21 @@ for (i in 0:9){
     
     violin_separation <- ggplot(all_dists, aes(x=set, y=value, fill = is_same)) + 
       geom_violin(position = position_dodge(width = 1),width = 1)+geom_boxplot(position = position_dodge(width = 1),width = 0.05,
-                                                                               outlier.shape = NA)+
-      scale_fill_discrete(name="Embedding distance distribution in the composed latent space",
-                          labels=c("Random Signatures","Duplicate Signatures"))+
+                                                                               size=1,outlier.shape = NA)+
+      scale_fill_discrete(name="Latent embeddings` distance distributions",
+                          labels=c("Random Signatures","Duplicates"))+
+      scale_x_discrete(expand = c(0.3, 0))+
       ylim(0,2)+
       xlab("")+ylab("Cosine Distance")+ 
-      theme(axis.ticks.x=element_blank(),
-            panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(),text = element_text(family = "Arial",size = 20),legend.position = "bottom")+
-      theme_minimal(base_family = "Arial",base_size = 20) +
+      theme_minimal(base_family = "Arial",base_size = 37) +
+      theme(text = element_text(family = "Arial",size = 37),
+            axis.ticks.x=element_blank(),
+            axis.text = element_text(family = "Arial",face = 'bold'),
+            legend.spacing.x = unit(5,'mm'),
+            legend.title = element_text(family = "Arial",size = 27) ,
+            legend.position = "bottom")+
       geom_text(aes(x=set,y=max(all_dists  %>% select(value))+0.1, label=effsize),
-                data=cohen_df ,inherit.aes = FALSE,size = 8)
+                data=cohen_df ,inherit.aes = FALSE,size=9.5,fontface='bold')
     violin_separation <- violin_separation + theme(legend.position = "bottom")
     #print(violin_separation)
     plotList[[i+1]] <- violin_separation
@@ -737,11 +752,11 @@ ind_min <- which.min(diff)
 list_visualize <- plotList[c(ind_min,ind_max)]
 p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),c(ind_min,ind_max)),
-               font.label = list(size = 20, color = "black", face = "plain", family = 'Arial'),
-               hjust=-0.15)
+               font.label = list(size = 30, color = "black", face = "plain", family = 'Arial'),
+               hjust=-0.15,vjust = 1.1)
 
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
-                                   color = "black",face = 'plain', size = 20))
+                                   color = "black",face = 'plain', size = 32))
 ggsave(
   '../figures/MI_results/landmarks_similarity_trained_autoencoders_duplicates_separation_extremes.eps', 
   device = cairo_ps,

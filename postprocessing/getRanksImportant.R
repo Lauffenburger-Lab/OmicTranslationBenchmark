@@ -49,8 +49,9 @@ p <- ggplot(data.frame(ranks=diag(df_ranked*100)),aes(x=ranks)) +
   ggtitle('Distribution of self-gene ranks in ~10k genes')+
   geom_vline(xintercept =pr1,color='red',linewidth = 1, lty = 'dashed')+
   annotate('text',x =pr1+30, y=1000,label= paste0('~',pr_sum,'% of genes'),size=15)+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=20,hjust = 0.5))
+  theme_minimal(base_family = "Arial",base_size = 36)+
+  theme(plot.title = element_text(size=33,hjust = 0.5),
+        axis.text = element_text(family = "Arial",size = 38))
 print(p)
 ggsave(
   '../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',
@@ -77,8 +78,9 @@ p <- ggplot(data.frame(ranks=diag(df_ranked_lands*100)),aes(x=ranks)) +
   ggtitle('Subset distribution of self-gene ranks in landmarks')+
   geom_vline(xintercept =pr1,color='red',linewidth = 1, lty = 'dashed')+
   annotate('text',x =pr1+30, y=130,label= paste0('~',pr_sum_lands,'% of genes'),size=15)+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=20,hjust = 0.5))
+  theme_minimal(base_family = "Arial",base_size = 36)+
+  theme(plot.title = element_text(size=33,hjust = 0.5),
+        axis.text = element_text(family = "Arial",size = 38))
 print(p)
 ggsave(
   '../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',
@@ -144,10 +146,11 @@ for (i in 1:nrow(cmap)){
 }
 df_corr <- data.frame(abs_spear = spearman_corr_abs,spear = spearman_corr)
 p <- ggplot(df_corr,aes(x=abs_spear)) + geom_histogram(fill='#d3d3d3',color='black',bins = 40,lwd=1) +
-  xlab('Spearman`s correlation') + ylab('Counts') + 
-  ggtitle('Spearman`s rank correlation coefficient bewteen absolute gene importance score and absolute gene expression')+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=15,hjust = 0.5))
+  xlab('per sample Spearman`s correlation') + ylab('Counts') + 
+  ggtitle('Correlation between gene importance and expression')+
+  theme_minimal(base_family = "Arial",base_size = 36)+
+  theme(plot.title = element_text(size=33,hjust = 1),
+        axis.text = element_text(family = "Arial",size = 38))
 print(p)
 ggsave(
   '../figures/gex_vs_importance_spearman.eps',
@@ -576,8 +579,10 @@ df2 <- data.frame(scores_2=importance_class_2[top10_2]) %>% rownames_to_column('
 p <- ggplot(df1,aes(x=reorder(Genes1, -scores_1),y=scores_1)) + geom_bar(stat='identity',fill='#0077b3') + xlab('Latent variable') + 
   ylab('Importance score for classifying into PC3')+
   ggtitle('Important latent variables for cell classification') + 
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=20,hjust = 0.5))
+  scale_x_discrete(expand = c(0, 0))+
+  theme_minimal(base_family = "Arial",base_size = 26)+
+  theme(plot.title = element_text(family='Arial',size=32,hjust = 0.5),
+        axis.text = element_text(family='Arial',size=27))
 print(p)
 ggsave(
   '../figures/top_important_latent_variables_to_classify_pc3.eps',
@@ -606,8 +611,8 @@ all_embs <- rbind(emb1,emb2)
 # x=`z1009`,y=`z263` for AE with classifier only and MI not CPA
 p <- ggplot(all_embs,aes(x=`z1009`,y=`z263`)) + geom_point(aes(color=cell)) +
   ggtitle('Scatter plot using only 2 latent variable') +
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=20,hjust = 0.5))
+  theme_minimal(base_family = "Arial",base_size = 36)+
+  theme(plot.title = element_text(size=32,hjust = 0.5))
 print(p)
 ggsave(
   '../figures/AE_with_class_pc3_ha1e_cellspecific_latent_vars.eps',
@@ -645,9 +650,9 @@ p <- ggscatter(df_corr_encode,
   #geom_smooth(color='black',lty=2)+
   xlab('average importance score for PC3') + ylab('average importance score for HA1E') + 
   ggtitle('Gene importance score for each cell-line according to the model')+
-  annotate("text",x=-6e-05,y=6e-05,label=paste0('Spearman`s correlation ',round(spear,4)),size=5)+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=20,hjust = 0.5))
+  annotate("text",x=-2e-04,y=4e-04,label=paste0('Spearman`s correlation ',round(spear,4)),size=10)+
+  theme_minimal(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(size=28,hjust = 1))
 print(p)
 ggsave(
   '../figures/scorePC3_vs_score_HA1E.eps',
@@ -860,15 +865,16 @@ for (i in 1:length(genes_to_keep)){
 }
 
 gene_results <- data.frame(genes_number=genes_to_keep,F1=F1)
-ggplot(gene_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + geom_point(color='black')+
+ggplot(gene_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + 
+  geom_point(color='black',size=3)+
   geom_smooth(se=T,color='#4878CF') + ylim(c(0,100)) +
   scale_y_continuous(breaks=seq(0,100,20),limits = c(0,100))+
   geom_hline(yintercept = 50,color='red',lty='dashed',linewidth=1) + 
-  annotate('text',x=50,y=47,label = "50% random F1 threshold",size=6)+
+  annotate('text',x=50,y=47,label = "50% random F1 threshold",size=10)+
   xlab(paste0('number of important genes used from each cell-line'))+ ylab(paste0('F1 score (%)'))+theme_minimal()+
   ggtitle('GLM performance for classifying cell-line')+
-  theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
-        legend.text=element_text(size=16))
+  theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
+        legend.text=element_text(size=32))
 ggsave(
   '../figures/glm_performance_using_important_genes.eps',
   device = cairo_ps,

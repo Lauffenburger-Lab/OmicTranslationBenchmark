@@ -32,11 +32,13 @@ df_pca <- as.data.frame(df_pca)
 df_pca$label <- controls$label
 df_pca$type <- controls$type
 
-p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=3.5) +
+p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the PCA space') +
-  theme_gray(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
-png('../figures/pca_controlsa375_ht29_landmarks.png',width=9,height=8,units = "in",res = 600)
+  theme_gray(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
+        legend.title = element_text(family = "Arial",size=18),
+        legend.text = element_text(family = "Arial",size=18))
+png('../figures/pca_controlsa375_ht29_landmarks.png',width=9,height=6,units = "in",res = 600)
 print(p)
 dev.off()
 
@@ -78,11 +80,13 @@ df_pca <- as.data.frame(df_pca)
 df_pca$label <- controls_2$label
 df_pca$type <- controls_2$type
 
-p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=3.5) +
+p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the PCA space') +
-  theme_gray(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
-png('../figures/pca_controlspc3_ha1e_landmarks.png',width=9,height=8,units = "in",res = 600)
+  theme_gray(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
+        legend.title = element_text(family = "Arial",size=18),
+        legend.text = element_text(family = "Arial",size=18))
+png('../figures/pca_controlspc3_ha1e_landmarks.png',width=9,height=6,units = "in",res = 600)
 print(p)
 dev.off()
 print(p)
@@ -105,11 +109,13 @@ df_pca<- pca$x[,1:2]
 df_pca <- as.data.frame(df_pca)
 df_pca$label <- all_controls$label
 df_pca$type <- all_controls$type
-p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=2.5) +
+p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the PCA space') +
-  theme_gray(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
-png('../figures/pca_controlsall_cells_landmarks.png',width=9,height=8,units = "in",res = 600)
+  theme_gray(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
+        legend.title = element_text(family = "Arial",size=18),
+        legend.text = element_text(family = "Arial",size=18))
+png('../figures/pca_controlsall_cells_landmarks.png',width=9,height=6,units = "in",res = 600)
 print(p)
 dev.off()
 print(p)
@@ -118,7 +124,7 @@ ggsave(
   device = cairo_ps,
   scale = 1,
   width = 9,
-  height = 9,
+  height = 6,
   units = "in",
   dpi = 600,
 )
@@ -140,24 +146,28 @@ df_tsne <- as.data.frame(df_tsne)
 df_tsne$label <- all_controls$label
 df_tsne$type <- all_controls$type
 
-png('../figures/tsne_controlsall_cells_landmarks.png',width=9,height=8,units = "in",res = 600)
-ggplot(df_tsne,aes(x=V1,y=V2,color=label,shape=type)) + geom_point(size=2) +
+png('../figures/tsne_controlsall_cells_landmarks.png',width=9,height=6,units = "in",res = 600)
+ggplot(df_tsne,aes(x=V1,y=V2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the t-SNE space') +
   xlab('Dim 1') + ylab('Dim 2') +
-  theme_gray(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
+  theme_gray(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
+        legend.title = element_text(family = "Arial",size=18),
+        legend.text = element_text(family = "Arial",size=18))
 dev.off()
-ggplot(df_tsne,aes(x=V1,y=V2,color=label,shape=type)) + geom_point(size=2.5) +
+ggplot(df_tsne,aes(x=V1,y=V2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the t-SNE space') +
   xlab('Dim 1') + ylab('Dim 2') +
-  theme_gray(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
+  theme_gray(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
+        legend.title = element_text(family = "Arial",size=18),
+        legend.text = element_text(family = "Arial",size=18))
 ggsave(
   '../figures/tsne_controlsall_cells_landmarks.eps', 
   device = cairo_ps,
   scale = 1,
   width = 9,
-  height = 9,
+  height = 6,
   units = "in",
   dpi = 600,
 )
