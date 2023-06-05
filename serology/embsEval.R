@@ -55,14 +55,16 @@ for (i in 1:10){
   df_pca <- df_pca %>% mutate(species = z_latent_base$species)
   df_pca$species <- factor(df_pca$species)
   pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +
-    geom_point(aes(color=protected,shape=species,size=vaccinated))+
+    geom_point(aes(color=protected,shape=species,size=vaccinated),aplha=0.85)+
+    scale_shape_manual(values = c(20,15))+
     scale_color_manual(values = c('#4878CF','#D65F5F'))+
-    #scale_size_manual(values = c(1.5,3))+
+    scale_size_manual(values = c(1.5,4))+
     #scale_alpha_manual(values = c(0.5,1))+
-    ggtitle('') +
+    ggtitle("PCA visualization of the global latent space") +
     xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
-    theme(text = element_text(size=24),plot.title = element_text(hjust = 0.5),
-          legend.text=element_text(size=24))
+    theme(text = element_text("Arial",size = 34),
+          legend.position = 'right',
+          plot.title = element_text(hjust=0.5,vjust=2,size=34))
   #print(pca_plot)
   plotList[[i]] <- pca_plot
   
@@ -75,7 +77,7 @@ for (i in 1:10){
     theme_pubr(base_family = "Arial",base_size = 14) +
     theme(plot.title = element_text(hjust = 0.5))
   # p_base <- ggplot(z_latent_base,aes(x=species)) + geom_histogram(stat="count")
-  print(p_base)
+  #print(p_base)
   # print(sum(z_latent_base$species!='human')/sum(z_latent_base$species=='human'))
   
   mat <- as.matrix(df_pca[1:3])
@@ -100,78 +102,83 @@ for (i in 1:10){
   }
 }
 list_visualize <- plotList[c(min_effect_id,max_effect_id)]
-# Visualize all subplots
-p <- ggarrange(plotlist=list_visualize,ncol=1,nrow=2,common.legend = TRUE,legend = 'bottom',
-               labels = paste0(rep('Split ',2),seq(1,10)),
-               font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
-               hjust=-0.15)
-annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
-                                   color = "black",face = 'plain',family = 'Arial', size = 22))
+# # Visualize all subplots
+# p <- ggarrange(plotlist=list_visualize,ncol=1,nrow=2,common.legend = TRUE,legend = 'bottom',
+#                labels = paste0(rep('Split ',2),seq(1,10)),
+#                font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
+#                hjust=-0.15)
+# annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
+#                                    color = "black",face = 'plain',family = 'Arial', size = 22))
 
-
+print(plotList[10])
 ggsave(
   'results_intermediate_encoders/pca_2d_global_train_2000ep_subset.eps', 
   device = cairo_ps,
   scale = 1,
-  width = 18,
-  height = 12,
+  width = 12,
+  height = 6,
   units = "in",
   dpi = 600,
 )
-png(file="results_intermediate_encoders/pca_2d_global_train_2000ep_subset.png",width=18,height=12,units = "in",res=600)
-p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
-               labels = paste0(rep('Split ',2),seq(1,10)),
-               font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
-               hjust=-0.15)
-annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
-                                   color = "black",face = 'plain',family = 'Arial', size = 22))
-dev.off()
+# png(file="results_intermediate_encoders/pca_2d_global_train_2000ep_subset.png",width=18,height=12,units = "in",res=600)
+# p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
+#                labels = paste0(rep('Split ',2),seq(1,10)),
+#                font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
+#                hjust=-0.15)
+# annotate_figure(p, top = text_grob("PCA visualization of the global latent space", 
+#                                    color = "black",face = 'plain',family = 'Arial', size = 22))
+# dev.off()
 
 ### Reapeat for the average of all models-------------
-#Load embeddings
-z_human <- data.table::fread('results_intermediate_encoders/embs/z_human.csv') %>% column_to_rownames('V1')
-latent_dim <- ncol(z_human)
-z_human <- z_human %>% mutate(protected = human_hiv$infect)
-z_human <- z_human %>% mutate(vaccinated = human_hiv$trt)
-z_human <- z_human %>% mutate(species = 'human')
-z_human_base <- data.table::fread('results_intermediate_encoders/embs/z_human_base.csv') %>% column_to_rownames('V1')
-z_human_base <- z_human_base %>% mutate(protected = human_hiv$infect)
-z_human_base <- z_human_base %>% mutate(vaccinated = human_hiv$trt)
-z_human_base <- z_human_base %>% mutate(species = 'human')
-z_primates <- data.table::fread('results_intermediate_encoders/embs/z_primates.csv') %>% column_to_rownames('V1')
-z_primates <- z_primates %>% mutate(protected = primates_nhp$ProtectBinary)
-z_primates <- z_primates %>% mutate(vaccinated = primates_nhp$Vaccine)
-z_primates <- z_primates %>% mutate(species = 'primates')
-z_primates_base <- data.table::fread('results_intermediate_encoders/embs/z_primates_base.csv') %>% column_to_rownames('V1')
-z_primates_base <- z_primates_base %>% mutate(protected = primates_nhp$ProtectBinary)
-z_primates_base <- z_primates_base %>% mutate(vaccinated = primates_nhp$Vaccine)
-z_primates_base <- z_primates_base %>% mutate(species = 'primates')
+# #Load embeddings
+# z_human <- data.table::fread('results_intermediate_encoders/embs/z_human.csv') %>% column_to_rownames('V1')
+# latent_dim <- ncol(z_human)
+# z_human <- z_human %>% mutate(protected = human_hiv$infect)
+# z_human <- z_human %>% mutate(vaccinated = human_hiv$trt)
+# z_human <- z_human %>% mutate(species = 'human')
+# z_human_base <- data.table::fread('results_intermediate_encoders/embs/z_human_base.csv') %>% column_to_rownames('V1')
+# z_human_base <- z_human_base %>% mutate(protected = human_hiv$infect)
+# z_human_base <- z_human_base %>% mutate(vaccinated = human_hiv$trt)
+# z_human_base <- z_human_base %>% mutate(species = 'human')
+# z_primates <- data.table::fread('results_intermediate_encoders/embs/z_primates.csv') %>% column_to_rownames('V1')
+# z_primates <- z_primates %>% mutate(protected = primates_nhp$ProtectBinary)
+# z_primates <- z_primates %>% mutate(vaccinated = primates_nhp$Vaccine)
+# z_primates <- z_primates %>% mutate(species = 'primates')
+# z_primates_base <- data.table::fread('results_intermediate_encoders/embs/z_primates_base.csv') %>% column_to_rownames('V1')
+# z_primates_base <- z_primates_base %>% mutate(protected = primates_nhp$ProtectBinary)
+# z_primates_base <- z_primates_base %>% mutate(vaccinated = primates_nhp$Vaccine)
+# z_primates_base <- z_primates_base %>% mutate(species = 'primates')
+# 
+# z_latent <- rbind(z_human,z_primates)
+# z_latent_base <- rbind(z_human_base,z_primates_base)
+# data.table::fwrite(z_latent_base,paste0('results_intermediate_encoders/embs/latent_embeddings_global_',i,'.csv'))
+# data.table::fwrite(z_latent,paste0('results_intermediate_encoders/embs/latent_embeddings_',i,'.csv'))
+# 
+# ### Dimensionality reduction and visualization
+# pca <- prcomp(z_latent_base[,1:latent_dim],center = T)
+# fviz_eig(pca, addlabels = TRUE,ncp = 15)
+# df_pca<- pca$x[,1:3]
+# df_pca <- as.data.frame(df_pca)
+# colnames(df_pca) <- c('PC1','PC2','PC3')
+# df_pca <- df_pca %>% mutate(protected = z_latent_base$protected)
+# df_pca$protected <- factor(df_pca$protected)
+# df_pca <- df_pca %>% mutate(vaccinated = z_latent_base$vaccinated)
+# df_pca$vaccinated <- factor(df_pca$vaccinated)
+# df_pca <- df_pca %>% mutate(species = z_latent_base$species)
+# df_pca$species <- factor(df_pca$species)
+# pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=protected,shape=species,alpha=vaccinated))+
+#   scale_color_manual(values = c('#4878CF','#D65F5F'))+
+#   scale_alpha_manual(values = c(0.5,1))+
+#   ggtitle('') +
+#   xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
+#   theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
+#         legend.text=element_text(size=16))
+# print(pca_plot)
 
-z_latent <- rbind(z_human,z_primates)
-z_latent_base <- rbind(z_human_base,z_primates_base)
-data.table::fwrite(z_latent_base,paste0('results_intermediate_encoders/embs/latent_embeddings_global_',i,'.csv'))
-data.table::fwrite(z_latent,paste0('results_intermediate_encoders/embs/latent_embeddings_',i,'.csv'))
 
-### Dimensionality reduction and visualization
-pca <- prcomp(z_latent_base[,1:latent_dim],center = T)
-fviz_eig(pca, addlabels = TRUE,ncp = 15)
-df_pca<- pca$x[,1:3]
-df_pca <- as.data.frame(df_pca)
-colnames(df_pca) <- c('PC1','PC2','PC3')
-df_pca <- df_pca %>% mutate(protected = z_latent_base$protected)
-df_pca$protected <- factor(df_pca$protected)
-df_pca <- df_pca %>% mutate(vaccinated = z_latent_base$vaccinated)
-df_pca$vaccinated <- factor(df_pca$vaccinated)
-df_pca <- df_pca %>% mutate(species = z_latent_base$species)
-df_pca$species <- factor(df_pca$species)
-pca_plot <- ggplot(df_pca,aes(PC1,PC2)) +geom_point(aes(col=protected,shape=species,alpha=vaccinated))+
-  scale_color_manual(values = c('#4878CF','#D65F5F'))+
-  scale_alpha_manual(values = c(0.5,1))+
-  ggtitle('') +
-  xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
-  theme(text = element_text(size=16),plot.title = element_text(hjust = 0.5),
-        legend.text=element_text(size=16))
-print(pca_plot)
+
+
+
 # plot_ly(df_pca) %>% add_trace(x = ~PC1, y = ~PC2, z = ~PC3,color = ~species,
 #                               type = "scatter3d",
 #                               mode = "markers",

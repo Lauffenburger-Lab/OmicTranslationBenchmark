@@ -132,19 +132,21 @@ pairwise.test_human = feats %>% filter(mean_percentage_score>=20) %>% group_by(f
   adjust_pvalue(method = 'bonferroni') %>% ungroup()
 ggboxplot(feats %>% filter(mean_percentage_score>=20),
           x='protected',y='value',color='protected',add='jitter')+
+  xlab('')+
   facet_wrap(~feature) +
   stat_pvalue_manual(pairwise.test_human,
                      label = "p.adj = {scales::pvalue(p.adj)}",
                      y.position = 4,
-                     size=8)+
-  theme(axis.title = element_text(family = 'Arial',size=36),
-        axis.text = element_text(family = 'Arial',size=36),
-        text = element_text(family = 'Arial',size=36))
+                     size=7)+
+  theme(axis.title = element_text(family = 'Arial',size=24),
+        axis.text = element_text(family = 'Arial',size=24),
+        text = element_text(family = 'Arial',size=24),
+        strip.text.x = element_text(size = 14))
 ggsave(
   'importance_results/figures/importance_human_features_greather_than_20perc.eps', 
   device = cairo_ps,
   scale = 1,
-  width = 16,
+  width = 18,
   height = 9,
   units = "in",
   dpi = 600,
@@ -231,15 +233,24 @@ pimates_performance <- data.table::fread('results_intermediate_encoders/10foldva
 pimates_performance <- pimates_performance %>% select(-V1)
 pimates_feature_performance <- colMeans(pimates_performance)
 df_performance <- data.frame(r=pimates_feature_performance)
+# df_performance <- df_performance %>% rownames_to_column('feature') %>%
+#   mutate(quality=ifelse(r>=0.75,'r\u22650.75',
+#                         ifelse(r>=0.5,'r\u22650.5',
+#                                ifelse(r>=0.25,'r\u22650.25',
+#                                       ifelse(r>0,'r>0','r\u22640')))))
+# df_performance$quality <- factor(df_performance$quality,
+#                                  levels = c('r\u22640','r>0',
+#                                             'r\u22650.25','r\u22650.5',
+#                                             'r\u22650.75'))
 df_performance <- df_performance %>% rownames_to_column('feature') %>%
-  mutate(quality=ifelse(r>=0.75,'pearson`s r\u22650.75',
-                        ifelse(r>=0.5,'pearson`s r\u22650.5',
-                               ifelse(r>=0.25,'pearson`s r\u22650.25',
-                                      ifelse(r>0,'pearson`s r>0','pearson`s r\u22640')))))
+  mutate(quality=ifelse(r>=0.75,'high',
+                        ifelse(r>=0.5,'good',
+                               ifelse(r>=0.25,'medium',
+                                      ifelse(r>0,'low','bad')))))
 df_performance$quality <- factor(df_performance$quality,
-                                 levels = c('pearson`s r\u22640','pearson`s r>0',
-                                            'pearson`s r\u22650.25','pearson`s r\u22650.5',
-                                            'pearson`s r\u22650.75'))
+                                 levels = c('bad','low',
+                                            'medium','good',
+                                            'high'))
 translation_importance <- left_join(translation_importance,df_performance)
 translation_importance <- translation_importance %>% mutate(annotation = ifelse(mean_percentage_score>=39,feature,''))
 print(unique(translation_importance$quality))
@@ -247,21 +258,24 @@ print(unique(translation_importance$quality))
 ggplot(translation_importance) +
   geom_bar(aes(x=reorder(feature,-mean_percentage_score), y=mean_percentage_score,fill=quality), stat="identity") +
   scale_fill_manual(values = c('#b30024','#e67002','#d6e602','#00b374'))+
+  geom_hline(yintercept = 0,linewidth=1)+
   geom_hline(yintercept = 20,linetype='dashed',linewidth=1)+
   geom_label_repel(aes(x=feature,y=mean_percentage_score,label=annotation),
-                   box.padding   = 0.5, 
-                   point.padding = 0.5,
-                   max.overlaps = 50,
+                   size = 8,
+                   box.padding   = 1.5, 
+                   point.padding = 0.1,
+                   max.overlaps = 10,
                    segment.color = 'grey50')+
   xlab('primates serological features') + ylab('mean percentage score %') +
-  ggtitle('Primates feature importance for translating to protection associated human features')+
-  theme_minimal(base_family = "Arial",base_size = 36)+
+  ggtitle('Primates feature importance for protection associated human features')+
+  theme_minimal(base_family = "Arial")+
   theme(panel.grid = element_blank(),
-        text = element_text("Arial",size = 36),
         axis.title = element_text("Arial",size = 36,face = "bold"),
         axis.text = element_text("Arial",size = 36,face = "bold"),
+        legend.text = element_text("Arial",size = 36,face = "bold"),
+        legend.title = element_text("Arial",size = 36,face = "bold"),
         axis.text.x = element_blank(),
-        plot.title = element_text(hjust = 1,size=36))
+        plot.title = element_text(hjust = 0.5,size=32))
 ggsave(
   'importance_results/figures/important_translation.eps', 
   device = cairo_ps,

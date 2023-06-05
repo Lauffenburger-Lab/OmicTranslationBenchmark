@@ -90,20 +90,24 @@ k_folds=10
 # for train_idx,test_idx in kfold.split(dataset_human):
 #     lh.append((train_idx,test_idx))
 
-print2log('Begin TransCompR modeling...')
-### Train TransCompR model with Decoder architecture
-### Perform PCA for each each cell-line
-print2log('Building PCA space for each species...')
-pca1 = PCA()
-pca2 = PCA()
-pca_space_1 = pca1.fit(human_exprs.values)
-pca_space_2 = pca2.fit(primates_exprs.values)
-exp_var_pca1 = pca_space_1.explained_variance_ratio_
-exp_var_pca2 = pca_space_2.explained_variance_ratio_
-cum_sum_eigenvalues_1 = np.cumsum(exp_var_pca1)
-cum_sum_eigenvalues_2 = np.cumsum(exp_var_pca2)
-n1 = np.min(np.where(cum_sum_eigenvalues_1>=0.9)[0])
-n2 = np.min(np.where(cum_sum_eigenvalues_2 >= 0.9)[0])
+print2log('Loading data...')
+human_exprs = pd.read_csv('../data/human_exprs.csv',index_col=0)
+human_metadata = pd.read_csv('../data/human_metadata.csv',index_col=0)
+primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
+primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
+Xh = torch.tensor(human_exprs.values).double()
+Xm = torch.tensor(primates_exprs.values).double()
+Yh = torch.tensor(human_metadata.loc[:,['trt','infect']].values).long()
+Ym = torch.tensor(primates_metadata.loc[:,['Vaccine','ProtectBinary']].values).long()
+
+gene_size_human = len(human_exprs.columns)
+gene_size_primates = len(primates_exprs.columns)
+
+
+# ## Split in 10fold validation
+# dataset_human = torch.utils.data.TensorDataset(Xh,Yh)
+# dataset_primates = torch.utils.data.TensorDataset(Xm,Ym)
+#k_folds=10
 if filter_pcs==True:
     exp_var_pca1 = pca_space_1.explained_variance_ratio_
     cum_sum_eigenvalues_1 = np.cumsum(exp_var_pca1)
@@ -1908,48 +1912,45 @@ pear_matrix_primates.to_csv('../results_intermediate_encoders/10foldvalidation_d
 pear_matrix_primates = pd.melt(pear_matrix_primates)
 pear_matrix_primates.columns = ['feature','pearson']
 grouped = pear_matrix_primates.groupby(['feature']).median().sort_values(by='pearson',ascending=False)
-sns.set_theme(style="whitegrid")
+sns.set_theme(style="whitegrid",font_scale=3)
 plt.figure(figsize=(18,12), dpi= 80)
 ax = sns.boxplot(x="pearson", y="feature", data=pear_matrix_primates,order=grouped.index,orient='h')
 plt.legend(loc='lower left')
-plt.gca().set(title='Per feature performance of primate decoder in 10-fold cross-validation',
+plt.gca().set(title='Per feature performance of primate decoder in cross-validation',
               xlabel = 'pearson correlation',
-              ylabel='feature names')
-ax.yaxis.set_tick_params(labelsize = 5)
-for ind, label in enumerate(ax.get_yticklabels()):
-    if ind % 5 == 0:  # every 10th label is kept
-        label.set_visible(True)
-    else:
-        label.set_visible(False)
+              ylabel='features')
+plt.yticks([])
+# for ind, label in enumerate(ax.get_yticklabels()):
+#     if ind % 5 == 0:  # every 10th label is kept
+#         label.set_visible(True)
+#     else:
+#         label.set_visible(False)
 plt.xlim(-1,1)
-ax.text(-0.83, 10,text, fontsize=20)
-rect = patches.Rectangle((-0.85, 4), 0.38, 7, linewidth=2, edgecolor='black', facecolor='none')
-ax.add_patch(rect)
+ax.text(-0.97, 80,text, fontsize=42,fontweight='bold',bbox=dict(edgecolor='black',facecolor='none'))
 plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_primates.png', bbox_inches='tight',dpi=600)
 pear_matrix_human = pd.DataFrame(pear_matrix_human)
 pear_matrix_human.columns = human_exprs.columns
-pear_matrix_human = pd.read_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv',index_col=0)
+# pear_matrix_human = pd.read_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv',index_col=0)
 mu = pear_matrix_human.mean(1).mean()
 se = pear_matrix_human.mean(1).std()/np.sqrt(model_params['no_folds'])
 pm_symbol = "\u00B1"
 text = f"r = {mu:.4f} {pm_symbol} {se:.4f}"
-# pear_matrix_human.to_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
+pear_matrix_human.to_csv('../results_intermediate_encoders/10foldvalidation_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_perFeature_human.csv')
 pear_matrix_human = pd.melt(pear_matrix_human)
 pear_matrix_human.columns = ['feature','pearson']
 grouped = pear_matrix_human.groupby(['feature']).median().sort_values(by='pearson',ascending=False)
-sns.set_theme(style="whitegrid")
+sns.set_theme(style="whitegrid",font_scale=3)
 plt.figure(figsize=(18,12), dpi= 80)
 ax = sns.boxplot(x="pearson", y="feature", data=pear_matrix_human,order=grouped.index,orient='h')
 # ax.yaxis.tick_right()
 plt.legend(loc='lower left')
-plt.gca().set(title='Per feature performance of human decoder in 10-fold cross-validation',
+plt.gca().set(title='Per feature performance of human decoder in cross-validation',
               xlabel = 'pearson correlation',
-              ylabel='feature names')
+              ylabel='features')
 plt.xlim(-1,1)
-ax.yaxis.set_tick_params(labelsize = 5)
-ax.text(0.1, 10,text, fontsize=20)
-rect = patches.Rectangle((0.08, 6.5), 0.38, 4, linewidth=2, edgecolor='black', facecolor='none')
-ax.add_patch(rect)
+# ax.yaxis.set_tick_params(labelsize = 5)
+plt.yticks([])
+ax.text(-0.5, 20,text, fontsize=42,fontweight='bold',bbox=dict(edgecolor='black',facecolor='none'))
 plt.savefig('../results_intermediate_encoders/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 
 

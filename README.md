@@ -1,4 +1,5 @@
-# OmicTranslationBenchmark
+# Neural Network Autoencoder Model for Translating Omics Signatures
+# **Github page still under development**
 
 The clinical translation of animal models is generally poor. Thus, there is a need for computational approaches to translate omics' signatures into different cell-types, species etc. In this study we modified and combined neural network approaches and compared them with other approaches to build a benchmark for omics' translation. Specifically, we evaluate the dependecy of each approach with the total sample size, the sample size per different entity and the number of different entities required to build a common latent space. Finally, we developed a novel approach to evaluate the important genes to translate each signature into the commono latent space as well as which genes are entity-specific.
 
