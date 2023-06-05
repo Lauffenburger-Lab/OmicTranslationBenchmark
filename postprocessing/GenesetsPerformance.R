@@ -403,36 +403,65 @@ model_genes <- model_genes %>% mutate(level='Genes')
 
 results <- rbind(model_tfs,model_genes)
 
-p <- ggboxplot(results %>% filter(translation!='direct translation'),
-               x = "translation", y = 'cor',color='level',add='jitter',)+
-  ggtitle('TFs performance from translating predicted gene expression')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
-  theme_minimal(base_family = "Arial",base_size = 23)+
-  theme(plot.title = element_text(hjust = 0.5,size=20),legend.position='bottom')
-p <- p + stat_compare_means(aes(group=level),method = 'wilcox.test',label='p.signif')
-print(p)
-
-png('../figures/tfs_vs_genes_translating_comparison.png',width=9,height=8,units = "in",res = 600)
-print(p)
-dev.off()
-setEPS()
-postscript('../figures/tfs_vs_genes_translating_comparison.ps',width=9,height=8)
-print(p)
-dev.off()
+p1 <- ggboxplot(results %>% filter(translation!='direct translation'),
+               x = "translation", y = 'cor',color='level',add='jitter',
+               add.params = list(size = 2),size = 1)+
+  ggtitle('')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  theme_minimal(base_family = "Arial",base_size = 42)+
+  theme(text = element_text("Arial",size = 42),
+        axis.title = element_text("Arial",size = 36,face = "bold"),
+        axis.title.x = element_blank(),
+        axis.text = element_text("Arial",size = 40,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 26,face = "bold"),
+        plot.title = element_text(hjust = 1.15,size=40),legend.position='bottom')
+p1 <- p1 + stat_compare_means(aes(group=level),method = 'wilcox.test',label='p.signif',size=10)
+print(p1)
+ 
+# png('../figures/tfs_vs_genes_translating_comparison.png',width=14,height=15.16,units = "in",res = 600)
+# print(p1)
+# dev.off()
+# setEPS()
+# postscript('../figures/tfs_vs_genes_translating_comparison.ps',width=14,height=15.16)
+# print(p1)
+# dev.off()
 
 comparisons <- list(c('direct translation','A375 to HT29'),c('direct translation','HT29 to A375'))
-p <- ggboxplot(results %>% filter(level!='Genes'),
-               x = "translation", y = 'cor',color='translation',add='jitter')+
-  ggtitle('TFs performance from translating predicted gene expression')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
-  theme_minimal(base_family = "Arial",base_size = 23)+
-  theme(plot.title = element_text(hjust = 0.5,size=20),legend.position='')
-p <- p + stat_compare_means(comparisons=comparisons,method = 'wilcox.test',label='p.signif')
-print(p)
+p2 <- ggboxplot(results %>% filter(level!='Genes'),
+               x = "translation", y = 'cor',color='translation',add='jitter',
+               add.params = list(size = 2),size = 1,width = 0.6) + 
+  ggtitle('')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  theme_minimal(base_family = "Arial",base_size = 42)+
+  theme(text = element_text("Arial",size = 42),
+        axis.title = element_text("Arial",size = 36,face = "bold"),
+        axis.text = element_text("Arial",size = 40,face = "bold"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_text("Arial",angle = 0,size = 20,face = "bold"),
+        plot.title = element_text(hjust = 1.15,size=40),
+        legend.position='')
+p2 <- p2 + stat_compare_means(comparisons=comparisons,method = 'wilcox.test',label='p.signif',
+                              size=8,bracket.size = 0.7)
+p2 <- p2 + scale_x_discrete(expand = c(0.2, 0))
+print(p2)
 
-png('../figures/tfs_vs_direct_translating_comparison.png',width=9,height=8,units = "in",res = 600)
-print(p)
-dev.off()
-setEPS()
-postscript('../figures/tfs_vs_direct_translating_comparison.ps',width=9,height=8)
-print(p)
-dev.off()
+# png('../figures/tfs_vs_direct_translating_comparison.png',width=14,height=15.16,units = "in",res = 600)
+# print(p2)
+# dev.off()
+# setEPS()
+# postscript('../figures/tfs_vs_direct_translating_comparison.ps',width=14,height=15.16)
+# print(p2)
+# dev.off()
+
+# combine 2 subplots
+p <- ggarrange(plotlist=list(p1,p2),ncol=2,nrow=1,common.legend = FALSE)
+annotate_figure(p, top = text_grob("TFs performance from translating predicted gene expression", 
+                                   family='Arial',color = "black",face = 'bold', size = 34))
+ggsave(
+  '../figures/tfs_analysis_figure1d.eps', 
+  device = cairo_ps,
+  scale = 1,
+  width = 16,
+  height = 8.7,
+  units = "in",
+  dpi = 600,
+)
 

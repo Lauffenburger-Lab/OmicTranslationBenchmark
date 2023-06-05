@@ -113,6 +113,7 @@ results/trained_models/alldata_landmarks_cpa_locald_a375_ht29.pt
 results/trained_models/alldata_landmarks_cpa_locald_pc3_ha1e.pt
 results/trained_models/alldata_landmarks_cpa_priord_a375_ht29.pt
 results/trained_models/alldata_landmarks_cpa_priord_pc3_ha1e.pt
+results/trained_models/trained_models.zip
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
@@ -138,5 +139,6 @@ preprocessing/preprocessed_data/sampledDatasetes/HT29_PC3/pre_trained_classifier
 preprocessing/preprocessed_data/sampledDatasetes/MCF7_HA1E/pre_trained_classifier_adverse_1_lands.pt
 preprocessing/preprocessed_data/sampledDatasetes/MCF7_PC3/pre_trained_classifier_adverse_1_lands.pt
 preprocessing/preprocessed_data/sampledDatasetes/PC3_HA1E/pre_trained_classifier_adverse_1_lands.pt
+serology/importance_results/*
 learning/__pycache__/
 .Rproj.user

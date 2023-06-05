@@ -64,7 +64,6 @@ def compute_gradients(output, input):
 print2log('Loading data...')
 human_exprs = pd.read_csv('../data/human_exprs.csv',index_col=0)
 human_metadata = pd.read_csv('../data/human_metadata.csv',index_col=0)
-human_metadata["infect"] = human_metadata["infect"] - int(1)
 primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
 primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
 Xh = torch.tensor(human_exprs.values).float().to(device)

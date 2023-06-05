@@ -1,21 +1,19 @@
-from __future__ import absolute_import, division
-from tqdm.auto import tqdm
 import torch
 import torch.nn.functional as F
-from trainingUtils import MultipleOptimizer, MultipleScheduler, compute_kernel, compute_mmd
-from models import Decoder, SimpleEncoder,LocalDiscriminator,PriorDiscriminator,Classifier,SpeciesCovariate
-# import argparse
+from torch.distributions import NegativeBinomial
+from torch.distributions.gamma import Gamma
 import math
 import numpy as np
 import pandas as pd
-import sys
-import random
-import os
-from sklearn.metrics import silhouette_score,confusion_matrix
+from sklearn.model_selection import train_test_split,cross_validate,KFold
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import silhouette_score,confusion_matrix,r2_score
+from sklearn.decomposition import PCA
 from scipy.stats import spearmanr
+from trainingUtils import MultipleOptimizer, MultipleScheduler, compute_kernel, compute_mmd,NBLoss,_convert_mean_disp_to_counts_logits, GammaLoss#,GaussLoss
+from models import Decoder, SimpleEncoder,LocalDiscriminator,PriorDiscriminator,Classifier,SpeciesCovariate, VarDecoder
 from evaluationUtils import r_square,get_cindex,pearson_r,pseudoAccuracy
-#import seaborn as sns
-#sns.set()
+import argparse
 import logging
 from captum.attr import IntegratedGradients
 from captum.attr import LayerConductance
@@ -26,11 +24,23 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger()
 print2log = logger.info
 
+parser = argparse.ArgumentParser(prog='TransCompR mixed with ANNs approaches')
+parser.add_argument('--filter_pcs', action='store', default=False)
+parser.add_argument('--latent_dim', action='store', default=32)
+# parser.add_argument('--outPattern', action='store')
+args = parser.parse_args()
+filter_pcs = args.filter_pcs
+latent_dim = args.latent_dim
+# outPattern = args.outPattern
+if latent_dim is None:
+    print2log('No latent dimension was defined.Filtered PCs will be used.')
+    filter_pcs = True
+else:
+    latent_dim = int(latent_dim)
+
 device = torch.device('cuda')
-
+# Initialize environment and seeds for reproducability
 torch.backends.cudnn.benchmark = True
-
-
 def seed_everything(seed=42):
     random.seed(seed)
     torch.manual_seed(seed)
@@ -38,64 +48,6 @@ def seed_everything(seed=42):
     np.random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch.backends.cudnn.benchmark = False
-    
-# Read data
-# cmap = pd.read_csv('../preprocessing/preprocessed_data/cmap_landmarks_2_1.csv',index_col = 0)
-cmap = pd.read_csv('cmap_all_genes_q1_tas03.csv',index_col = 0)
-
-gene_size = len(cmap.columns)
-samples = cmap.index.values
-
-sampleInfo_1 = pd.read_csv('10fold_validation_spit/alldata/pc3_unpaired.csv',index_col=0)
-sampleInfo_2 = pd.read_csv('10fold_validation_spit/alldata/ha1e_unpaired.csv',index_col=0)
-sampleInfo_paired = pd.read_csv('10fold_validation_spit/alldata/paired_pc3_ha1e.csv',index_col=0)
-
-
-model_params = {'encoder_1_hiddens':[4096,2048],
-                'encoder_2_hiddens':[4096,2048],
-                'latent_dim': 1024,
-                'decoder_1_hiddens':[2048,4096],
-                'decoder_2_hiddens':[2048,4096],
-                'dropout_decoder':0.2,
-                'dropout_encoder':0.1,
-                'encoder_activation':torch.nn.ELU(),
-                'decoder_activation':torch.nn.ELU(),
-                'V_dropout':0.25,
-                'state_class_hidden':[512,256,128],
-                'state_class_drop_in':0.5,
-                'state_class_drop':0.25,
-                'no_states':2,
-                'adv_class_hidden':[512,256,128],
-                'adv_class_drop_in':0.3,
-                'adv_class_drop':0.1,
-                'no_adv_class':2,
-                'encoding_lr':0.001,
-                'adv_lr':0.001,
-                'schedule_step_adv':300,
-                'gamma_adv':0.5,
-                'schedule_step_enc':300,
-                'gamma_enc':0.8,
-                'batch_size_1':178,
-                'batch_size_2':154,
-                'batch_size_paired':90,
-                'epochs':1000,
-                'prior_beta':1.0,
-                'no_folds':10,
-                'v_reg':1e-04,
-                'state_class_reg':1e-02,
-                'enc_l2_reg':0.01,
-                'dec_l2_reg':0.01,
-                'lambda_mi_loss':100,
-                'effsize_reg': 10,
-                'cosine_loss': 40,
-                'adv_penalnty':50,
-                'reg_adv':500,
-                'reg_classifier': 500,
-                'similarity_reg' : 1.,
-                'adversary_steps':5,
-                'autoencoder_wd': 0,
-                'adversary_wd': 0}
-
 # Create a train generators
 def getSamples(N, batchSize):
     order = np.random.permutation(N)
@@ -104,679 +56,294 @@ def getSamples(N, batchSize):
         outList.append(order[0:batchSize])
         order = order[batchSize:]
     return outList
+    
+### Load data
+print2log('Loading data...')
+human_exprs = pd.read_csv('../data/human_exprs.csv',index_col=0)
+human_metadata = pd.read_csv('../data/human_metadata.csv',index_col=0)
+primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
+primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
+Xh = torch.tensor(human_exprs.values).double()
+Xm = torch.tensor(primates_exprs.values).double()
+Yh = torch.tensor(human_metadata.loc[:,['trt','infect']].values).long()
+Ym = torch.tensor(primates_metadata.loc[:,['Vaccine','ProtectBinary']].values).long()
 
-def compute_gradients(output, input):
-    grads = torch.autograd.grad(output, input, create_graph=True)
-    grads = grads[0].pow(2).mean()
-    return grads
-
-
-class_criterion = torch.nn.CrossEntropyLoss()
-NUM_EPOCHS= model_params['epochs']
-bs_1 = model_params['batch_size_1']
-bs_2 =  model_params['batch_size_2']
-bs_paired =  model_params['batch_size_paired']
-
-
-
-valR2 = []
-valPear = []
-valMSE =[]
-valSpear = []
-valAccuracy = []
+gene_size_human = len(human_exprs.columns)
+gene_size_primates = len(primates_exprs.columns)
 
 
-valPearDirect = []
-valSpearDirect = []
-valAccDirect = []
-
-valR2_1 = []
-valPear_1 = []
-valMSE_1 =[]
-valSpear_1 = []
-valAccuracy_1 = []
-
-valR2_2 = []
-valPear_2 = []
-valMSE_2 =[]
-valSpear_2 = []
-valAccuracy_2 = []
-
-crossCorrelation = []
-
-valF1 = []
-valClassAcc = []
-
-# decoder_1 = Decoder(model_params['latent_dim'], model_params['decoder_1_hiddens'], gene_size,
-#                     dropRate=model_params['dropout_decoder'],
-#                     activation=model_params['decoder_activation']).to(device)
-# decoder_2 = Decoder(model_params['latent_dim'], model_params['decoder_2_hiddens'], gene_size,
-#                     dropRate=model_params['dropout_decoder'],
-#                     activation=model_params['decoder_activation']).to(device)
-# encoder_1 = SimpleEncoder(gene_size, model_params['encoder_1_hiddens'], model_params['latent_dim'],
-#                           dropRate=model_params['dropout_encoder'],
-#                           activation=model_params['encoder_activation']).to(device)
-# encoder_2 = SimpleEncoder(gene_size, model_params['encoder_2_hiddens'], model_params['latent_dim'],
-#                           dropRate=model_params['dropout_encoder'],
-#                           activation=model_params['encoder_activation']).to(device)
-# prior_d = PriorDiscriminator(model_params['latent_dim']).to(device)
-# local_d = LocalDiscriminator(model_params['latent_dim'], model_params['latent_dim']).to(device)
-#
-# classifier = Classifier(in_channel=model_params['latent_dim'],
-#                         hidden_layers=model_params['state_class_hidden'],
-#                         num_classes=model_params['no_states'],
-#                         drop_in=model_params['state_class_drop_in'],
-#                         drop=model_params['state_class_drop']).to(device)
-# adverse_classifier = Classifier(in_channel=model_params['latent_dim'],
-#                                 hidden_layers=model_params['adv_class_hidden'],
-#                                 num_classes=model_params['no_adv_class'],
-#                                 drop_in=model_params['adv_class_drop_in'],
-#                                 drop=model_params['adv_class_drop']).to(device)
-# pretrained_adv_class = torch.load('MI_results/models/CPA_approach/pre_trained_classifier_adverse_1.pt')
-# adverse_classifier.load_state_dict(pretrained_adv_class.state_dict())
-#
-# Vsp = SpeciesCovariate(2, model_params['latent_dim'], dropRate=model_params['V_dropout']).to(device)
-#
-# N_paired = len(sampleInfo_paired)
-# N_1 = len(sampleInfo_1)
-# N_2 = len(sampleInfo_2)
-# N = N_1
-# if N_2 > N:
-#     N = N_2
-#
-# allParams = list(decoder_1.parameters()) + list(decoder_2.parameters())
-# allParams = allParams + list(encoder_1.parameters()) + list(encoder_2.parameters())
-# allParams = allParams + list(prior_d.parameters()) + list(local_d.parameters())
-# allParams = allParams + list(classifier.parameters())
-# allParams = allParams + list(Vsp.parameters())
-# optimizer = torch.optim.Adam(allParams, lr=model_params['encoding_lr'], weight_decay=0)
-# optimizer_adv = torch.optim.Adam(adverse_classifier.parameters(), lr=model_params['adv_lr'], weight_decay=0)
-# if model_params['schedule_step_adv'] is not None:
-#     scheduler_adv = torch.optim.lr_scheduler.StepLR(optimizer_adv,
-#                                                     step_size=model_params['schedule_step_adv'],
-#                                                     gamma=model_params['gamma_adv'])
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-#                                             step_size=model_params['schedule_step_enc'],
-#                                             gamma=model_params['gamma_enc'])
-#
-# for e in range(0, NUM_EPOCHS):
-#     decoder_1.train()
-#     decoder_2.train()
-#     encoder_1.train()
-#     encoder_2.train()
-#     prior_d.train()
-#     local_d.train()
-#     classifier.train()
-#     adverse_classifier.train()
-#     Vsp.train()
-#     # master_encoder.train()
-#
-#     trainloader_1 = getSamples(N_1, bs_1)
-#     len_1 = len(trainloader_1)
-#     trainloader_2 = getSamples(N_2, bs_2)
-#     len_2 = len(trainloader_2)
-#     trainloader_paired = getSamples(N_paired, bs_paired)
-#     len_paired = len(trainloader_paired)
-#
-#     lens = [len_1, len_2, len_paired]
-#     maxLen = np.max(lens)
-#
-#     iteration = 1
-#
-#     if maxLen > lens[0]:
-#         trainloader_suppl = getSamples(N_1, bs_1)
-#         for jj in range(maxLen - lens[0]):
-#             trainloader_1.insert(jj, trainloader_suppl[jj])
-#
-#     if maxLen > lens[1]:
-#         trainloader_suppl = getSamples(N_2, bs_2)
-#         for jj in range(maxLen - lens[1]):
-#             trainloader_2.insert(jj, trainloader_suppl[jj])
-#
-#     if maxLen > lens[2]:
-#         trainloader_suppl = getSamples(N_paired, bs_paired)
-#         for jj in range(maxLen - lens[2]):
-#             trainloader_paired.insert(jj, trainloader_suppl[jj])
-#     # for dataIndex in trainloader:
-#     for j in range(maxLen):
-#         dataIndex_1 = trainloader_1[j]
-#         dataIndex_2 = trainloader_2[j]
-#         dataIndex_paired = trainloader_paired[j]
-#
-#         df_pairs = sampleInfo_paired.iloc[dataIndex_paired, :]
-#         df_1 = sampleInfo_1.iloc[dataIndex_1, :]
-#         df_2 = sampleInfo_2.iloc[dataIndex_2, :]
-#         paired_inds = len(df_pairs)
-#
-#         X_1 = torch.tensor(np.concatenate((cmap.loc[df_pairs['sig_id.x']].values,
-#                                            cmap.loc[df_1.sig_id].values))).float().to(device)
-#         X_2 = torch.tensor(np.concatenate((cmap.loc[df_pairs['sig_id.y']].values,
-#                                            cmap.loc[df_2.sig_id].values))).float().to(device)
-#
-#         z_species_1 = torch.cat((torch.ones(X_1.shape[0], 1),
-#                                  torch.zeros(X_1.shape[0], 1)), 1).to(device)
-#         z_species_2 = torch.cat((torch.zeros(X_2.shape[0], 1),
-#                                  torch.ones(X_2.shape[0], 1)), 1).to(device)
-#
-#         conditions = np.concatenate((df_pairs.conditionId.values,
-#                                      df_1.conditionId.values,
-#                                      df_pairs.conditionId.values,
-#                                      df_2.conditionId.values))
-#         size = conditions.size
-#         conditions = conditions.reshape(size, 1)
-#         conditions = conditions == conditions.transpose()
-#         conditions = conditions * 1
-#         mask = torch.tensor(conditions).to(device).detach()
-#         pos_mask = mask
-#         neg_mask = 1 - mask
-#         log_2 = math.log(2.)
-#         optimizer.zero_grad()
-#         optimizer_adv.zero_grad()
-#
-#         # if e % model_params['adversary_steps']==0:
-#         z_base_1 = encoder_1(X_1)
-#         z_base_2 = encoder_2(X_2)
-#         latent_base_vectors = torch.cat((z_base_1, z_base_2), 0)
-#         labels_adv = adverse_classifier(latent_base_vectors)
-#         true_labels = torch.cat((torch.ones(z_base_1.shape[0]),
-#                                  torch.zeros(z_base_2.shape[0])), 0).long().to(device)
-#         _, predicted = torch.max(labels_adv, 1)
-#         predicted = predicted.cpu().numpy()
-#         cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted)
-#         tn, fp, fn, tp = cf_matrix.ravel()
-#         f1_basal_trained = 2 * tp / (2 * tp + fp + fn)
-#         adv_entropy = class_criterion(labels_adv, true_labels)
-#         adversary_drugs_penalty = compute_gradients(labels_adv.sum(), latent_base_vectors)
-#         loss_adv = adv_entropy + model_params['adv_penalnty'] * adversary_drugs_penalty
-#         loss_adv.backward()
-#         optimizer_adv.step()
-#         # print2log(f1_basal_trained)
-#         # else:
-#         optimizer.zero_grad()
-#         # f1_basal_trained = None
-#         z_base_1 = encoder_1(X_1)
-#         z_base_2 = encoder_2(X_2)
-#         latent_base_vectors = torch.cat((z_base_1, z_base_2), 0)
-#
-#         # z_un = local_d(torch.cat((z_1, z_2), 0))
-#         z_un = local_d(latent_base_vectors)
-#         res_un = torch.matmul(z_un, z_un.t())
-#
-#         z_1 = Vsp(z_base_1, z_species_1)
-#         z_2 = Vsp(z_base_2, z_species_2)
-#         latent_vectors = torch.cat((z_1, z_2), 0)
-#
-#         y_pred_1 = decoder_1(z_1)
-#         fitLoss_1 = torch.mean(torch.sum((y_pred_1 - X_1) ** 2, dim=1))
-#         L2Loss_1 = decoder_1.L2Regularization(model_params['dec_l2_reg']) + encoder_1.L2Regularization(
-#             model_params['enc_l2_reg'])
-#         loss_1 = fitLoss_1 + L2Loss_1
-#
-#         y_pred_2 = decoder_2(z_2)
-#         fitLoss_2 = torch.mean(torch.sum((y_pred_2 - X_2) ** 2, dim=1))
-#         L2Loss_2 = decoder_2.L2Regularization(model_params['dec_l2_reg']) + encoder_2.L2Regularization(
-#             model_params['enc_l2_reg'])
-#         loss_2 = fitLoss_2 + L2Loss_2
-#
-#         # silimalityLoss = np.sqrt(paired_inds)*torch.mean(torch.sum((z_base_1[0:paired_inds,:] - z_base_2[0:paired_inds,:])**2,
-#         #                                      dim=-1))/torch.std(torch.sum((z_base_1[0:paired_inds,:] - z_base_2[0:paired_inds,:])**2,
-#         #                                                                   dim=-1))
-#         silimalityLoss = torch.mean(torch.sum((z_base_1[0:paired_inds, :] - z_base_2[0:paired_inds, :]) ** 2, dim=-1))
-#         cosineLoss = torch.nn.functional.cosine_similarity(z_base_1[0:paired_inds, :], z_base_2[0:paired_inds, :],
-#                                                            dim=-1).mean()
-#
-#         p_samples = res_un * pos_mask.float()
-#         q_samples = res_un * neg_mask.float()
-#
-#         Ep = log_2 - F.softplus(- p_samples)
-#         Eq = F.softplus(-q_samples) + q_samples - log_2
-#
-#         Ep = (Ep * pos_mask.float()).sum() / pos_mask.float().sum()
-#         Eq = (Eq * neg_mask.float()).sum() / neg_mask.float().sum()
-#         mi_loss = Eq - Ep
-#
-#         # prior = torch.rand_like(torch.cat((z_1, z_2), 0))
-#         prior = torch.rand_like(latent_base_vectors)
-#
-#         term_a = torch.log(prior_d(prior)).mean()
-#         # term_b = torch.log(1.0 - prior_d(torch.cat((z_1, z_2), 0))).mean()
-#         term_b = torch.log(1.0 - prior_d(latent_base_vectors)).mean()
-#         prior_loss = -(term_a + term_b) * model_params['prior_beta']
-#
-#         # Classification loss
-#         labels = classifier(latent_vectors)
-#         true_labels = torch.cat((torch.ones(z_1.shape[0]),
-#                                  torch.zeros(z_2.shape[0])), 0).long().to(device)
-#         entropy = class_criterion(labels, true_labels)
-#         _, predicted = torch.max(labels, 1)
-#         predicted = predicted.cpu().numpy()
-#         cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted)
-#         tn, fp, fn, tp = cf_matrix.ravel()
-#         f1_latent = 2 * tp / (2 * tp + fp + fn)
-#
-#         # Remove signal from z_basal
-#         labels_adv = adverse_classifier(latent_base_vectors)
-#         true_labels = torch.cat((torch.ones(z_base_1.shape[0]),
-#                                  torch.zeros(z_base_2.shape[0])), 0).long().to(device)
-#         adv_entropy = class_criterion(labels_adv, true_labels)
-#         _, predicted = torch.max(labels_adv, 1)
-#         predicted = predicted.cpu().numpy()
-#         cf_matrix = confusion_matrix(true_labels.cpu().numpy(), predicted)
-#         tn, fp, fn, tp = cf_matrix.ravel()
-#         f1_basal = 2 * tp / (2 * tp + fp + fn)
-#
-#         # loss = loss_1 + loss_2 + 100*mi_loss + prior_loss + 10*silimalityLoss-100*cosineLoss + 1000*entropy +\
-#         #       classifier.L2Regularization(1e-2) + Vsp.Regularization() - 1000*adv_entropy
-#         loss = loss_1 + loss_2 + model_params['similarity_reg'] * silimalityLoss + model_params[
-#             'lambda_mi_loss'] * mi_loss + prior_loss + model_params['reg_classifier'] * entropy - model_params[
-#                    'reg_adv'] * adv_entropy + classifier.L2Regularization(
-#             model_params['state_class_reg']) + Vsp.Regularization(model_params['v_reg']) - model_params[
-#                    'cosine_loss'] * cosineLoss
-#
-#         loss.backward()
-#         optimizer.step()
-#
-#         pearson_1 = pearson_r(y_pred_1.detach().flatten(), X_1.detach().flatten())
-#         r2_1 = r_square(y_pred_1.detach().flatten(), X_1.detach().flatten())
-#         mse_1 = torch.mean(torch.mean((y_pred_1.detach() - X_1.detach()) ** 2, dim=1))
-#
-#         pearson_2 = pearson_r(y_pred_2.detach().flatten(), X_2.detach().flatten())
-#         r2_2 = r_square(y_pred_2.detach().flatten(), X_2.detach().flatten())
-#         mse_2 = torch.mean(torch.mean((y_pred_2.detach() - X_2.detach()) ** 2, dim=1))
-#
-#         # iteration += iteration
-#
-#     if model_params['schedule_step_adv'] is not None:
-#         scheduler_adv.step()
-#     if (e >= 0):
-#         scheduler.step()
-#         outString = 'Epoch={:.0f}/{:.0f}'.format(e + 1, NUM_EPOCHS)
-#         outString += ', r2_1={:.4f}'.format(r2_1.item())
-#         outString += ', pearson_1={:.4f}'.format(pearson_1.item())
-#         outString += ', MSE_1={:.4f}'.format(mse_1.item())
-#         outString += ', r2_2={:.4f}'.format(r2_2.item())
-#         outString += ', pearson_2={:.4f}'.format(pearson_2.item())
-#         outString += ', MSE_2={:.4f}'.format(mse_2.item())
-#         outString += ', MI Loss={:.4f}'.format(mi_loss.item())
-#         outString += ', Prior Loss={:.4f}'.format(prior_loss.item())
-#         outString += ', Entropy Loss={:.4f}'.format(entropy.item())
-#         outString += ', Adverse Entropy={:.4f}'.format(adv_entropy.item())
-#         outString += ', Cosine Loss={:.4f}'.format(cosineLoss.item())
-#         outString += ', loss={:.4f}'.format(loss.item())
-#         outString += ', F1 latent={:.4f}'.format(f1_latent)
-#         outString += ', F1 basal={:.4f}'.format(f1_basal)
-#         # if e % model_params["adversary_steps"] == 0 and e>0:
-#         outString += ', F1 basal trained={:.4f}'.format(f1_basal_trained)
-#         # else:
-#         #    outString += ', F1 basal trained= %s'%f1_basal_trained
-#     if (e == 0 or (e % 250 == 0 and e > 0)):
-#         print2log(outString)
-# print2log(outString)
-#
-# decoder_1.eval()
-# decoder_2.eval()
-# encoder_1.eval()
-# encoder_2.eval()
-# prior_d.eval()
-# local_d.eval()
-# classifier.eval()
-# adverse_classifier.eval()
-# Vsp.eval()
-#
-# print2log('Evaluate mode')
-#
-#
-# # In[19]:
-#
-#
-# x_1 = torch.tensor(np.concatenate((cmap.loc[sampleInfo_paired['sig_id.x']].values,
-#                                       cmap.loc[sampleInfo_1.sig_id].values))).float().to(device)
-# x_2 = torch.tensor(np.concatenate((cmap.loc[sampleInfo_paired['sig_id.y']].values,
-#                                       cmap.loc[sampleInfo_2.sig_id].values))).float().to(device)
-#
-# z_species_1 = torch.cat((torch.ones(x_1.shape[0], 1),
-#                          torch.zeros(x_1.shape[0], 1)), 1).to(device)
-# z_species_2 = torch.cat((torch.zeros(x_2.shape[0], 1),
-#                          torch.ones(x_2.shape[0], 1)), 1).to(device)
-#
-# z_latent_1  = encoder_1(x_1)
-# z_latent_1 = Vsp(z_latent_1, z_species_1)
-# xhat_1 = decoder_1(z_latent_1)
-# z_latent_2  = encoder_2(x_2)
-# z_latent_2 = Vsp(z_latent_2, z_species_2)
-# xhat_2 = decoder_2(z_latent_2)
-#
-#
-# # In[26]:
-#
-#
-# labels = classifier(torch.cat((z_latent_1, z_latent_2), 0))
-# true_labels = torch.cat((torch.ones(z_latent_1.shape[0]).view(z_latent_1.shape[0],1),
-#                          torch.zeros(z_latent_2.shape[0]).view(z_latent_2.shape[0],1)),0).long()
-# _, predicted = torch.max(labels, 1)
-# predicted = predicted.cpu().numpy()
-# cf_matrix = confusion_matrix(true_labels.numpy(),predicted)
-# tn, fp, fn, tp = cf_matrix.ravel()
-# class_acc = (tp+tn)/predicted.size
-# f1 = 2*tp/(2*tp+fp+fn)
-# print2log('F1 score:%s'%f1)
-# print2log('Accuracy:%s'%class_acc)
-#
-#
-# # In[27]:
-#
-#
-# ### Save embeddings ###
-# Embs_1 = pd.DataFrame(z_latent_1.detach().cpu().numpy())
-# Embs_1.index = np.concatenate((sampleInfo_paired['sig_id.x'].values,sampleInfo_1.sig_id.values))
-# Embs_1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-# Embs_1.to_csv('trained_embs_all/AllEmbs_CPA_pc3.csv')
-# display(Embs_1)
-#
-#
-# # In[28]:
-#
-#
-# ### Save embeddings ###
-# Embs_2 = pd.DataFrame(z_latent_2.detach().cpu().numpy())
-# Embs_2.index = np.concatenate((sampleInfo_paired['sig_id.y'].values,sampleInfo_2.sig_id.values))
-# Embs_2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-# Embs_2.to_csv('trained_embs_all/AllEmbs_CPA_ha1e.csv')
-# display(Embs_2)
-#
-#
-# # In[29]:
-#
-#
-# r2_1 = r_square(xhat_1.detach().flatten(), x_1.detach().flatten())
-# pearson_1 = pearson_r(xhat_1.detach().flatten(), x_1.detach().flatten())
-# mse_1 = torch.mean(torch.mean((xhat_1 - x_1)**2,dim=1))
-# rhos =[]
-# for jj in range(xhat_1.shape[0]):
-#     rho,p = spearmanr(x_1[jj,:].detach().cpu().numpy(),xhat_1[jj,:].detach().cpu().numpy())
-#     rhos.append(rho)
-# Spear_1=np.mean(rhos)
-# acc = pseudoAccuracy(x_1.detach().cpu(),xhat_1.detach().cpu(),eps=1e-6)
-# Accuracy_1=np.mean(acc)
-# print2log('R^2 cell1: %s'%r2_1.item())
-# print2log('Pearson correlation cell1: %s'%pearson_1.item())
-# print2log('MSE cell1: %s'%mse_1.item())
-# print2log('Spearman correlation cell1: %s'%Spear_1)
-# print2log('Pseudo-accuracy cell1: %s'%Accuracy_1)
-#
-#
-# # In[30]:
-#
-#
-# r2_2 = r_square(xhat_2.detach().flatten(), x_2.detach().flatten())
-# pearson_2 = pearson_r(xhat_2.detach().flatten(), x_2.detach().flatten())
-# mse_2 = torch.mean(torch.mean((xhat_2 - x_2)**2,dim=1))
-# rhos =[]
-# for jj in range(xhat_2.shape[0]):
-#     rho,p = spearmanr(x_2[jj,:].detach().cpu().numpy(),xhat_2[jj,:].detach().cpu().numpy())
-#     rhos.append(rho)
-# Spear_2=np.mean(rhos)
-# acc = pseudoAccuracy(x_2.detach().cpu(),xhat_2.detach().cpu(),eps=1e-6)
-# Accuracy_2=np.mean(acc)
-# print2log('R^2 cell2: %s'%r2_2.item())
-# print2log('Pearson correlation cell2: %s'%pearson_2.item())
-# print2log('MSE cell2: %s'%mse_2.item())
-# print2log('Spearman correlation cell2: %s'%Spear_2)
-# print2log('Pseudo-accuracy cell2: %s'%Accuracy_2)
-#
-#
-# # In[31]:
-#
-#
-# paired_inds = len(sampleInfo_paired)
-#
-#
-# # In[32]:
-#
-#
-# x_1_equivalent = x_1[0:paired_inds,:]
-# x_2_equivalent = x_2[0:paired_inds,:]
-# pearDirect = pearson_r(x_1_equivalent.detach().flatten(), x_2_equivalent.detach().flatten())
-# rhos =[]
-# for jj in range(x_1_equivalent.shape[0]):
-#     rho,p = spearmanr(x_1_equivalent[jj,:].detach().cpu().numpy(),x_2_equivalent[jj,:].detach().cpu().numpy())
-#     rhos.append(rho)
-# Spear_direct=np.mean(rhos)
-# acc_2 = np.mean(pseudoAccuracy(x_2_equivalent.detach().cpu(),x_1_equivalent.detach().cpu(),eps=1e-6))
-# acc_1 = np.mean(pseudoAccuracy(x_1_equivalent.detach().cpu(),x_2_equivalent.detach().cpu(),eps=1e-6))
-# print2log('Pearson of direct translation: %s'%pearDirect.item())
-# print2log('Spearman of direct translation: %s'%Spear_direct)
-# print2log('Pdeudo-accuracy of direct translation from cell1 to cell2: %s'%acc_2)
-# print2log('Pdeudo-accuracy of direct translation from cell2 to cell1: %s'%acc_1)
-#
-#
-# # In[33]:
-#
-#
-# z_latent_1_equivalent  = encoder_1(x_1_equivalent)
-# z_latent_1_equivalent = Vsp(z_latent_1_equivalent, z_species_2)
-# x_hat_2_equivalent = decoder_2(z_latent_1_equivalent).detach()
-# r2_2 = r_square(x_hat_2_equivalent.detach().flatten(), x_2_equivalent.detach().flatten())
-# pearson_2 = pearson_r(x_hat_2_equivalent.detach().flatten(), x_2_equivalent.detach().flatten())
-# mse_2 = torch.mean(torch.mean((x_hat_2_equivalent - x_2_equivalent)**2,dim=1))
-# rhos =[]
-# for jj in range(x_2_equivalent.shape[0]):
-#     rho,p = spearmanr(x_2_equivalent[jj,:].detach().cpu().numpy(),x_hat_2_equivalent[jj,:].detach().cpu().numpy())
-#     rhos.append(rho)
-# Spear_2=np.mean(rhos)
-# acc_2 = np.mean(pseudoAccuracy(x_2_equivalent.detach().cpu(),x_hat_2_equivalent.detach().cpu(),eps=1e-6))
-# print2log('Pearson correlation cell1 to cell2: %s'%pearson_2.item())
-# print2log('Spearman cell1 to cell2: %s'%Spear_2)
-# print2log('Pdeudo-accuracy cell1 to cell2: %s'%acc_2)
-#
-#
-# # In[34]:
-#
-#
-# z_latent_2_equivalent  = encoder_2(x_2_equivalent)
-# z_latent_2_equivalent = Vsp(z_latent_2_equivalent, z_species_1)
-# x_hat_1_equivalent = decoder_1(z_latent_2_equivalent).detach()
-# r2_1 = r_square(x_hat_1_equivalent.detach().flatten(), x_1_equivalent.detach().flatten())
-# pearson_1 = pearson_r(x_hat_1_equivalent.detach().flatten(), x_1_equivalent.detach().flatten())
-# mse_1 = torch.mean(torch.mean((x_hat_1_equivalent - x_1_equivalent)**2,dim=1))
-# rhos =[]
-# for jj in range(x_1_equivalent.shape[0]):
-#     rho,p = spearmanr(x_1_equivalent[jj,:].detach().cpu().numpy(),x_hat_1_equivalent[jj,:].detach().cpu().numpy())
-#     rhos.append(rho)
-# Spear_1=np.mean(rhos)
-# acc_1 = np.mean(pseudoAccuracy(x_1_equivalent.detach().cpu(),x_hat_1_equivalent.detach().cpu(),eps=1e-6))
-# print2log('Pearson correlation cell2 to cell1: %s'%pearson_1.item())
-# print2log('MSE cell2 to cell1: %s'%mse_1.item())
-# print2log('Spearman cell2 to cell1: %s'%Spear_1)
-# print2log('Pdeudo-accuracy cell2 to cell1: %s'%acc_1)
-#
-#
-# # In[ ]:
-#
-#
-# # plt.figure()
-# # plt.scatter(x_1_equivalent.detach().flatten().cpu().numpy(),
-# #             x_2_equivalent.detach().flatten().cpu().numpy(),
-# #             alpha=0.1)
-# # plt.text(0, 0.9, 'r {:.2f}'.format(pearDirect.item()))
-# # plt.savefig('pc3_to_ha1e_direct_correlation_allgenes.png',dpi=600)
-#
-#
-# # In[36]:
-#
-#
-# #plt.figure()
-# #plt.scatter(x_hat_1_equivalent.detach().flatten().cpu().numpy(),
-# #            x_1_equivalent.detach().flatten().cpu().numpy(),
-# #           alpha=0.1)
-# #plt.text(0, 0.9, 'r {:.2f}'.format(pearson_1.item()))
-# #plt.savefig('ha1e_to_pc3_translate_correlation_cpa.png',dpi=600)
-#
-#
-# # In[37]:
-#
-#
-# #plt.figure()
-# #plt.scatter(x_hat_2_equivalent.detach().flatten().cpu().numpy(),
-# #            x_2_equivalent.detach().flatten().cpu().numpy(),
-# #           alpha=0.1)
-# #plt.text(0, 0.9, 'r {:.2f}'.format(pearson_2.item()))
-# #plt.savefig('pc3_to_ha1e_translate_correlation_cpa.png',dpi=600)
-#
-#
-# # In[39]:
-#
-#
-# torch.save(encoder_1, 'trained_models/Encoder_PC3_MI_allgenes_CPA.pth')
-# torch.save(encoder_2, 'trained_models/Encoder_HA1E_MI_allgenes_CPA.pth')
-# torch.save(decoder_1, 'trained_models/Decoder_PC3_MI_allgenes_CPA.pth')
-# torch.save(decoder_2, 'trained_models/Decoder_HA1E_MI_allgenes_CPA.pth')
-# torch.save(local_d, 'trained_models/local_d_MI_pc3_ha1e_allgenes_CPA.pth')
-# torch.save(prior_d, 'trained_models/prior_d_MI_pc3_ha1e_allgenes_CPA.pth')
-# torch.save(classifier,'trained_models/classifier_pc3_ha1e_CPA.pth')
-# torch.save(adverse_classifier,'trained_models/adverse_classifier_pc3_ha1e_CPA.pth')
-# torch.save(Vsp,'trained_models/Vsp_pc3_ha1e_CPA.pth')
-
-#import seaborn as sns
-#sns.set()
+# ## Split in 10fold validation
+k_folds=10
+print2log('Begin TransCompR modeling...')
+### Train TransCompR model with Decoder architecture
+### Perform PCA for each each cell-line
+print2log('Building PCA space for each species...')
+pca1 = PCA()
+pca2 = PCA()
+pca_space_1 = pca1.fit(human_exprs.values)
+pca_space_2 = pca2.fit(primates_exprs.values)
+exp_var_pca1 = pca_space_1.explained_variance_ratio_
+exp_var_pca2 = pca_space_2.explained_variance_ratio_
+cum_sum_eigenvalues_1 = np.cumsum(exp_var_pca1)
+cum_sum_eigenvalues_2 = np.cumsum(exp_var_pca2)
+n1 = np.min(np.where(cum_sum_eigenvalues_1>=0.9)[0])
+n2 = np.min(np.where(cum_sum_eigenvalues_2 >= 0.9)[0])
+if filter_pcs==True:
+    exp_var_pca1 = pca_space_1.explained_variance_ratio_
+    cum_sum_eigenvalues_1 = np.cumsum(exp_var_pca1)
+    nComps1 = np.min(np.where(cum_sum_eigenvalues_1>=0.99)[0])
+    pca1 = PCA(n_components=nComps1)
+    pca_space_1 = pca1.fit(human_exprs.values)
+    exp_var_pca2 = pca_space_2.explained_variance_ratio_
+    cum_sum_eigenvalues_2 = np.cumsum(exp_var_pca2)
+    nComps2 = np.min(np.where(cum_sum_eigenvalues_2 >= 0.99)[0])
+    pca2 = PCA(n_components=nComps2)
+    pca_space_2 = pca2.fit(primates_exprs.values)
+    pca_transformed_1 = pca_space_1.transform(human_exprs.values)
+    pca_transformed_2 = pca_space_2.transform(primates_exprs.values)
+else:
+    nComps1 = latent_dim
+    nComps2 = latent_dim
+    pca1 = PCA(n_components=nComps1)
+    pca2 = PCA(n_components=nComps2)
+    pca_space_1 = pca1.fit(human_exprs.values)
+    pca_space_2 = pca2.fit(primates_exprs.values)
+    pca_transformed_1 = pca_space_1.transform(human_exprs.values)
+    pca_transformed_2 = pca_space_2.transform(primates_exprs.values)
+    exp_var_pca1 = pca_space_1.explained_variance_ratio_
+    exp_var_pca2 = pca_space_2.explained_variance_ratio_
 
 
-# In[49]:
+model_params = {'encoder_1_hiddens':[64],
+                'encoder_2_hiddens':[64],
+                'decoder_1_hiddens': [64],
+                'decoder_2_hiddens': [128],
+                'latent_dim1': nComps1,
+                'latent_dim2': nComps2,
+                'dropout_decoder': 0.2,
+                'decoder_dropIn':0.0,
+                'dropout_encoder':0.1,
+                'encoder_activation':torch.nn.ELU(),#torch.nn.LeakyReLU(negative_slope=0.9),
+                'decoder_activation':torch.nn.ELU(),
+                'V_dropout':0.5,
+                'intermediateEncoder1':[nComps1],
+                'intermediateEncoder2':[nComps2],
+                'intermediate_latent1':nComps1,
+                'intermediate_latent2':nComps2,
+                'intermediate_enc_l2_reg':1e-05,
+                'intermediate_dropout':0.1,
+                'inter_dropIn': 0.1,
+                'state_class_hidden':[32,16,8],#[32,16,8,4],
+                'state_class_drop_in':0.25,
+                'state_class_drop':0.1,
+                'no_states':2,
+                'protect_class_hidden':[32,16,8],#[32,16,8,4,2],
+                'protect_class_drop_in':0.25,
+                'protect_class_drop':0.1,
+                'protect_states':2,
+                'species_class_hidden':[32,16,8],
+                'species_class_drop_in':0.1,
+                'species_class_drop':0.1,
+                'no_species':2,
+                'adv_class_hidden':[32,16,8],
+                'adv_class_drop_in':0.2,
+                'adv_class_drop':0.1,
+                'no_adv_class':2,
+                'encoding_lr':0.001,
+                'adv_lr':0.001,
+                'schedule_step_adv':300,
+                'gamma_adv':0.5,
+                'schedule_step_enc':300,
+                'gamma_enc':0.8,
+                'batch_size_1':35,
+                'batch_size_2':15,
+                'epochs':2000, # it was 1000 for only Vsp
+                'prior_beta':1.0,
+                'no_folds':k_folds,
+                'v_reg':1e-04,
+                'state_class_reg':1e-05,
+                'species_class_reg':1e-04,
+                'enc_l2_reg':1e-06,
+                'dec_l2_reg':1e-06,
+                'lambda_mi_loss':100.,
+                'effsize_reg': 1.,
+                'cosine_loss': 70,
+                'adv_penalnty':1.,
+                'reg_adv':100,
+                'reg_classifier': 100.,
+                'similarity_reg' : 40.,
+                'adversary_steps':4,
+                'autoencoder_wd': 0.,
+                'adversary_wd': 0.}
 
 
-#plt.hist(z_latent_1.detach().cpu().flatten().numpy())
-#plt.figure(figsize=(10,5), dpi= 80)
-#sns.set(font_scale=2)
-#sns.distplot(z_latent_1.detach().cpu().flatten().numpy())
-#plt.xlabel('PC3 encoded features values')
-#plt.ylabel('Density')
-#plt.title('Distribution of latent space features')
-#plt.savefig('good_trained_ae_pc3_latent_space_allgenes_CPA.png', bbox_inches='tight',dpi=600)
+for i in range(model_params["no_folds"]):
+    xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i).float().to(device)
+    ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+    # xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i).float().to(device)
+    # ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+    xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i).float().to(device)
+    ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+    # xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i).float().to(device)
+    # ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 
+    gene_size_primates = xtrain_primates.shape[1]
+    gene_size_human = xtrain_human.shape[1]
 
-#plt.hist(z_latent_2.detach().cpu().flatten().numpy())
-#plt.figure(figsize=(10,5), dpi= 80)
-#sns.set(font_scale=2)
-#sns.distplot(z_latent_2.detach().cpu().flatten().numpy())
-#plt.xlabel('HA1E encoded features values')
-#plt.ylabel('Density')
-#plt.title('Distribution of latent space features')
-#plt.savefig('good_trained_ae_ha1e_latent_space_allgenes_CPA.png', bbox_inches='tight',dpi=600)
+    # decoder_1 = torch.load( '../results_intermediate_encoders/models/10fold/decoder_human_%s.pt' % i)
+    # decoder_2 = torch.load( '../results_intermediate_encoders/models/10fold/decoder_primates_%s.pt' % i)
+    encoder_1 = torch.load('../results_intermediate_encoders/models/10fold/encoder_human_%s.pt' % i)
+    encoder_2 = torch.load('../results_intermediate_encoders/models/10fold/encoder_primates_%s.pt' % i)
+    # classifier = torch.load('../results_intermediate_encoders/models/10fold/classifier_%s.pt' % i)
+    # species_classifier = torch.load('../results_intermediate_encoders/models/10fold/species_classifier_%s.pt' % i)
+    # encoder_interm_1 = torch.load('../results_intermediate_encoders/models/10fold/encoder_intermediate_human_%s.pt' % i)
+    # encoder_interm_2 = torch.load('../results_intermediate_encoders/models/10fold/encoder_intermediate_primates_%s.pt' % i)
+    protection_classifier = torch.load('../results_intermediate_encoders/models/10fold/protection_classifier_%s.pt' % i)
 
+    encoder_1.eval()
+    encoder_2.eval()
+    protection_classifier.eval()
+    # classifier.eval()
+    # species_classifier.eval()
+    # encoder_interm_1.eval()
+    # encoder_interm_2.eval()
+    # decoder_1.eval()
+    # decoder_2.eval()
 
-encoder_1 = SimpleEncoder(gene_size, model_params['encoder_1_hiddens'], model_params['latent_dim'],
-                          dropRate=model_params['dropout_encoder'],
-                          activation=model_params['encoder_activation']).to(device)
-encoder_2 = SimpleEncoder(gene_size, model_params['encoder_2_hiddens'], model_params['latent_dim'],
-                          dropRate=model_params['dropout_encoder'],
-                          activation=model_params['encoder_activation']).to(device)
+    z_base_1 = encoder_1(xtrain_human).detach()
+    z_base_2 = encoder_2(xtrain_primates).detach()
+    latent_base_vectors = torch.cat((z_base_1, z_base_2), 0)
 
+    print2log('Start classification importance for model %s'%i)
+    # Classifier importance
+    ig = IntegratedGradients(protection_classifier)
+    # z_base_1.requires_grad_()
+    attr1 = ig.attribute(latent_base_vectors,target=1,n_steps=1000, return_convergence_delta=False)
+    attr1 = attr1.detach().cpu().numpy()
+    attr2 = ig.attribute(latent_base_vectors,target=0,n_steps=1000, return_convergence_delta=False)
+    attr2 = attr2.detach().cpu().numpy()
+    df1 = pd.DataFrame(attr1)
+    df1.columns = ['z'+str(i) for i in range(model_params['latent_dim1'])]
+    df1.to_csv('../importance_results/important_scores_to_classify_protection_%s.csv'%i)
+    df2 = pd.DataFrame(attr2)
+    df2.columns = ['z'+str(i) for i in range(model_params['latent_dim1'])]
+    df2.to_csv('../importance_results/important_scores_to_classify_nonprotection_%s.csv'%i)
 
-classifier = Classifier(in_channel=model_params['latent_dim'],
-                        hidden_layers=model_params['state_class_hidden'],
-                        num_classes=model_params['no_states'],
-                        drop_in=model_params['state_class_drop_in'],
-                        drop=model_params['state_class_drop']).to(device)
+    print2log('Start human feature importance for model %s'%i)
+    # Per output latent variable input importance translation captum
+    # 1st dimesion input
+    # 2nd dimesion output
+    ig = IntegratedGradients(encoder_1)
+    hid_dim = model_params['latent_dim1']
+    scores_human = torch.zeros((gene_size_human, hid_dim)).to(device)
+    for z in range(hid_dim):
+        # encoder_1.zero_grad()
+        attr = ig.attribute(xtrain_human, target=z, n_steps=1000, return_convergence_delta=False)
+        scores_human[:, z] = torch.mean(attr, 0)
+        # if z % 2 == 0 :
+        #     print2log(z)
+    df_human = pd.DataFrame(scores_human.cpu().numpy())
+    df_human.columns = ['z' + str(i) for i in range(model_params['latent_dim1'])]
+    df_human.index = human_exprs.columns
+    df_human.to_csv('../importance_results/important_scores_human_features_%s.csv'%i)
 
-Vsp = SpeciesCovariate(2, model_params['latent_dim'], dropRate=model_params['V_dropout']).to(device)
+    print2log('Start primates feature importance for model %s'%i)
+    # Per output latent variable input importance translation captum
+    # 1st dimesion input
+    # 2nd dimesion output
+    ig = IntegratedGradients(encoder_2)
+    scores_primates = torch.zeros((gene_size_primates, hid_dim)).to(device)
+    for z in range(hid_dim):
+        # encoder_1.zero_grad()
+        attr = ig.attribute(xtrain_primates, target=z, n_steps=1000, return_convergence_delta=False)
+        scores_primates[:, z] = torch.mean(attr, 0)
+        # if z % 2 == 0 :
+        #     print2log(z)
+    df_primates = pd.DataFrame(scores_primates.cpu().numpy())
+    df_primates.columns = ['z' + str(i) for i in range(model_params['latent_dim2'])]
+    df_primates.index = primates_exprs.columns
+    df_primates.to_csv('../importance_results/important_scores_primates_features_%s.csv'%i)
 
-#encoder_1=torch.load('alldata_cpa_encoder_pc3.pth')
-encoder_2=torch.load('alldata_cpa_encoder_ha1e.pth')
-classifier = torch.load('alldata_cpa_classifier_pc3_ha1e.pth')
-Vsp = torch.load('alldata_cpa_Vsp_pc3_ha1e.pth')
+    print2log('Finished model %s'%i)
 
-#encoder_1.eval()
-encoder_2.eval()
-classifier.eval()
-Vsp.eval()
-print2log('Evaluation mode')
+### Perform importance calculation for translation
+### Load features of interest
+interesting_feats = pd.read_csv('../importance_results/interesting_features.csv',index_col=0)
+### Load data and trim
+print2log('Translation feature importance')
+print2log('Loading data...')
+human_exprs = pd.read_csv('../data/human_exprs.csv',index_col=0)
+interesting_human_feats_inds = [human_exprs.columns.get_loc(feat) for feat in interesting_feats[interesting_feats['species']=='human'].feature]
+human_metadata = pd.read_csv('../data/human_metadata.csv',index_col=0)
+primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
+interesting_primates_feats_inds = [primates_exprs.columns.get_loc(feat) for feat in interesting_feats[interesting_feats['species']=='primates'].feature]
+primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
+Xh = torch.tensor(human_exprs.values).double()
+Xm = torch.tensor(primates_exprs.values).double()
+Yh = torch.tensor(human_metadata.loc[:,['trt','infect']].values).long()
+Ym = torch.tensor(primates_metadata.loc[:,['Vaccine','ProtectBinary']].values).long()
 
-
-x_1 = torch.tensor(np.concatenate((cmap.loc[sampleInfo_paired['sig_id.x']].values,
-                                      cmap.loc[sampleInfo_1.sig_id].values))).float().to(device)
-x_2 = torch.tensor(np.concatenate((cmap.loc[sampleInfo_paired['sig_id.y']].values,
-                                      cmap.loc[sampleInfo_2.sig_id].values))).float().to(device)
-
-z_species_1 = torch.cat((torch.ones(x_1.shape[0], 1),
-                         torch.zeros(x_1.shape[0], 1)), 1).to(device)
-z_species_2 = torch.cat((torch.zeros(x_2.shape[0], 1),
-                         torch.ones(x_2.shape[0], 1)), 1).to(device)
-
-paired_inds = len(sampleInfo_paired)
-len_samples = x_1.shape[0]
-
-
-# In[ ]:
-
-
-# Classifier importance
-#idf_z1 = pd.read_csv('trained_embs_all/AllEmbs_CPA_pc3.csv',index_col=0).drop_duplicates()
-#df_z2 = pd.read_csv('trained_embs_all/AllEmbs_CPA_ha1e.csv',index_col=0).drop_duplicates()
-#df_latents = pd.concat((df_z1,df_z2),axis=0)
-#z_1 = torch.tensor(df_z1.values).to(device)
-#z_2 = torch.tensor(df_z2.values).to(device)
-#z = torch.cat((z_1,z_2),0).float()
-#ig = IntegratedGradients(classifier)
-#z.requires_grad_()
-#attr1 = ig.attribute(z,target=1,n_steps=100, return_convergence_delta=False)
-#attr1 = attr1.detach().cpu().numpy()
-#attr2 = ig.attribute(z,target=0,n_steps=100, return_convergence_delta=False)
-#attr2 = attr2.detach().cpu().numpy()
-#df1 = pd.DataFrame(attr1)
-#df1.index = df_latents.index
-#df1.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-#df1.to_csv('Importance_results/important_scores_to_classify_as_pc3_cpa.csv')
-#df2 = pd.DataFrame(attr2)
-#df2.index = df_latents.index
-#df2.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-#df2.to_csv('Importance_results/important_scores_to_classify_as_ha1e_cpa.csv')
-
-
-# x_1_equivalent = x_1[0:paired_inds,:]
-# x_2_equivalent = x_2[0:paired_inds,:]
-
-class LatentEncode(torch.nn.Module):
-    def __init__(self, encoder,V):
-        super(LatentEncode, self).__init__()
+# Define translator model
+class TranslatorModel(torch.nn.Module):
+    def __init__(self, encoder,encoder_interim,decoder):
+        super(TranslatorModel, self).__init__()
 
         self.encoder = encoder
-        self.V = V
+        self.encoder_interim = encoder_interim
+        self.decoder = decoder
 
-    def forward(self, x,z_base):
-
+    def forward(self, x):
         z = self.encoder(x)
-        z = self.V(z, z_base)
+        z = self.encoder_interim(z)
+        y = self.decoder(z)
+        return y
 
-        return z
+print2log('Begin finding features to translate from primates to human')
+for i in range(model_params["no_folds"]):
+    xtrain_primates = torch.load('../data/10fold_cross_validation/train/xtrain_primates_%s.pt' % i).float().to(device)
+    ytrain_primates = torch.load('../data/10fold_cross_validation/train/ytrain_primates_%s.pt' % i)
+    # xtest_primates = torch.load('../data/10fold_cross_validation/train/xtest_primates_%s.pt' % i).float().to(device)
+    # ytest_primates = torch.load('../data/10fold_cross_validation/train/ytest_primates_%s.pt' % i)
+    xtrain_human = torch.load('../data/10fold_cross_validation/train/xtrain_human_%s.pt' % i).float().to(device)
+    ytrain_human = torch.load('../data/10fold_cross_validation/train/ytrain_human_%s.pt' % i)
+    # xtest_human = torch.load('../data/10fold_cross_validation/train/xtest_human_%s.pt' % i).float().to(device)
+    # ytest_human = torch.load('../data/10fold_cross_validation/train/ytest_human_%s.pt' % i)
 
-fullEncoder = LatentEncode(encoder_2,Vsp).to(device)
-fullEncoder.eval()
-ig = IntegratedGradients(fullEncoder)
-# ig = IntegratedGradients(encoder_1)
+    gene_size_primates = xtrain_primates.shape[1]
+    gene_size_human = xtrain_human.shape[1]
 
-# Per output latent variable input importance translation captum
-# 1st dimesion input
-# 2nd dimesion output
-hid_dim = model_params['latent_dim']
-scores = torch.zeros ((gene_size,hid_dim)).to(device)
-for z in range(hid_dim):
-    #encoder_1.zero_grad()
-    attr, delta = ig.attribute((x_2,z_species_2),target=z,n_steps=100,return_convergence_delta=True)
-    if z == 0:
-        print2log(attr[0].shape)
-    scores[:,z] = torch.mean(attr[0],0)
-print2log(scores)
+    decoder_1 = torch.load( '../results_intermediate_encoders/models/10fold/decoder_human_%s.pt' % i)
+    # decoder_2 = torch.load( '../results_intermediate_encoders/models/10fold/decoder_primates_%s.pt' % i)
+    # encoder_1 = torch.load('../results_intermediate_encoders/models/10fold/encoder_human_%s.pt' % i)
+    encoder_2 = torch.load('../results_intermediate_encoders/models/10fold/encoder_primates_%s.pt' % i)
+    encoder_interm_1 = torch.load('../results_intermediate_encoders/models/10fold/encoder_intermediate_human_%s.pt' % i)
+    # encoder_interm_2 = torch.load('../results_intermediate_encoders/models/10fold/encoder_intermediate_primates_%s.pt' % i)
 
-#plt.figure(figsize=(10,5), dpi= 80)
-#sns.set(font_scale=2)
-#sns.distplot(scores.flatten().cpu().numpy())
-#plt.xlabel('Importance score')
-#plt.ylabel('Density')
-#plt.title('Distribution of importance scores of the input features')
-#plt.savefig('pc3_important_scores_to_encode.png', bbox_inches='tight')
+    translator =TranslatorModel(encoder_2,encoder_interm_1,decoder_1).to(device)
 
+    # encoder_1.eval()
+    encoder_2.eval()
+    encoder_interm_1.eval()
+    # encoder_interm_2.eval()
+    decoder_1.eval()
+    # decoder_2.eval()
+    translator.eval()
 
-df = pd.DataFrame(scores.cpu().numpy())
-df.columns = ['z'+str(i) for i in range(model_params['latent_dim'])]
-df.index = cmap.columns
-df.to_csv('Importance_results/important_scores_ha1e_to_encode.csv')
+    # Per output latent variable input importance translation captum
+    # 1st dimesion input
+    # 2nd dimesion output
+    ig = IntegratedGradients(translator)
+    scores_primates = torch.zeros((gene_size_primates, len(interesting_human_feats_inds))).to(device)
+    ii = 0
+    for feat in interesting_human_feats_inds:
+        # encoder_1.zero_grad()
+        attr = ig.attribute(xtrain_primates, target=feat, n_steps=1000, return_convergence_delta=False)
+        scores_primates[:, ii] = torch.mean(attr, 0)
+        ii = ii + 1
+        # if z % 2 == 0 :
+        #     print2log(z)
+    df_primates = pd.DataFrame(scores_primates.cpu().numpy())
+    df_primates.columns = interesting_feats[interesting_feats['species']=='human'].feature
+    df_primates.index = primates_exprs.columns
+    df_primates.to_csv('../importance_results/translation/important_scores_primates_to_human_%s.csv' % i)
+    print2log('Finished model %s' % i)

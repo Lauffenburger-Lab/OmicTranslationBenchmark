@@ -104,22 +104,28 @@ all_results <- rbind(results %>% mutate(model='model translation'),
                      res2%>% mutate(model='direct translation in 10k genes'))
 all_results$model <- factor(all_results$model,levels = c('direct translation in 10k genes','model translation'))
 
-p <- ggboxplot(all_results,x='metric',y='value',color='model',add='jitter') + 
+p <- ggboxplot(all_results,x='metric',y='value',color='model',add='jitter',
+               add.params = list(size = 2),size = 1) + 
   scale_color_manual(breaks = c('model translation','direct translation in 10k genes'),
                      values=scales::hue_pal()(length(unique(all_results$model))))+
-  theme_minimal(base_family = "Arial",base_size = 20)+ 
-  theme(plot.title = element_text(hjust = 0.5,size=16),legend.position='bottom') + 
   ggtitle('Performance with different input sizes (A375 with 978 genes, HT29 with ~10k genes)') + ylim(c(0,0.75))+
-  facet_wrap(~ translation)
-p <- p+ stat_compare_means(aes(group=model),method='wilcox.test',label='p.signif')
+  facet_wrap(~ translation)+
+  theme_minimal(base_family = "Arial",base_size = 38)+ 
+  theme(text = element_text("Arial",size = 38),
+        axis.title = element_text("Arial",size = 38,face = "bold"),
+        axis.text = element_text("Arial",size = 38,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 38,face = "bold"),
+        plot.title = element_text(hjust = 0.75,size=30,face='bold'),legend.position='bottom')
+p <- p+ stat_compare_means(aes(group=model),method='wilcox.test',label='p.signif',size=8)
+p <- p+ scale_x_discrete(expand = c(0.2, 0))
 print(p)
 ggsave(
   '../figures/performance_diffsize_a375_ht29.eps',
-  plot = last_plot(),
+  plot = p,
   device = 'eps',
   scale = 1,
-  width = 12,
-  height = 9,
+  width = 16,
+  height = 12,
   units = "in",
   dpi = 600,
 )
@@ -265,8 +271,14 @@ p <- ggplot(all_results %>% filter(metric=='pearson translation'),aes(size,mean_
   xlab('total sample size (equal size per cell line)') + ylab('Average pearson`s r for translation')+
   ggtitle('Performance curve for increasing number of available data') +
   ylim(c(0,max(all_results$value)))+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=23),legend.position='top')
+  theme_minimal(base_family = "Arial",base_size = 26)+
+  theme(text = element_text("Arial",size = 26),
+        axis.title = element_text("Arial",size = 26,face = "bold"),
+        axis.text = element_text("Arial",size = 26,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 26,face = "bold"),
+        plot.title = element_text(hjust = 0.5,size=26,face = "bold"),
+        legend.position='top',
+        panel.grid.major = element_line(linewidth=1.5))
 #dev.off()
 print(p)
 ggsave(
@@ -312,9 +324,10 @@ correlation_res$smoothed <- ys
 # Plot performace vs direct pearson
 png('../figures/MaxCorr_vs_directCorr_lands.png',width=10,height=8,units = "in",res = 600)
 ggplot(correlation_res %>% select(direct_translation,value,mean_value,std_value,smoothed) %>% unique(),
-       aes(direct_translation,mean_value))+ geom_point() +
-  geom_errorbar(aes(ymin = mean_value - std_value/sqrt(5), ymax = mean_value + std_value/sqrt(5)))+
-  geom_line(alpha=0.35)+
+       aes(direct_translation,mean_value))+ geom_point(size=2) +
+  geom_errorbar(aes(ymin = mean_value - std_value/sqrt(5), ymax = mean_value + std_value/sqrt(5)),
+                width = 0.01,size=0.7)+
+  geom_line(alpha=0.5)+
   geom_smooth(aes(direct_translation,smoothed),linetype=2,color='red')+
   scale_x_continuous(name="Pearson correlation of direct translation",
                      limits=c(0.25, 0.5))+
@@ -324,8 +337,13 @@ ggplot(correlation_res %>% select(direct_translation,value,mean_value,std_value,
                      limits=c(0.3, 0.7))+
   coord_equal(ratio = 1/2.5)+
   ggtitle('Maximum possible performance as a function of base correlation between cell-line pairs')+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.5,size=20))
+  theme_minimal(base_family = "Arial",base_size = 26)+
+  theme(text = element_text("Arial",size = 26),
+        axis.title = element_text("Arial",size = 22,face = "bold"),
+        axis.text = element_text("Arial",size = 26,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 26,face = "bold"),
+        plot.title = element_text(hjust = 0.8,size=18,face = "bold"),
+        panel.grid.major = element_line(linewidth=1.5))
 dev.off()
 ggsave(
   '../figures/MaxCorr_vs_directCorr_lands.eps',
@@ -428,8 +446,15 @@ p <- ggplot(all_results,aes(ratio,mean_value)) +
   ggtitle('Performance as a function of the ratio of the number of data of the 2 cell-lines') +
   ylim(c(0,max(results$value)))+
   labs(color='Translation',linetype='Cell with increasing data')+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(size=20))+
+  theme_minimal(base_family = "Arial",base_size = 26)+
+  theme(text = element_text("Arial",size = 26),
+        axis.title = element_text("Arial",size = 22,face = "bold"),
+        axis.text = element_text("Arial",size = 26,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 26,face = "bold"),
+        plot.title = element_text(hjust = 0.5,size=18,face = "bold"),
+        legend.text = element_text("Arial",size = 20),
+        legend.title = element_text("Arial",size = 20),
+        panel.grid.major = element_line(linewidth=1.5))+
   geom_hline(aes(yintercept= 0.43, linetype = 2),linetype=1,color='red')
 
 #dev.off()
@@ -514,8 +539,15 @@ p <- ggplot(results %>% filter(metric=='pearson translation'),aes(ratio*100,mean
   xlab('Percentage of paired conditions (%)') + ylab('Average pearson`s r for translation')+
   ggtitle('Performance for increasing percentage of paired conditions to the total number of conditions') +
   ylim(c(0,max(results$value)))+
-  theme_minimal(base_family = "Arial",base_size = 20)+
-  theme(plot.title = element_text(hjust = 0.0,size=18))+
+  theme_minimal(base_family = "Arial",base_size = 26)+
+  theme(text = element_text("Arial",size = 26),
+        axis.title = element_text("Arial",size = 22,face = "bold"),
+        axis.text = element_text("Arial",size = 26,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 26,face = "bold"),
+        plot.title = element_text(hjust = 0.0,size=16,face = "bold"),
+        legend.text = element_text("Arial",size = 20),
+        legend.title = element_text("Arial",size = 20),
+        panel.grid.major = element_line(linewidth=1.5))+
   scale_color_gradient2('total number of samples',
                         low = "yellow", 
                         mid = "orange", 

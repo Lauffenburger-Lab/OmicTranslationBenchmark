@@ -39,6 +39,7 @@ p1 <- ggboxplot(results_f1,x='task',y='F1',color = 'task') +
   theme(panel.grid.major = element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         panel.grid.minor =  element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         axis.text.x = element_blank(),
+        legend.text = element_text(family = 'Arial',size=20),
         text = element_text(family = 'Arial',size=24))
 print(p1)
 
@@ -48,19 +49,20 @@ p2 <- ggboxplot(results_acc,x='task',y='Accuracy',color = 'task') +
   theme(panel.grid.major = element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         panel.grid.minor =  element_line(color = "gray70", linewidth = 0.5, linetype = "dashed"),
         axis.text.x = element_blank(),
+        legend.text = element_text(family = 'Arial',size=20),
         text = element_text(family = 'Arial',size=24))
 print(p2)
 
 # combine into one plot
-p <- ggarrange(plotlist=list(p1,p2),ncol=2,nrow=1,common.legend = TRUE,legend = 'bottom')
+p <- ggarrange(plotlist=list(p1,p2),ncol=2,nrow=1,common.legend = TRUE,legend = 'top')
 annotate_figure(p, top = text_grob("Classification performance", 
                                    color = "black",face = 'plain', size = 24))
 ggsave(
   'results_intermediate_encoders/classification_performance.eps', 
   device = cairo_ps,
   scale = 1,
-  width = 18,
-  height = 12,
+  width = 22,
+  height = 14,
   units = "in",
   dpi = 600,
 )
