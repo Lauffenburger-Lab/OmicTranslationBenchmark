@@ -1,0 +1,7 @@
+,metric,multi-linear PCR decoder,ANN decoder
+multi-linear PCR decoder,pearson,1.0,0.3447042220069576
+ANN decoder,pearson,0.0,1.0
+multi-linear PCR decoder,spearman,1.0,0.9097218891455553
+ANN decoder,spearman,0.0,1.0
+multi-linear PCR decoder,sign accuracy,1.0,0.9097218891455553
+ANN decoder,sign accuracy,0.0,1.0

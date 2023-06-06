@@ -1,0 +1,10 @@
+,metric,direct translation,multi-linear PCR decoder,ANN decoder
+direct translation,pearson,1.0,0.025748080821108063,0.00579535854433471
+multi-linear PCR decoder,pearson,0.0,1.0,0.14046504815835495
+ANN decoder,pearson,0.0,0.0,1.0
+direct translation,spearman,1.0,0.014019277113959953,0.0022022199424970783
+multi-linear PCR decoder,spearman,0.0,1.0,0.27303633975118835
+ANN decoder,spearman,0.0,0.0,1.0
+direct translation,sign accuracy,1.0,0.014019277113959953,0.0028272720911168077
+multi-linear PCR decoder,sign accuracy,0.0,1.0,0.21229383619233155
+ANN decoder,sign accuracy,0.0,0.0,1.0

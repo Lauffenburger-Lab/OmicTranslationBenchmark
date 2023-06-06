@@ -145,9 +145,13 @@ for (set in sets){
   print(paste0('Finished ',set))
 }
 
-saveRDS(base_geneset_corr,'../results/base_genesets_correlation.rds')
-saveRDS(model_geneset_corr_cell1_to_cell2,'../results/model_A375_to_HT29_genesets_correlation.rds')
-saveRDS(model_geneset_corr_cell2_to_cell1,'../results/model_HT29_to_A375_genesets_correlation.rds')
+# saveRDS(base_geneset_corr,'../results/base_genesets_correlation.rds')
+# saveRDS(model_geneset_corr_cell1_to_cell2,'../results/model_A375_to_HT29_genesets_correlation.rds')
+# saveRDS(model_geneset_corr_cell2_to_cell1,'../results/model_HT29_to_A375_genesets_correlation.rds')
+
+base_geneset_corr <- readRDS('../results/base_genesets_correlation.rds')
+model_geneset_corr_cell1_to_cell2 <- readRDS('../results/model_A375_to_HT29_genesets_correlation.rds')
+model_geneset_corr_cell2_to_cell1 <- readRDS('../results/model_HT29_to_A375_genesets_correlation.rds')
 
 ### Visualize results ------
 baseline_res <- do.call(cbind.data.frame, base_geneset_corr)
@@ -164,11 +168,12 @@ results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(genese
 p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
   ggtitle(paste0('Genestet performance for translating from ',cells[1],' to ',cells[2]))+ ylab('pearson`s r')+ ylim(c(0,0.85))+
   theme_minimal(base_family = "Arial",base_size = 16)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
+  theme(plot.title = element_text(hjust = 0.5,size=16),
+        axis.text.x = element_text(size=14))
 p <- p + stat_compare_means(aes(group = model),label='p.signif')
 print(p)
 png(paste0('../figures/genesets_model_vs_direct_',tolower(cells[1]),'_',tolower(cells[2]),'.png')
-    ,width=12,height=8,units = "in",res = 600)
+    ,width=16,height=8,units = "in",res = 600)
 print(p)
 dev.off()
 # setEPS()
@@ -187,11 +192,12 @@ results <- results %>% mutate(geneset=strsplit(geneset,'NES')) %>% unnest(genese
 p <- ggboxplot(results, x = "geneset", y = 'cor',color = "model",add='jitter')+
   ggtitle(paste0('Genestet performance for translating from ',cells[2],' to ',cells[1]))+ ylab('pearson`s r')+ ylim(c(0,0.85))+
   theme_minimal(base_family = "Arial",base_size = 16)+
-  theme(plot.title = element_text(hjust = 0.5,size=16))
+  theme(plot.title = element_text(hjust = 0.5,size=16),
+        axis.text.x = element_text(size=14))
 p <- p + stat_compare_means(aes(group = model),label='p.signif')
 print(p)
 png(paste0('../figures/genesets_model_vs_direct_',tolower(cells[2]),'_',tolower(cells[1]),'.png')
-    ,width=12,height=8,units = "in",res = 600)
+    ,width=16,height=8,units = "in",res = 600)
 print(p)
 dev.off()
 
