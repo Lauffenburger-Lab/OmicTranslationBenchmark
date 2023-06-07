@@ -158,6 +158,6 @@ serology/results_intermediate_encoders/models/10fold_1000ep
 serology/results_intermediate_encoders/models/10fold_1000ep/*
 serology/results_intermediate_encoders/pretrained_models/5fold
 serology/results_intermediate_encoders/pretrained_models/5fold/*
-serology/results/*.csv
+serology/results/10foldvalidation_*
 figures/*.eps
 figures/MI_results/*.eps
