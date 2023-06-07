@@ -160,4 +160,7 @@ serology/results_intermediate_encoders/pretrained_models/5fold
 serology/results_intermediate_encoders/pretrained_models/5fold/*
 serology/results/10foldvalidation_*
 figures/*.eps
+figures/*.ps
+figures/*.png
+figures/.Rhistory
 figures/MI_results/*.eps
