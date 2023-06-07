@@ -297,18 +297,31 @@ feats_primates <- feats_primates %>% mutate(protected=ifelse(protection==1,'prot
 feats_primates$protected <- factor(feats_primates$protected,levels = c('non-protected','protected'))
 feats_primates <- feats_primates %>% gather('feature','value',-protection,-protected)
 feats_primates <- left_join(feats_primates,translation_importance)
-pairwise.test_primates = feats_primates %>% filter(mean_percentage_score>=30) %>% group_by(feature) %>%
+pairwise.test_primates = feats_primates %>% filter(mean_percentage_score>=30) %>% 
+  filter(quality=='high' | quality=='good' ) %>% group_by(feature) %>%
   wilcox_test(value ~ protected) %>% 
   adjust_pvalue(method = 'bonferroni') %>% ungroup()
 #pairwise.test_primates <- pairwise.test_primates %>% filter(p.adj<=0.05)
-ggboxplot(feats_primates %>% filter(mean_percentage_score>=30) %>% filter(feature %in% pairwise.test_primates$feature),
+ggboxplot(feats_primates %>% filter(mean_percentage_score>=30) %>% 
+            filter(quality=='high' | quality=='good' )%>%
+            filter(feature %in% pairwise.test_primates$feature),
           x='protected',y='value',color='protected',add='jitter')+
   facet_wrap(~feature) +
   #ylim(c(-3.7,3))+
   stat_pvalue_manual(pairwise.test_primates,
                      label = "p.adj = {scales::pvalue(p.adj)}",
                      y.position = 1.25)
-
+png('importance_results/figures/importance_primates_features_greather_than_30perctranslation_goodhigh.png',width=18,height=16,units = "in",res = 600)
+ggboxplot(feats_primates %>% filter(mean_percentage_score>=30) %>% 
+            filter(quality=='high' | quality=='good' )%>%
+            filter(feature %in% pairwise.test_primates$feature),
+          x='protected',y='value',color='protected',add='jitter')+
+  facet_wrap(~feature) +
+  #ylim(c(-3.7,3))+
+  stat_pvalue_manual(pairwise.test_primates,
+                     label = "p.adj = {scales::pvalue(p.adj)}",
+                     y.position = 1.25)
+dev.off()
 # compare importance score of primates for what is believed to be human protection
 # and the translation
 results <- left_join(translation_importance,features_results_primates,by='feature')
