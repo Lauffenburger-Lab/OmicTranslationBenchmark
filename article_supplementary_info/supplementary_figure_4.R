@@ -85,7 +85,145 @@ samples_separation <- function(processed_embbedings,save_name,
   return(dist)
 }
 
-
+pca_visualize <- function(embbedings,dim=2,scale=F,show_plot=F,
+                          title=NULL,
+                          colors=data.frame(col=c("#125b80",
+                                                  "#cc8110",
+                                                  "#0b7545",
+                                                  "#a81443",
+                                                  "#78db0f",
+                                                  "#f96d93",
+                                                  "#bc1836", 
+                                                  "#d3bb32", 
+                                                  "#f461e1", 
+                                                  "#5fbee8",
+                                                  "#a54a29"))){
+  
+  embs <- embbedings %>% column_to_rownames('sig_id') %>%
+    select(-conditionId,-cell_iname,-cmap_name,-duplIdentifier)
+  sample_info <- embbedings %>% select(sig_id,cell_iname)
+  
+  pca <- prcomp(embs,scale=scale)
+  df_pca<- pca$x[,1:dim]
+  df_pca <- as.data.frame(df_pca)
+  
+  col_names <- paste0(rep('PC',dim),seq(1,dim))
+  colnames(df_pca) <- col_names
+  embs_reduced <- df_pca %>% rownames_to_column('sig_id')
+  embs_reduced <- left_join(embs_reduced,
+                            sample_info %>% select(sig_id,cell_iname) %>% 
+                              unique())
+  embs_reduced <- embs_reduced %>% select(all_of(col_names),c('cell line'='cell_iname'))
+  
+  uniq_cells <- unique(embs_reduced$`cell line`)
+  id_colors <- colors$col
+  if (length(uniq_cells)>length(id_colors)){
+    rand_colors <- randomcoloR::randomColor(1000,luminosity ='dark')
+    rand_colors <- rand_colors[which(!(rand_colors %in% id_colors))]
+    id_colors <- c(id_colors,rand_colors[1:(length(uniq_cells)-length(id_colors))])
+  }
+  
+  if (dim==2){
+    pca_plot <- ggplot(embs_reduced,aes(PC1,PC2)) +geom_point(aes(col=`cell line`))+
+      scale_color_manual(values = id_colors)+
+      ggtitle(title) + 
+      xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
+      theme(text = element_text(size=14),plot.title = element_text(hjust = 0.5),
+            legend.text=element_text(size=14))
+  }else{
+    pca_plot <- ggplot(embs_reduced,aes(x=PC1,y=PC2,z=PC3,col=`cell line`))+
+      ggtitle(title) +
+      scale_color_manual(values = id_colors)+
+      theme_void() +
+      labs_3D(labs=c("PC1", "PC2", "PC3"),
+              angle=c(0,0,0),
+              hjust=c(0,2,2),
+              vjust=c(2,2,-1))+
+      axes_3D() +
+      stat_3D()+
+      theme(text = element_text(size=14),plot.title = element_text(hjust = 0.5),
+            legend.text=element_text(size=14))
+  }
+  if (show_plot==T){
+    print(pca_plot)
+  }
+  return(pca_plot)
+}
+tsne_visualize <- function(embbedings,dim=2,scale=F,normalize=F,show_plot=F,init_dim=10,iter=1000,
+                           title=NULL,
+                           colors=data.frame(col=c("#125b80","#cc8110",
+                                                   "#0b7545",
+                                                   "#a81443",
+                                                   "#78db0f",
+                                                   "#f96d93",
+                                                   "#bc1836", 
+                                                   "#d3bb32", 
+                                                   "#f461e1", 
+                                                   "#5fbee8",
+                                                   "#a54a29"))){
+  
+  embs <- embbedings %>% column_to_rownames('sig_id') %>%
+    select(-conditionId,-cell_iname,-cmap_name,-duplIdentifier)
+  sample_info <- embbedings %>% select(sig_id,cell_iname)
+  
+  library(Rtsne)
+  perpl = DescTools::RoundTo(sqrt(nrow(embs)), multiple = 5, FUN = round)
+  emb_size = ncol(embs)
+  set.seed(42)
+  tsne_all <- Rtsne(embs, 
+                    dims = dim, perplexity=perpl, 
+                    verbose=F, max_iter = iter,initial_dims = init_dim,check_duplicates = T,
+                    normalize = normalize,pca_scale = scale,
+                    num_threads = 15)
+  if (dim==2){
+    df_tsne <- data.frame(V1 = tsne_all$Y[,1], V2 =tsne_all$Y[,2])
+  }else{
+    df_tsne <- data.frame(V1 = tsne_all$Y[,1], V2 =tsne_all$Y[,2],V3 =tsne_all$Y[,3])
+  }
+  rownames(df_tsne) <- rownames(embs)
+  
+  col_names <- paste0(rep('tSNE-',dim),seq(1,dim))
+  colnames(df_tsne) <- col_names
+  embs_reduced <- df_tsne %>% rownames_to_column('sig_id')
+  embs_reduced <- left_join(embs_reduced,
+                            sample_info %>% select(sig_id,cell_iname) %>% 
+                              unique())
+  embs_reduced <- embs_reduced %>% select(all_of(col_names),c('cell line'='cell_iname'))
+  
+  uniq_cells <- unique(embs_reduced$`cell line`)
+  id_colors <- colors$col
+  if (length(uniq_cells)>length(id_colors)){
+    rand_colors <- randomcoloR::randomColor(1000,luminosity ='dark')
+    rand_colors <- rand_colors[which(!(rand_colors %in% id_colors))]
+    id_colors <- c(id_colors,rand_colors[1:(length(uniq_cells)-length(id_colors))])
+  }
+  
+  if (dim==2){
+    tsne_plot <- ggplot(embs_reduced,aes(`tSNE-1`,`tSNE-2`)) +geom_point(aes(col=`cell line`))+
+      scale_color_manual(values = id_colors)+
+      ggtitle(title) + 
+      xlab(paste0('tSNE-1'))+ ylab(paste0('tSNE-2'))+theme_minimal()+
+      theme(text = element_text(size=14),plot.title = element_text(hjust = 0.5),
+            legend.text=element_text(size=14))
+  }else{
+    tsne_plot <- ggplot(embs_reduced,aes(x=`tSNE-1`,y=`tSNE-2`,z=`tSNE-3`,col=`cell line`))+
+      ggtitle(title) +
+      scale_color_manual(values = id_colors)+
+      theme_void() +
+      labs_3D(labs=c("tSNE-1", "tSNE-2", "tSNE-3"),
+              angle=c(0,0,0),
+              hjust=c(0,2,2),
+              vjust=c(2,2,-1))+
+      axes_3D(phi=30) +
+      stat_3D()+
+      theme(text = element_text(size=14),plot.title = element_text(hjust = 0.5),
+            legend.text=element_text(size=14))
+  }
+  if (show_plot==T){
+    print(tsne_plot)
+  }
+  return(tsne_plot)
+}
 
 # Load samples info
 sigInfo <- read.delim('../../../L1000_2021_11_23/siginfo_beta.txt')
@@ -105,6 +243,8 @@ plotList <- NULL
 distrList <- NULL
 df_effsize <- data.frame()
 #df_effsize_train <- data.frame()
+pcaList <- NULL
+tsneList <- NULL
 for (i in 0:9){
   #for (i in c(2,7)){
   # Load train, validation info
@@ -127,11 +267,11 @@ for (i in 0:9){
   valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
   
   # Load embeddings of pre-trained
-  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
-                      data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/trainEmbs_a375_withclass_',i,'.csv'),header = T),
+                      data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/trainEmbs_ht29_withclass_',i,'.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
-                     data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/valEmbs_a375_withclass_',i,'.csv'),header = T),
+                     data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/valEmbs_ht29_withclass_',i,'.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
   embs_proc_train <- process_embeddings(embs_train,sigInfo,trainInfo)
   embs_proc_test <- process_embeddings(embs_test,sigInfo,valInfo)
@@ -197,10 +337,50 @@ for (i in 0:9){
   #print(violin_separation)
   plotList[[i+1]] <- violin_separation
   
+  # Visualization
+  pca_train <- pca_visualize(embs_proc_train,scale=T,dim=2,
+                             title=paste0('train ',i+1),
+                             show_plot = F)
+  pca_test <- pca_visualize(embs_proc_test,scale=T,dim=2,
+                            title=paste0('validation ',i+1),
+                            show_plot = F)
+  pca_plot <- ggarrange(plotlist=list(pca_train,pca_test),
+                        ncol=2,nrow=1,common.legend = TRUE,legend = 'right')
+  pcaList[[i+1]] <- pca_plot
+  ggsave(
+    paste0('suppl_fig4_eps/suppl_fig4_pca_split',i+1,'.eps'), 
+    plot = pca_plot,
+    device = cairo_ps,
+    scale = 1,
+    width = 18,
+    height = 9,
+    units = "in",
+    dpi = 600,
+  )
+  
+  tsne_train <- tsne_visualize(embs_proc_train,dim=2,scale=T,normalize=F,
+                               title=paste0('train ',i+1),
+                               show_plot = F)
+  tsne_test <- tsne_visualize(embs_proc_test,dim=2,scale=T,normalize=F,
+                              title=paste0('validation ',i+1),
+                              show_plot = F)
+  tsne_plot <- ggarrange(plotlist=list(tsne_train,tsne_test),
+                         ncol=2,nrow=1,common.legend = TRUE,legend = 'right')
+  tsneList[[i+1]] <- tsne_plot
+  ggsave(
+    paste0('suppl_fig4_eps/suppl_fig4_tsne_split',i+1,'.eps'), 
+    plot = tsne_plot,
+    device = cairo_ps,
+    scale = 1,
+    width = 18,
+    height = 9,
+    units = "in",
+    dpi = 600,
+  )
   message(paste0('Done split ',i))
 }
 
-png(file="../figures/MI_results/landmarks_similarity_trained_autoencoders_cell_separation.png",width=16,height=16,units = "in",res=600)
+png(file="suppl_fig4_eps/allgenes_similarity_trained_autoencoders_with_class_cell_separation.png",width=16,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),
@@ -225,10 +405,10 @@ p  <- ggplot(df_effsize ,aes(x=set,y=value,fill=set)) +
         axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
-        text = element_text(family = "Arial",size = 20),legend.position = "bottom")
+        text = element_text(family = "Arial",size = 20),legend.position = "bottom") 
 print(p)
 ggsave(
-  '../figures/MI_results/landmarks_similarity_trained_autoencoders_cell_coensd.eps',
+  'suppl_fig4_eps/allgenes_similarity_trained_autoencoders_cell_coensd.eps',
   plot = p,
   device = cairo_ps,
   scale = 1,
@@ -237,10 +417,6 @@ ggsave(
   units = "in",
   dpi = 600,
 )
-
-png(file="../figures/MI_results/landmarks_similarity_trained_autoencoders_cell_coensd.png",width=9,height=9,units = "in",res=600)
-print(p)
-dev.off()
 
 ### Plot distance distributions for two extreme cases of observed difference
 diff <- NULL
@@ -261,7 +437,7 @@ p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
                                    color = "black",face = 'plain', size = 32))
 ggsave(
-  '../figures/MI_results/landmarks_similarity_trained_autoencoders_cell_separation_extremes.eps', 
+  'suppl_fig4_eps/allgenes_similarity_trained_autoencoders_withclass_cell_separation_extremes.eps', 
   device = cairo_ps,
   scale = 1,
   width = 16,
@@ -294,11 +470,11 @@ for (i in 0:9){
   valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
   
   # Load embeddings of pre-trained
-  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
-                      data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/trainEmbs_a375_withclass_',i,'.csv'),header = T),
+                      data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/trainEmbs_ht29_withclass_',i,'.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
-                     data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/valEmbs_a375_withclass_',i,'.csv'),header = T),
+                     data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/valEmbs_ht29_withclass_',i,'.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
   embs_proc_train <- process_embeddings(embs_train,sigInfo,trainInfo)
   embs_proc_test <- process_embeddings(embs_test,sigInfo,valInfo)
@@ -366,7 +542,7 @@ for (i in 0:9){
   
   message(paste0('Done split ',i))
 }
-png(file="../figures/MI_results/landmarks_similarity_trained_autoencoders_samecondition_separation.png",width=16,height=16,units = "in",res=600)
+png(file="suppl_fig4_eps/allgenes_similarity_trained_autoencoders_withclass_samecondition_separation.png",width=16,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),
@@ -396,7 +572,7 @@ p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
                                    color = "black",face = 'plain', size = 32))
 ggsave(
-  '../figures/MI_results/landmarks_similarity_trained_autoencoders_samecondition_separation_extremes.eps', 
+  'suppl_fig4_eps/allgenes_similarity_trained_autoencoders_withclass_samecondition_separation_extremes.eps', 
   device = cairo_ps,
   scale = 1,
   width = 16,
@@ -429,11 +605,11 @@ for (i in 0:9){
   valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
   
   # Load embeddings of pre-trained
-  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
-                      data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/trainEmbs_a375_withclass_',i,'.csv'),header = T),
+                      data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/trainEmbs_ht29_withclass_',i,'.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
-                     data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/valEmbs_a375_withclass_',i,'.csv'),header = T),
+                     data.table::fread(paste0('../results/MI_results/embs/HT29_A375_withclass/valEmbs_ht29_withclass_',i,'.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
   embs_proc_train <- process_embeddings(embs_train,sigInfo,trainInfo)
   embs_proc_test <- process_embeddings(embs_test,sigInfo,valInfo)
@@ -508,7 +684,7 @@ for (i in 0:9){
   
   message(paste0('Done split ',i))
 }
-png(file="../figures/MI_results/landmarks_similarity_trained_autoencoders_duplicates_separation.png",width=16,height=16,units = "in",res=600)
+png(file="suppl_fig4_eps/allgenes_similarity_trained_autoencoders_withclass_duplicates_separation.png",width=16,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=length(plotList)/2,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),unique(df_effsize$split)),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),
@@ -538,7 +714,7 @@ p <- ggarrange(plotlist=list_visualize,ncol=2,nrow=1,common.legend = TRUE,legend
 annotate_figure(p, top = text_grob("Distributions of embedding distances in the latent space", 
                                    color = "black",face = 'plain', size = 32))
 ggsave(
-  '../figures/MI_results/landmarks_similarity_trained_autoencoders_duplicates_separation_extremes.eps', 
+  'suppl_fig4_eps/allgenes_similarity_trained_autoencoders_withclass_duplicates_separation_extremes.eps', 
   device = cairo_ps,
   scale = 1,
   width = 16,
