@@ -142,6 +142,7 @@ ggboxplot(feats %>% filter(mean_percentage_score>=20),
         axis.text = element_text(family = 'Arial',size=24),
         text = element_text(family = 'Arial',size=24),
         strip.text.x = element_text(size = 14))
+#data.table::fwrite(pairwise.test_human,'results_intermediate_encoders/important_human_protection_features.csv')
 ggsave(
   'importance_results/figures/importance_human_features_greather_than_20perc.eps', 
   device = cairo_ps,

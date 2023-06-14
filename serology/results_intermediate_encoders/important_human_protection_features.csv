@@ -1,0 +1,11 @@
+feature,.y.,group1,group2,n1,n2,statistic,p,p.adj
+IgG3_CC_C1086C_V1_V2Tags,value,non-protected,protected,60,221,5047.5,0.00459,0.0459
+IgG3_CC_gp70V1V2A,value,non-protected,protected,60,221,5155,0.00817,0.0817
+IgG3_CC_gp70V1V2C,value,non-protected,protected,60,221,5079.5,0.00543,0.0543
+IgG3_CC_gp70_BCaseA2V1V2169K,value,non-protected,protected,60,221,5063,0.00497,0.0497
+IgG_C1086C_V1_V2Tags,value,non-protected,protected,60,221,4564,0.000214,0.00214
+IgG_gp70V1V2A,value,non-protected,protected,60,221,4254,2.07e-05,0.000207
+IgG_gp70_BCaseA2V1V2169K,value,non-protected,protected,60,221,4348.5,4.36e-05,0.000436
+primary_v2_gp70_v1v2_zollapazner,value,non-protected,protected,60,221,4901,0.00196,0.0196
+secondary_gf_adcc_244_gdpos_peak,value,non-protected,protected,60,221,5225,0.0119,0.119
+secondary_gt_igg_HxB2new8bcore_diff,value,non-protected,protected,60,221,4794,0.000934,0.00934
