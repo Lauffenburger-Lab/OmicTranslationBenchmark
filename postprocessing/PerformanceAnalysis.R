@@ -246,7 +246,6 @@ performance_mdl <- nls(mean_value ~ 1-b*direct_translation^c, data = correlation
 ys <- predict(performance_mdl,newdata = list('direct_translation'=correlation_res$direct_translation))
 correlation_res$smoothed <- ys
 
-
 # Plot performace vs direct pearson
 png('../figures/MaxCorr_vs_directCorr_lands.png',width=10,height=8,units = "in",res = 600)
 ggplot(correlation_res %>% select(direct_translation,value,mean_value,std_value,smoothed) %>% unique(),
@@ -255,6 +254,14 @@ ggplot(correlation_res %>% select(direct_translation,value,mean_value,std_value,
                 width = 0.01,size=0.7)+
   geom_line(alpha=0.5)+
   geom_smooth(aes(direct_translation,smoothed),linetype=2,color='red')+
+  geom_abline(slope=1,intercept = 0,linetype=2,color='black',size=1.5)+
+  annotate('text',x =0.40 ,y=0.45,label ='direct translation line',size=8)+
+  annotate("segment", x = 0.5, y = 0.5, xend = 0.5, yend = 0.6,
+           arrow = arrow(length = unit(0.02, "npc")),size=2)+
+  annotate('text',x =0.47 ,y=0.53,label ='better',size=8)+
+  annotate("segment", x = 0.5, y = 0.5, xend = 0.5, yend = 0.4,
+           arrow = arrow(length = unit(0.02, "npc")),size=2)+
+  annotate('text',x =0.47 ,y=0.43,label ='worse',size=8)+
   scale_x_continuous(name="Pearson correlation of direct translation",
                      limits=c(0.25, 0.5))+
   scale_y_continuous(name="Average pearson correlation of model translation",

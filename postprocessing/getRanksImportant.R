@@ -884,7 +884,44 @@ ggsave(
   units = "in",
   dpi = 600,
 )
-saveRDS(gene_results,'../results/Importance_results/glm_genenumber_vs_f1.rds')
+
+## Random classifier with the same number of genes
+random_iter <- 100
+genes_to_keep <- c(1,3,5,10,15,20,25,30,35,40,45,50,70,100,150,200)
+F1 <- NULL
+radom_f1s <- matrix(0,nrow = length(genes_to_keep),random_iter)
+for (i in 1:length(genes_to_keep)){
+  #radom_f1s <- NULL
+  for (j in 1:random_iter){
+    random_genes <- sample(colnames(gex)[1:ncol(gex)-1],genes_to_keep[i])
+    df <- train_data %>% 
+      dplyr::select(all_of(unique(c(random_genes,'cell'))))
+    # Define training control method
+    ctrl <- trainControl(method = "cv", number = 10)
+    mdl <- train(cell ~ ., data = df, method = "glm", trControl = ctrl,trace=F,family='binomial')
+    y <- predict(mdl,newdata =test_data %>%
+                   dplyr::select(all_of(unique(random_genes))))
+    conf <- confusionMatrix(test_data$cell,y)
+    radom_f1s[i,j] <- conf$byClass['F1']
+  }
+  #F1[i] <- mean(random_f1s)
+  message(paste0('Done top ',genes_to_keep[i],' genes'))
+}
+#saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
+F1 <- apply(radom_f1s, 1, mean)
+gene_random_results <- data.frame(genes_number=genes_to_keep,F1=F1)
+ggplot(gene_random_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + 
+  geom_point(color='black',size=3)+
+  geom_smooth(se=T,color='#4878CF') + ylim(c(0,100)) +
+  scale_y_continuous(breaks=seq(0,100,20),limits = c(0,100))+
+  geom_hline(yintercept = 50,color='red',lty='dashed',linewidth=1) + 
+  annotate('text',x=50,y=47,label = "50% random F1 threshold",size=10)+
+  xlab(paste0('number of important genes used from each cell-line'))+ ylab(paste0('F1 score (%)'))+theme_minimal()+
+  ggtitle('GLM random genes performance for classifying cell-line')+
+  theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
+        legend.text=element_text(size=32))
+
+#saveRDS(gene_results,'../results/Importance_results/glm_genenumber_vs_f1.rds')
 ### Seems like 25 genes from each cell-line are enough
 ### Get these and put them to gProfiler
 saveRDS(imp_enc_1,'../results/Importance_results/imp_enc_1.rds')
