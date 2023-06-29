@@ -7,3 +7,7 @@ The raw data are to big be uploaded but they can be accessed in:
 2. geneinfo_beta.txt : Meta-data information about the measured and infered (in the platform) genes
 3. siginfo_beta.txt : Meta-data information about the each experiment/sample. Each experiment/sample is identified by a unique sig_id.
 4. LINCS2020 Release Metadata Field Definitions.xlsx : It contains in detail description of each file of the L1000 and the variables seen inside them.
+5. CCLE folder: It contains the sequenced cell line data from the CCLE dataset[^1]
+
+## References
+[^1]: Barretina, J. et al. The Cancer Cell Line Encyclopedia enables predictive modelling of anticancer drug sensitivity. Nature 483, 603–607 (2012).
