@@ -166,6 +166,7 @@ serology/results_intermediate_encoders/translated
 serology/learning/translate2human_cpa.py
 serology/learning/translate2human_intermediate_encoders.py
 serology/data/*.csv
+serology/data/*.xlsx
 figures/*.eps
 figures/*.ps
 figures/*.png

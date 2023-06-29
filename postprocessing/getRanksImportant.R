@@ -908,8 +908,9 @@ for (i in 1:length(genes_to_keep)){
   message(paste0('Done top ',genes_to_keep[i],' genes'))
 }
 #saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
-F1 <- apply(radom_f1s, 1, mean)
-gene_random_results <- data.frame(genes_number=genes_to_keep,F1=F1)
+F1 <- apply(radom_f1s, 1, mean,na.rm=T)
+F1_sds <- apply(radom_f1s, 1, sd,na.rm=T)
+gene_random_results <- data.frame(genes_number=genes_to_keep,F1=F1,F1_sds=F1_sds)
 ggplot(gene_random_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + 
   geom_point(color='black',size=3)+
   geom_smooth(se=T,color='#4878CF') + ylim(c(0,100)) +
@@ -921,7 +922,35 @@ ggplot(gene_random_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) 
   theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
         legend.text=element_text(size=32))
 
+#plot both together
+gene_random_results_combined <- rbind(gene_random_results %>% mutate(selected='random genes'),
+                                      gene_results %>% mutate(F1_sds=NA) %>% mutate(selected='important genes'))
+ggplot(gene_random_results_combined,aes(x=genes_number,y=F1*100,color=selected)) + 
+  geom_point(size=3)+
+  geom_errorbar(data=gene_random_results_combined %>% filter(!is.na(F1_sds)),
+                aes(ymin = 100*(F1-F1_sds), ymax = 100*(F1+F1_sds)), 
+                width = 2,linewidth=1)+
+  geom_smooth(se=T) + ylim(c(0,100)) +
+  scale_color_manual(values = c('#4878CF','#d97b38'))+
+  scale_y_continuous(breaks=seq(0,100,20),limits = c(0,100))+
+  geom_hline(yintercept = 50,color='red',lty='dashed',linewidth=1) + 
+  annotate('text',x=105,y=46,label = "random cell classification threshold: F1=50%",size=10)+
+  xlab(paste0('number of genes used from each cell-line'))+ ylab(paste0('F1 score (%)'))+theme_minimal()+
+  ggtitle('GLM performance for classifying cell-line')+
+  theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
+        legend.text=element_text(size=30),legend.position = 'bottom')
+ggsave(
+  '../figures/glm_performance_using_important_genes.eps',
+  device = cairo_ps,
+  scale = 1,
+  width = 12,
+  height = 9,
+  units = "in",
+  dpi = 600,
+)
 #saveRDS(gene_results,'../results/Importance_results/glm_genenumber_vs_f1.rds')
+
+
 ### Seems like 25 genes from each cell-line are enough
 ### Get these and put them to gProfiler
 saveRDS(imp_enc_1,'../results/Importance_results/imp_enc_1.rds')

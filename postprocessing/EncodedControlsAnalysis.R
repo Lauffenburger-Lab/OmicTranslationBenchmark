@@ -111,7 +111,7 @@ df_pca$label <- all_controls$label
 df_pca$type <- all_controls$type
 p <- ggplot(df_pca,aes(x=PC1,y=PC2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the PCA space') +
-  theme_gray(base_family = "Arial",base_size = 28)+
+  theme_minimal(base_family = "Arial",base_size = 28)+
   theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
         legend.title = element_text(family = "Arial",size=18),
         legend.text = element_text(family = "Arial",size=18))
@@ -150,7 +150,7 @@ png('../figures/tsne_controlsall_cells_landmarks.png',width=9,height=6,units = "
 ggplot(df_tsne,aes(x=V1,y=V2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the t-SNE space') +
   xlab('Dim 1') + ylab('Dim 2') +
-  theme_gray(base_family = "Arial",base_size = 28)+
+  theme_minimal(base_family = "Arial",base_size = 28)+
   theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
         legend.title = element_text(family = "Arial",size=18),
         legend.text = element_text(family = "Arial",size=18))
@@ -158,7 +158,7 @@ dev.off()
 ggplot(df_tsne,aes(x=V1,y=V2,color=label,shape=type)) + geom_point(size=4.5) +
   ggtitle('Scatterplot of controls in the t-SNE space') +
   xlab('Dim 1') + ylab('Dim 2') +
-  theme_gray(base_family = "Arial",base_size = 28)+
+  theme_minimal(base_family = "Arial",base_size = 28)+
   theme(plot.title = element_text(hjust = 0.5,family = "Arial",size=28),
         legend.title = element_text(family = "Arial",size=18),
         legend.text = element_text(family = "Arial",size=18))

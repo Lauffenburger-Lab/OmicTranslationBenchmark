@@ -412,13 +412,13 @@ results <- rbind(model_tfs,model_genes)
 p1 <- ggboxplot(results %>% filter(translation!='direct translation'),
                x = "translation", y = 'cor',color='level',add='jitter',
                add.params = list(size = 2),size = 1)+
-  ggtitle('')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  ggtitle('')+ ylab('pearson`s r')+ ylim(c(0.35,0.85))+
   theme_minimal(base_family = "Arial",base_size = 42)+
   theme(text = element_text("Arial",size = 42),
-        axis.title = element_text("Arial",size = 36,face = "bold"),
+        axis.title = element_text("Arial",size = 36),
         axis.title.x = element_blank(),
-        axis.text = element_text("Arial",size = 40,face = "bold"),
-        axis.text.x = element_text("Arial",angle = 0,size = 26,face = "bold"),
+        axis.text = element_text("Arial",size = 40),
+        axis.text.x = element_text("Arial",angle = 0,size = 26,face='bold'),
         plot.title = element_text(hjust = 1.15,size=40),legend.position='bottom')
 p1 <- p1 + stat_compare_means(aes(group=level),method = 'wilcox.test',label='p.signif',size=10)
 print(p1)
@@ -435,13 +435,13 @@ comparisons <- list(c('direct translation','A375 to HT29'),c('direct translation
 p2 <- ggboxplot(results %>% filter(level!='Genes'),
                x = "translation", y = 'cor',color='translation',add='jitter',
                add.params = list(size = 2),size = 1,width = 0.6) + 
-  ggtitle('')+ ylab('pearson`s r')+ ylim(c(0,0.85))+
+  ggtitle('')+ ylab('pearson`s r')+ ylim(c(0.4,0.85))+
   theme_minimal(base_family = "Arial",base_size = 42)+
   theme(text = element_text("Arial",size = 42),
-        axis.title = element_text("Arial",size = 36,face = "bold"),
-        axis.text = element_text("Arial",size = 40,face = "bold"),
+        axis.title = element_text("Arial",size = 36,),
+        axis.text = element_text("Arial",size = 40),
         axis.title.x = element_blank(),
-        axis.text.x = element_text("Arial",angle = 0,size = 20,face = "bold"),
+        axis.text.x = element_text("Arial",angle = 0,size = 20,face='bold'),
         plot.title = element_text(hjust = 1.15,size=40),
         legend.position='')
 p2 <- p2 + stat_compare_means(comparisons=comparisons,method = 'wilcox.test',label='p.signif',
@@ -460,7 +460,7 @@ print(p2)
 # combine 2 subplots
 p <- ggarrange(plotlist=list(p1,p2),ncol=2,nrow=1,common.legend = FALSE)
 annotate_figure(p, top = text_grob("TFs performance from translating predicted gene expression", 
-                                   family='Arial',color = "black",face = 'bold', size = 34))
+                                   family='Arial',color = "black", size = 34))
 ggsave(
   '../figures/tfs_analysis_figure1d.eps', 
   device = cairo_ps,

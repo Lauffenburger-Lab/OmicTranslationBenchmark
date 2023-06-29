@@ -34,21 +34,21 @@ p <- ggboxplot(all_results,x='metric',y='value',color='model',add='jitter',
                add.params = list(size = 2),size = 1) + 
   scale_color_manual(breaks = c('model translation','direct translation in 10k genes'),
                      values=scales::hue_pal()(length(unique(all_results$model))))+
-  ggtitle('Performance with different input sizes (A375 with 978 genes, HT29 with ~10k genes)') + ylim(c(0,0.75))+
+  ggtitle('Performance with different input sizes (A375 978 genes, HT29 ~10k genes)') + ylim(c(0,0.75))+
   facet_wrap(~ translation)+
   theme_minimal(base_family = "Arial",base_size = 38)+ 
   theme(text = element_text("Arial",size = 38),
-        axis.title = element_text("Arial",size = 38,face = "bold"),
-        axis.text = element_text("Arial",size = 38,face = "bold"),
-        axis.text.x = element_text("Arial",angle = 0,size = 38,face = "bold"),
-        plot.title = element_text(hjust = 0.75,size=30,face='bold'),legend.position='bottom')
+        axis.title = element_text("Arial",size = 36),
+        axis.text = element_text("Arial",size = 36),
+        axis.text.x = element_text("Arial",angle = 0,size = 36),
+        plot.title = element_text('Arial',hjust = 0.75,vjust=-1,size=31),legend.position='bottom')
 p <- p+ stat_compare_means(aes(group=model),method='wilcox.test',label='p.signif',size=8)
 p <- p+ scale_x_discrete(expand = c(0.2, 0))
 print(p)
 ggsave(
   '../figures/performance_diffsize_a375_ht29.eps',
   plot = p,
-  device = 'eps',
+  device = cairo_ps,
   scale = 1,
   width = 16,
   height = 12,
@@ -255,7 +255,7 @@ ggplot(correlation_res %>% select(direct_translation,value,mean_value,std_value,
   geom_line(alpha=0.5)+
   geom_smooth(aes(direct_translation,smoothed),linetype=2,color='red')+
   geom_abline(slope=1,intercept = 0,linetype=2,color='black',size=1.5)+
-  annotate('text',x =0.40 ,y=0.45,label ='direct translation line',size=8)+
+  annotate('text',x =0.37 ,y=0.39,label ='direct translation line',size=8,angle=22)+
   annotate("segment", x = 0.5, y = 0.5, xend = 0.5, yend = 0.6,
            arrow = arrow(length = unit(0.02, "npc")),size=2)+
   annotate('text',x =0.47 ,y=0.53,label ='better',size=8)+
@@ -377,8 +377,10 @@ p <- ggplot(all_results,aes(ratio,mean_value)) +
                 width=0.01)+
   xlab('ratio of number of data') + ylab('Average pearson`s r for translation')+
   ggtitle('Performance as a function of the ratio of the number of data of the 2 cell-lines') +
-  ylim(c(0,max(results$value)))+
+  ylim(c(0.4,max(results$value)))+
   labs(color='Translation',linetype='Cell with increasing data')+
+  geom_hline(aes(yintercept= 0.43, linetype = 2),linetype=1,color='red')+
+  annotate('text',x =0.55 ,y=0.45,label ='direct translation line',size=8)+
   theme_minimal(base_family = "Arial",base_size = 26)+
   theme(text = element_text("Arial",size = 26),
         axis.title = element_text("Arial",size = 22,face = "bold"),
@@ -387,8 +389,7 @@ p <- ggplot(all_results,aes(ratio,mean_value)) +
         plot.title = element_text(hjust = 0.5,size=18,face = "bold"),
         legend.text = element_text("Arial",size = 20),
         legend.title = element_text("Arial",size = 20),
-        panel.grid.major = element_line(linewidth=1.5))+
-  geom_hline(aes(yintercept= 0.43, linetype = 2),linetype=1,color='red')
+        panel.grid.major = element_line(linewidth=1.5))
 
 #dev.off()
 print(p)
