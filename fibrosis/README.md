@@ -24,11 +24,12 @@ The data required to run this script are coming from 4 single-cell RNA sequencin
 8. trainingUtils.py : Script containing utility functions to perform model training.
 9. models.py : Script containing functions and classes used to define models or different parts of them
 10. evaluationUtils.py: Script containing code to evaluate predictions of the models.
-11. EmbsEval.R: Script used to evaluate embeddings and latent space separation.
-12. FindOrthologs.R: Script used to create a human-mouse homolog genes mapping.
-13. InterDatasetEvaluation.R: Script to analyze and evaluate the results on the external test-set datasets (mouse lung new, human liver cirrhosis)
-14. performanceEval.R: Script to evaluate the performance of models in the inter-species lung fibrosis translation
-15. SpeciesSeparateAnalysis.R: Analysis to find fibrosis relevent genes in specific species seperately, by using simple PCA and linear regression models.
+11. createFolds.py: Script to split data into 10-fold cross-validation splits.
+12. EmbsEval.R: Script used to evaluate embeddings and latent space separation.
+13. FindOrthologs.R: Script used to create a human-mouse homolog genes mapping.
+14. InterDatasetEvaluation.R: Script to analyze and evaluate the results on the external test-set datasets (mouse lung new, human liver cirrhosis)
+15. performanceEval.R: Script to evaluate the performance of models in the inter-species lung fibrosis translation
+16. SpeciesSeparateAnalysis.R: Analysis to find fibrosis relevent genes in specific species seperately, by using simple PCA and linear regression models.
 
 ## References
 [^1]: Habermann, A. C. et al. Single-cell RNA sequencing reveals profibrotic roles of distinct epithelial and mesenchymal lineages in pulmonary fibrosis. Science Advances 6, eaba1972 (2020).
