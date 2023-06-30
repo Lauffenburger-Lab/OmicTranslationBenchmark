@@ -6,7 +6,6 @@ ARCHS4/human_cell_lives_archs4_gene_human_v212.tsv
 ARCHS4/mouse_immune_cells_archs4_gene_mouse_v212.tsv
 ARCHS4/mouse_immune_cells_metadata.tsv
 recount3/*
-figures/CompareANNandTransCompR.ipynb
 serology/results/models/*
 serology/results/pretrained_models/*
 serology/serology.Rproj
