@@ -2,10 +2,10 @@
 
 ## Data
 The data required to run this script are coming from 4 single-cell RNA sequencing datasets:
-a. Human lung fibrosis[^1]
-b. Mouse lung fibrosis[^2]
-c. Mouse lung fibrosis[^3] external test set
-d. Human liver cirrhosis[^4]
+1. Human lung fibrosis[^1]
+2. Mouse lung fibrosis[^2]
+3. Mouse lung fibrosis[^3] external test set
+4. Human liver cirrhosis[^4]
 
 ## Folder structure
 1. **data** : Folder that should contain the raw data of this specific case study.
