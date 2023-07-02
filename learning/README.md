@@ -9,7 +9,7 @@
 8. trainingUtils.py: Contains function to train an autoencoder.
 9. TranslationalAutoencoder_CPA.py: Contains code to train an autoencoder with the CPA-based approach[^6]
 10. CellLineSpecificAnalysis.ipynb: Implement cell-line specific analysis (train machine learing models like random forest and ANN-classifier or perform PCA and t-SNE analysis of raw data and pre-trained embeddings)
-11. implementFIT.ipynb: Implement FIT approach[^7].  
+11. implementFIT_sklearn.ipynb: Implement FIT approach[^7].  
 12. EncodeControls.py: Script containing code to get embeddings for control samples from the L1000 dataset.
 13. EncodeCCLE.py: Script containing code to get CCLE embeddings.
 14. TranslationalAutoencoder_CPA_nodecoder.py: Script to train a CPA-based model without decoders.
@@ -19,6 +19,7 @@
 18. CPA_PerformaceAnalysis_lands.py: Script containing code to run the performance analysis from Figure 2, for the CPA-based approach, using the landmark genes.
 19. CPA_PerfomanceAnalysis.py: Script containing code to run the performance analysis from Figure 2, for the CPA-based approach, but using the 10,086 genes. 
 20. CPA_PerformancePretrainClass.py: Script containing code to pre-train the adverse classifier for the performance analysis from Figure 2, for the CPA-based approach, using the landmark genes.
+21. IntermediateTranslators.ipynb: Jupyter notebook to train CPA-based model but with intermediate ANNs to add the cell line effect.
 
 ## References
 [^1]: Umarov, Ramzan, Yu Li, and Erik Arner. "DeepCellState: An autoencoder-based framework for predicting cell type specific transcriptional states induced by drug treatment." PLoS Computational Biology 17.10 (2021): e1009465.
