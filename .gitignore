@@ -154,6 +154,7 @@ learning/TranslationModel_allgenes.py
 learning/TrainALL.py
 learning/TranslationModel.py
 learning/trainMultiplePairs.ipynb
+learning/PreTrainAdverseClass.py
 .Rproj.user
 .Rhistory
 article_supplementary_info/*.eps
