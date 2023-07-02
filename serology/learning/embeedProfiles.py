@@ -165,48 +165,48 @@ for i in range(10):
 
     print2log('Finished using model %s'%i)
 
-### Covert to dataframe and save
-z_human_base = torch.mean(z_human_base_all,0)
-z_primates_base = torch.mean(z_primates_base_all,0)
-z_human= torch.mean(z_human_all,0)
-z_primates = torch.mean(z_primates_all,0)
+# ### Covert to dataframe and save
+# z_human_base = torch.mean(z_human_base_all,0)
+# z_primates_base = torch.mean(z_primates_base_all,0)
+# z_human= torch.mean(z_human_all,0)
+# z_primates = torch.mean(z_primates_all,0)
+#
+# z_human_base = pd.DataFrame(z_human_base.detach().cpu().numpy())
+# z_human_base.index = human_exprs.index
+# z_human_base.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_human_base.to_csv('../results_intermediate_encoders/embs/z_human_base.csv')
+# z_primates_base = pd.DataFrame(z_primates_base.detach().cpu().numpy())
+# z_primates_base.index = primates_exprs.index
+# z_primates_base.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_primates_base.to_csv('../results_intermediate_encoders/embs/z_primates_base.csv')
+# z_human= pd.DataFrame(z_human.detach().cpu().numpy())
+# z_human.index = human_exprs.index
+# z_human.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_human.to_csv('../results_intermediate_encoders/embs/z_human.csv')
+# z_primates = pd.DataFrame(z_primates.detach().cpu().numpy())
+# z_primates.index = primates_exprs.index
+# z_primates.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_primates.to_csv('../results_intermediate_encoders/embs/z_primates.csv')
 
-z_human_base = pd.DataFrame(z_human_base.detach().cpu().numpy())
-z_human_base.index = human_exprs.index
-z_human_base.columns = ['z'+str(i) for i in range(latent_dim)]
-z_human_base.to_csv('../results_intermediate_encoders/embs/z_human_base.csv')
-z_primates_base = pd.DataFrame(z_primates_base.detach().cpu().numpy())
-z_primates_base.index = primates_exprs.index
-z_primates_base.columns = ['z'+str(i) for i in range(latent_dim)]
-z_primates_base.to_csv('../results_intermediate_encoders/embs/z_primates_base.csv')
-z_human= pd.DataFrame(z_human.detach().cpu().numpy())
-z_human.index = human_exprs.index
-z_human.columns = ['z'+str(i) for i in range(latent_dim)]
-z_human.to_csv('../results_intermediate_encoders/embs/z_human.csv')
-z_primates = pd.DataFrame(z_primates.detach().cpu().numpy())
-z_primates.index = primates_exprs.index
-z_primates.columns = ['z'+str(i) for i in range(latent_dim)]
-z_primates.to_csv('../results_intermediate_encoders/embs/z_primates.csv')
-
-### Find also std
-z_human_base = torch.std(z_human_base_all,0)
-z_primates_base = torch.std(z_primates_base_all,0)
-z_human= torch.std(z_human_all,0)
-z_primates = torch.std(z_primates_all,0)
-
-z_human_base = pd.DataFrame(z_human_base.detach().cpu().numpy())
-z_human_base.index = human_exprs.index
-z_human_base.columns = ['z'+str(i) for i in range(latent_dim)]
-z_human_base.to_csv('../results_intermediate_encoders/embs/z_human_base_std.csv')
-z_primates_base = pd.DataFrame(z_primates_base.detach().cpu().numpy())
-z_primates_base.index = primates_exprs.index
-z_primates_base.columns = ['z'+str(i) for i in range(latent_dim)]
-z_primates_base.to_csv('../results_intermediate_encoders/embs/z_primates_base_std.csv')
-z_human= pd.DataFrame(z_human.detach().cpu().numpy())
-z_human.index = human_exprs.index
-z_human.columns = ['z'+str(i) for i in range(latent_dim)]
-z_human.to_csv('../results_intermediate_encoders/embs/z_human_std.csv')
-z_primates = pd.DataFrame(z_primates.detach().cpu().numpy())
-z_primates.index = primates_exprs.index
-z_primates.columns = ['z'+str(i) for i in range(latent_dim)]
-z_primates.to_csv('../results_intermediate_encoders/embs/z_primates_std.csv')
+# ### Find also std
+# z_human_base = torch.std(z_human_base_all,0)
+# z_primates_base = torch.std(z_primates_base_all,0)
+# z_human= torch.std(z_human_all,0)
+# z_primates = torch.std(z_primates_all,0)
+#
+# z_human_base = pd.DataFrame(z_human_base.detach().cpu().numpy())
+# z_human_base.index = human_exprs.index
+# z_human_base.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_human_base.to_csv('../results_intermediate_encoders/embs/z_human_base_std.csv')
+# z_primates_base = pd.DataFrame(z_primates_base.detach().cpu().numpy())
+# z_primates_base.index = primates_exprs.index
+# z_primates_base.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_primates_base.to_csv('../results_intermediate_encoders/embs/z_primates_base_std.csv')
+# z_human= pd.DataFrame(z_human.detach().cpu().numpy())
+# z_human.index = human_exprs.index
+# z_human.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_human.to_csv('../results_intermediate_encoders/embs/z_human_std.csv')
+# z_primates = pd.DataFrame(z_primates.detach().cpu().numpy())
+# z_primates.index = primates_exprs.index
+# z_primates.columns = ['z'+str(i) for i in range(latent_dim)]
+# z_primates.to_csv('../results_intermediate_encoders/embs/z_primates_std.csv')

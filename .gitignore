@@ -183,6 +183,9 @@ serology/learning/translate2human_cpa.py
 serology/learning/translate2human_intermediate_encoders.py
 serology/data/*.csv
 serology/data/*.xlsx
+serology/evalTranslation.R
+serology/learning/translate2human_cpa.py
+serology/learning/translate2human_intermediate_encoders.py
 figures/*.eps
 figures/*.ps
 figures/*.png
