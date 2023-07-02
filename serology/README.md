@@ -2,8 +2,8 @@
 
 ## Data
 The data required to run the serology case study:
-	1. human dataset : https://pubmed.ncbi.nlm.nih.gov/26544943/
-	2. non-human primates dataset : https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6192527/
+1. human dataset : https://pubmed.ncbi.nlm.nih.gov/26544943/
+2. non-human primates dataset : https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6192527/
 
 ## Folder structure
 1. **data** : Folder that should contain the raw data of this specific case study. The authors of the original studies were contacred to retriece the data.
