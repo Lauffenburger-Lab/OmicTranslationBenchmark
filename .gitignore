@@ -143,6 +143,17 @@ preprocessing/preprocessed_data/sampledDatasetes/MCF7_PC3/pre_trained_classifier
 preprocessing/preprocessed_data/sampledDatasetes/PC3_HA1E/pre_trained_classifier_adverse_1_lands.pt
 serology/importance_results/*
 learning/__pycache__/
+learning/ANNmixedTransCompRModel.py
+learning/ANNmixedTransCompRModel_PCALoss.py
+learning/buildFrame.py
+learning/models_satori.py
+learning/embeed.py
+learning/ReSave.py
+learning/TranslationalAutoencoder_addCells.ipynb
+learning/TranslationModel_allgenes.py
+learning/TrainALL.py
+learning/TranslationModel.py
+learning/trainMultiplePairs.ipynb
 .Rproj.user
 .Rhistory
 article_supplementary_info/*.eps
