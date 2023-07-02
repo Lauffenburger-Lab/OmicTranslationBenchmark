@@ -22,6 +22,9 @@ preprocessing/preprocessed_data/gsea_distances_a375_ht29.rds
 preprocessing/preprocessed_data/landmarks_gsea_distances_a375_ht29.rds
 postprocessing/.Rhistory
 postprocessing/.Rproj.user/
+postprocessing/output1.txt
+postprocessing/output2.txt
+postprocessing/CellSimilarityApproach.R
 figures/.Rhistory
 figures/.Rproj.user/
 figures/.ipynb_checkpoints
