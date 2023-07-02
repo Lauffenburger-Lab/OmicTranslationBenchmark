@@ -52,6 +52,10 @@ results/TransCompR_results/models/*
 results/TransCompR_results/embs/validation/*
 results/TransCompR_results/embs/train/*
 results/TransCompR_results/models_10k.zip
+results/ANNmixedTransCompR_results
+results/ANNmixedTransCompR_results_10k
+results/CPAmixedTransCompR_results
+results/CPAmixedTransCompR_results_10k
 results/ANNmixedTransCompR_results/models/*
 results/ANNmixedTransCompR_results/pretrained_models/*
 results/ANNmixedTransCompR_results/embs/validation/*
