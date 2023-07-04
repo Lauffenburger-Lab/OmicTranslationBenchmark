@@ -1,4 +1,4 @@
-# Autoencoder Model for Translating Omics Signatures
+# AutoTransOP: Autoencoder Model for Translating Omics Signatures
 Github repository of the study:
 > Autoencoder Model for Translating Omics Signatures <br>
 > Meimetis, N., Pullen, K. M., Zhu, D. Y., Nilsson, A., Hoang, T. N., Magliacane, S., & Lauffenburger, D. A. (2023). Autoencoder Model for Translating Omics Signatures. bioRxiv, 2023-06.</sup>
@@ -7,7 +7,7 @@ doi: https://doi.org/10.1101/2023.06.08.544243
 
 **Trained models of this study are too big to be uploaded here and are available upon reasonable request.**
 
-The development of effective therapeutics and vaccines for human diseases requires a systematic understanding of human biology. While animal and in vitro culture models have successfully elucidated the molecular mechanisms of diseases in many studies, they yet fail to adequately recapitulate human biology as evidenced by the predominant likelihood of failure in clinical trials. To address this broadly important problem, we developed a neural network autoencoder framework to map omics profiles from designated species or cellular contexts into a global latent space, from which germane information can be mapped between different contexts. This approach performs as well or better than extant machine learning methods and can identify animal/culture-specific molecular features predictive of other contexts, without requiring homology matching. For an especially challenging test case, we successfully apply our framework to a set of inter-species vaccine serology studies, where no 1-1 mapping between human and non-human primate features exists.
+The development of effective therapeutics and vaccines for human diseases requires a systematic understanding of human biology. While animal and in vitro culture models have successfully elucidated the molecular mechanisms of diseases in many studies, they yet fail to adequately recapitulate human biology as evidenced by the predominant likelihood of failure in clinical trials. To address this broadly important problem, we developed AutoTransOP, a neural network autoencoder framework to map omics profiles from designated species or cellular contexts into a global latent space, from which germane information can be mapped between different contexts. This approach performs as well or better than extant machine learning methods and can identify animal/culture-specific molecular features predictive of other contexts, without requiring homology matching. For an especially challenging test case, we successfully apply our framework to a set of inter-species vaccine serology studies, where no 1-1 mapping between human and non-human primate features exists.
 
 The current repository contains code for:
 1. Initial evaluation of the quality and preprocessing of the data.
