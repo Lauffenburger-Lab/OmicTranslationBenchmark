@@ -5,7 +5,7 @@ Github repository of the study:
 
 doi: https://doi.org/10.1101/2023.06.08.544243
 
-* This repository is administered by @NickMeim. For questions contact on meimetis@mit.edu
+This repository is administered by @NickMeim. For questions contact on meimetis@mit.edu
 
 **Trained models of this study are too big to be uploaded here and are available upon reasonable request.**
 
