@@ -15,9 +15,9 @@ The data required to run this script are coming from 4 single-cell RNA sequencin
 
 ## Scripts
 1. TranslationModel_lung.py : Code to train a CPA-like[^5] model to translate mouse lung fibrosis to human lung fibrosis and vice-versa.
-2. PretrainTranslationModel_lung.py : Code to for the pre-training phase of the CPA-like[^5] model to translate mouse lung fibrosis to human lung fibrosis and vice-versa.
+2. PretrainTranslationModel_lung.py : Code for the pre-training phase of the CPA-like[^5] model to translate mouse lung fibrosis to human lung fibrosis and vice-versa.
 3. TranslationModel_lung_homologues.py: Code to train a CPA-like[^5] model to translate mouse lung fibrosis to human lung fibrosis and vice-versa, but only using homolog genes.
-4. PretrainTranslationModel_lung_homologues.py : Code to for the pre-training phase of the CPA-like[^5] model to translate mouse lung fibrosis to human lung fibrosis and vice-versa, but only using homolog genes.
+4. PretrainTranslationModel_lung_homologues.py : Code for the pre-training phase of the CPA-like[^5] model to translate mouse lung fibrosis to human lung fibrosis and vice-versa, but only using homolog genes.
 5. PretrainDCSv2_lung_homologues.py : Code to for the pre-training phase of the DCS model[^6] (DCS modified v2) using homolog genes.
 6. DCSv2_lung_homologues.py : Code to train a modified version of the DCS model[^6] (DCS modified v2) using homolog genes.
 7. LiverDataInLungModel.py : Code to make predictions on the external mouse lung and liver cirrhosis datasets.
@@ -26,10 +26,10 @@ The data required to run this script are coming from 4 single-cell RNA sequencin
 10. evaluationUtils.py: Script containing code to evaluate predictions of the models.
 11. createFolds.py: Script to split data into 10-fold cross-validation splits.
 12. EmbsEval.R: Script used to evaluate embeddings and latent space separation.
-13. FindOrthologs.R: Script used to create a human-mouse homolog genes mapping.
+13. FindOrthologs.R: Script used to create a human-mouse homolog gene mapping.
 14. InterDatasetEvaluation.R: Script to analyze and evaluate the results on the external test-set datasets (mouse lung new, human liver cirrhosis)
 15. performanceEval.R: Script to evaluate the performance of models in the inter-species lung fibrosis translation
-16. SpeciesSeparateAnalysis.R: Analysis to find fibrosis relevent genes in specific species seperately, by using simple PCA and linear regression models.
+16. SpeciesSeparateAnalysis.R: Analysis to find fibrosis relevant genes in specific species separately, by using simple PCA and linear regression models.
 
 ## References
 [^1]: Habermann, A. C. et al. Single-cell RNA sequencing reveals profibrotic roles of distinct epithelial and mesenchymal lineages in pulmonary fibrosis. Science Advances 6, eaba1972 (2020).
