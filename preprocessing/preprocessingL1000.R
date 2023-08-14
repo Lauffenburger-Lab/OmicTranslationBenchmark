@@ -6,7 +6,7 @@ library(doFuture)
 # parallel set number of workers
 cores <- 15
 registerDoFuture()
-plan(multiprocess,workers = cores)
+plan(multisession,workers = cores)
 
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
