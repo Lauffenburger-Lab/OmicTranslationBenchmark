@@ -1,19 +1,19 @@
 ## Machine and Deep learning algorithms of the project
-1. TranslationalAutoencoder_DEEPCELLSTATE_benchmarkGenes.ipynb: Jupyter notebook to train an autoencoder with the DeepCellState approach[^1], evaluate it with 10-fold cross validation and get embeddings in the latent space.
-2. TranslationalAutoencoder_benchmarkGenes.ipynb: Jupyter notebook to train multiple encoders and decoders for each cell-line, evaluate it with 10-fold cross validation and get embeddings in the latent space.
-3. TranslationalAutoencoder_benchmarkMI.ipynb: Jupyter notebook to train multiple encoders and decoders for each cell-line coupled with a Mutual Information similarity approach[^2],[^3], evaluate it with 10-fold cross validation and get embeddings in the latent space.
+1. TranslationalAutoencoder_DEEPCELLSTATE_benchmarkGenes.ipynb: Jupyter notebook to train an autoencoder with the DeepCellState approach[^1], evaluate it with 10-fold cross-validation and get embeddings in the latent space.
+2. TranslationalAutoencoder_benchmarkGenes.ipynb: Jupyter notebook to train multiple encoders and decoders for each cell line, evaluate it with 10-fold cross validation and get embeddings in the latent space.
+3. TranslationalAutoencoder_benchmarkMI.ipynb: Jupyter notebook to train multiple encoders and decoders for each cell line coupled with a Mutual Information similarity approach[^2],[^3], evaluate it with 10-fold cross-validation and get embeddings in the latent space.
 4. TranslationalAutoencoder_important.py: Script containing code for importance calculation using the integrated gradients approach[^4], for many of the panels in Figure 4. 
 5. TranslationalAutoencoder_important.ipynb: Jupyter notebook to calculate gene importance for various tasks by utilizing an integrated gradients approach[^4] from the Captum library[^5].
 6. models.py: Contains classes to define layers for the autoencoder and the encoder and decoder models.
 7. evaluationUtils.py: Contains functions for evaluation of the models.
 8. trainingUtils.py: Contains function to train an autoencoder.
 9. TranslationalAutoencoder_CPA.py: Contains code to train an autoencoder with the CPA-based approach[^6]
-10. CellLineSpecificAnalysis.ipynb: Implement cell-line specific analysis (train machine learing models like random forest and ANN-classifier or perform PCA and t-SNE analysis of raw data and pre-trained embeddings)
+10. CellLineSpecificAnalysis.ipynb: Implement cell-line specific analysis (train machine learning models like random forest and ANN-classifier or perform PCA and t-SNE analysis of raw data and pre-trained embeddings)
 11. implementFIT_sklearn.ipynb: Implement FIT approach[^7].  
 12. EncodeControls.py: Script containing code to get embeddings for control samples from the L1000 dataset.
 13. EncodeCCLE.py: Script containing code to get CCLE embeddings.
 14. TranslationalAutoencoder_CPA_nodecoder.py: Script to train a CPA-based model without decoders.
-15. TranslationalAutoencoder_jointlyTrainedClassifier.py: Script containing code to train a model with one global latent space and simulatenously training a classifier to predict cell line label, which is a contradicting learing task.
+15. TranslationalAutoencoder_jointlyTrainedClassifier.py: Script containing code to train a model with one global latent space and simultaneously training a classifier to predict cell line label, which is a contradicting learning task.
 16. TransCompRModel.py: Script containing code to train a model based on TransCompR[^8].
 17. CellLineClassification_TransCompR_DCS.ipynb: Script containing code to train classifiers on TransCompR and DeepCellState embeddings for Figure 1e.
 18. CPA_PerformaceAnalysis_lands.py: Script containing code to run the performance analysis from Figure 2, for the CPA-based approach, using the landmark genes.
