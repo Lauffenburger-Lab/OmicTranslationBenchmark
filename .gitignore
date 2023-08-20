@@ -190,6 +190,7 @@ serology/data/*.xlsx
 serology/evalTranslation.R
 serology/learning/translate2human_cpa.py
 serology/learning/translate2human_intermediate_encoders.py
+serology/importance_results/human_important_features_and_expression_in_samples.csv
 figures/*.eps
 figures/*.ps
 figures/*.png
