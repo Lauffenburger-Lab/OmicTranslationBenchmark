@@ -130,6 +130,7 @@ results/trained_models/alldata_landmarks_cpa_priord_pc3_ha1e.pt
 results/trained_models/trained_models.zip
 results/SameCellimputationModel/models_ae
 results/SameCellimputationModel/models_AutoTransOp
+results/test_stuff
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
@@ -189,6 +190,15 @@ serology/results/translated/*
 serology/results/translated
 serology/results_intermediate_encoders/translated/*
 serology/results_intermediate_encoders/translated
+serology/results/*.eps
+serology/results/embs/combined_10fold.zip
+serology/results/embs/combined_10fold/*
+serology/results/embs/10fold_1000ep/*
+serology/results/embs/*.csv
+serology/results/models/10fold_1000ep
+serology/results/models/10fold_1000ep/*
+serology/results/pretrained_models/5fold
+serology/results/pretrained_models/5fold/*
 serology/learning/translate2human_cpa.py
 serology/learning/translate2human_intermediate_encoders.py
 serology/data/*.csv
@@ -197,6 +207,7 @@ serology/evalTranslation.R
 serology/learning/translate2human_cpa.py
 serology/learning/translate2human_intermediate_encoders.py
 serology/importance_results/human_important_features_and_expression_in_samples.csv
+serology/importance_results_cpa/human_important_features_and_expression_in_samples.csv
 figures/*.eps
 figures/*.ps
 figures/*.png

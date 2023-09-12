@@ -18,20 +18,20 @@ min_effect <- 2
 max_effect <- 0
 for (i in 1:10){
   #Load embeddings
-  z_human <- data.table::fread(paste0('results_intermediate_encoders/embs/10fold/z_human_train_',i-1,'.csv')) %>% column_to_rownames('V1')
+  z_human <- data.table::fread(paste0('results/embs/10fold/z_human_train_',i-1,'.csv')) %>% column_to_rownames('V1')
   latent_dim <- ncol(z_human)
   # z_human <- z_human %>% mutate(protected = human_hiv$infect)
   # z_human <- z_human %>% mutate(vaccinated = human_hiv$trt)
   z_human <- z_human %>% mutate(species = 'human')
-  z_human_base <- data.table::fread(paste0('results_intermediate_encoders/embs/10fold/z_human_base_train_',i-1,'.csv')) %>% column_to_rownames('V1')
+  z_human_base <- data.table::fread(paste0('results/embs/10fold/z_human_base_train_',i-1,'.csv')) %>% column_to_rownames('V1')
   # z_human_base <- z_human_base %>% mutate(protected = human_hiv$infect)
   # z_human_base <- z_human_base %>% mutate(vaccinated = human_hiv$trt)
   z_human_base <- z_human_base %>% mutate(species = 'human')
-  z_primates <- data.table::fread(paste0('results_intermediate_encoders/embs/10fold/z_primates_train_',i-1,'.csv')) %>% column_to_rownames('V1')
+  z_primates <- data.table::fread(paste0('results/embs/10fold/z_primates_train_',i-1,'.csv')) %>% column_to_rownames('V1')
   # z_primates <- z_primates %>% mutate(protected = primates_nhp$ProtectBinary)
   # z_primates <- z_primates %>% mutate(vaccinated = z_humanprimates_nhp$Vaccine)
   z_primates <- z_primates %>% mutate(species = 'primates')
-  z_primates_base <- data.table::fread(paste0('results_intermediate_encoders/embs/10fold/z_primates_base_train_',i-1,'.csv')) %>% column_to_rownames('V1')
+  z_primates_base <- data.table::fread(paste0('results/embs/10fold/z_primates_base_train_',i-1,'.csv')) %>% column_to_rownames('V1')
   # z_primates_base <- z_primates_base %>% mutate(protected = primates_nhp$ProtectBinary)
   # z_primates_base <- z_primates_base %>% mutate(vaccinated = primates_nhp$Vaccine)
   z_primates_base <- z_primates_base %>% mutate(species = 'primates')
@@ -39,8 +39,8 @@ for (i in 1:10){
   z_latent <- rbind(z_human,z_primates)
   z_latent_base <- rbind(z_human_base,z_primates_base)
   
-  # data.table::fwrite(z_latent_base,paste0('results_intermediate_encoders/embs/combined_10fold/latent_embeddings_global_',i,'.csv'))
-  # data.table::fwrite(z_latent,paste0('results_intermediate_encoders/embs/combined_10fold/latent_embeddings_',i,'.csv'))
+  data.table::fwrite(z_latent_base,paste0('results/embs/combined_10fold/latent_embeddings_global_',i,'.csv'))
+  data.table::fwrite(z_latent,paste0('results/embs/combined_10fold/latent_embeddings_',i,'.csv'))
   
   ### Dimensionality reduction and visualization
   pca <- prcomp(z_latent_base[,1:latent_dim],center = T)
@@ -112,7 +112,7 @@ list_visualize <- plotList[c(min_effect_id,max_effect_id)]
 
 print(plotList[10])
 ggsave(
-  'results_intermediate_encoders/pca_2d_global_train_2000ep_subset.eps', 
+  'results/pca_2d_global_train_2000ep_subset.eps', 
   device = cairo_ps,
   scale = 1,
   width = 12,
@@ -120,7 +120,7 @@ ggsave(
   units = "in",
   dpi = 600,
 )
-# png(file="results_intermediate_encoders/pca_2d_global_train_2000ep_subset.png",width=18,height=12,units = "in",res=600)
+# png(file="results/pca_2d_global_train_2000ep_subset.png",width=18,height=12,units = "in",res=600)
 # p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
 #                labels = paste0(rep('Split ',2),seq(1,10)),
 #                font.label = list(size = 24, color = "black", face = "plain", family = 'Arial'),
@@ -131,28 +131,28 @@ ggsave(
 
 ### Reapeat for the average of all models-------------
 # #Load embeddings
-# z_human <- data.table::fread('results_intermediate_encoders/embs/z_human.csv') %>% column_to_rownames('V1')
+# z_human <- data.table::fread('results/embs/z_human.csv') %>% column_to_rownames('V1')
 # latent_dim <- ncol(z_human)
 # z_human <- z_human %>% mutate(protected = human_hiv$infect)
 # z_human <- z_human %>% mutate(vaccinated = human_hiv$trt)
 # z_human <- z_human %>% mutate(species = 'human')
-# z_human_base <- data.table::fread('results_intermediate_encoders/embs/z_human_base.csv') %>% column_to_rownames('V1')
+# z_human_base <- data.table::fread('results/embs/z_human_base.csv') %>% column_to_rownames('V1')
 # z_human_base <- z_human_base %>% mutate(protected = human_hiv$infect)
 # z_human_base <- z_human_base %>% mutate(vaccinated = human_hiv$trt)
 # z_human_base <- z_human_base %>% mutate(species = 'human')
-# z_primates <- data.table::fread('results_intermediate_encoders/embs/z_primates.csv') %>% column_to_rownames('V1')
+# z_primates <- data.table::fread('results/embs/z_primates.csv') %>% column_to_rownames('V1')
 # z_primates <- z_primates %>% mutate(protected = primates_nhp$ProtectBinary)
 # z_primates <- z_primates %>% mutate(vaccinated = primates_nhp$Vaccine)
 # z_primates <- z_primates %>% mutate(species = 'primates')
-# z_primates_base <- data.table::fread('results_intermediate_encoders/embs/z_primates_base.csv') %>% column_to_rownames('V1')
+# z_primates_base <- data.table::fread('results/embs/z_primates_base.csv') %>% column_to_rownames('V1')
 # z_primates_base <- z_primates_base %>% mutate(protected = primates_nhp$ProtectBinary)
 # z_primates_base <- z_primates_base %>% mutate(vaccinated = primates_nhp$Vaccine)
 # z_primates_base <- z_primates_base %>% mutate(species = 'primates')
 # 
 # z_latent <- rbind(z_human,z_primates)
 # z_latent_base <- rbind(z_human_base,z_primates_base)
-# data.table::fwrite(z_latent_base,paste0('results_intermediate_encoders/embs/latent_embeddings_global_',i,'.csv'))
-# data.table::fwrite(z_latent,paste0('results_intermediate_encoders/embs/latent_embeddings_',i,'.csv'))
+# data.table::fwrite(z_latent_base,paste0('results/embs/latent_embeddings_global_',i,'.csv'))
+# data.table::fwrite(z_latent,paste0('results/embs/latent_embeddings_',i,'.csv'))
 # 
 # ### Dimensionality reduction and visualization
 # pca <- prcomp(z_latent_base[,1:latent_dim],center = T)
