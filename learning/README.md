@@ -20,7 +20,7 @@
 19. CPA_PerfomanceAnalysis.py: Script containing code to run the performance analysis from Figure 2, for the CPA-based approach, but using the 10,086 genes. 
 20. CPA_PerformancePretrainClass.py: Script containing code to pre-train the adverse classifier for the performance analysis from Figure 2, for the CPA-based approach, using the landmark genes.
 21. IntermediateTranslators.ipynb: Jupyter notebook to train CPA-based model but with intermediate ANNs to add the cell line effect.
-22. BaselineCellL1000Translation.ipynb : Jupyter notebook to train a whole autoencoder model just with baseline signatures of cells and then train a translation model of the same cell line trained to predict 1/2 the genes using the other 1/2.
+22. SameCellimputationModel.ipynb : Jupyter notebook to train a whole translation model of the same cell line trained to predict 1/2 the genes using the other 1/2.
 
 ## References
 [^1]: Umarov, Ramzan, Yu Li, and Erik Arner. "DeepCellState: An autoencoder-based framework for predicting cell type specific transcriptional states induced by drug treatment." PLoS Computational Biology 17.10 (2021): e1009465.

@@ -24,6 +24,7 @@ preprocessing/preprocessed_data/landmarks_gsea_distances_a375_ht29.rds
 preprocessing/preprocessed_data/baselineCell/cmap_all_baselines_q1.rds
 preprocessing/preprocessed_data/baselineCell/cmap_all_baselines_q1.csv
 preprocessing/preprocessed_data/baselineCell/cmap_all_baselines_10k_q1.csv
+preprocessing/preprocessed_data/baselineCell
 postprocessing/.Rhistory
 postprocessing/.Rproj.user/
 postprocessing/output1.txt
@@ -127,8 +128,8 @@ results/trained_models/alldata_landmarks_cpa_locald_pc3_ha1e.pt
 results/trained_models/alldata_landmarks_cpa_priord_a375_ht29.pt
 results/trained_models/alldata_landmarks_cpa_priord_pc3_ha1e.pt
 results/trained_models/trained_models.zip
-results/BaselineCellsAnalysis/models_ae
-results/BaselineCellsAnalysis/models_AutoTransOp
+results/SameCellimputationModel/models_ae
+results/SameCellimputationModel/models_AutoTransOp
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv
