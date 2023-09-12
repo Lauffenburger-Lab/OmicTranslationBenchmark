@@ -1,6 +1,6 @@
 library(ggplot2)
 library(lmtest)
-
+setEPS()
 for (i in 1:10){
   latent_embeddings<-read.csv(paste0("results_intermediate_encoders/embs/combined_10fold/latent_embeddings_global_",i,".csv"))
   data<-latent_embeddings[,c(1:(dim(latent_embeddings)[2]-3))]
@@ -20,14 +20,14 @@ for (i in 1:10){
   
   full<-cbind(centered_data,outcomes)
   
-  for (i in 1:32){
+  for (j in 1:32){
     
-    full_model<-lm(full[,i]~protected+vaccinated+species,data = full)
-    null_model<-lm(full[,i]~vaccinated+species,data = full)
+    full_model<-lm(full[,j]~protected+vaccinated+species,data = full)
+    null_model<-lm(full[,j]~vaccinated+species,data = full)
     kp<-lrtest(full_model,null_model)
     
-    results[1,i]<-kp[2,5]
-    results[2,i]<-summary(full_model)[["coefficients"]][, "t value"][2]
+    results[1,j]<-kp[2,5]
+    results[2,j]<-summary(full_model)[["coefficients"]][, "t value"][2]
     
   }
   
