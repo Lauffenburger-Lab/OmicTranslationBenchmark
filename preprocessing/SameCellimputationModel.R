@@ -7,6 +7,10 @@ registerDoFuture()
 plan(multisession,workers = cores)
 library(doRNG)
 library(caret)
+library(ggplot2)
+library(corrplot)
+library(reshape2)
+
 ########## The whole pre-processing analysis is in the L1000 folder of the new data ###############
 
 ### Load data and keep only well-inferred and landmark genes----------------------------------------------------
@@ -98,3 +102,15 @@ for (cell in unique(sigInfo$cell_iname)){
   }
   print(paste0('Finished cell-line : ',cell))
 }
+
+### Visualize landmark correlation across all samples---------------
+landmark_corr <- cor(cmap)
+testRes = cor.mtest(cmap, conf.level = 0.95)
+upper_tri <- landmark_corr
+upper_tri[upper.tri(upper_tri,diag = T)] <- NA
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+melted_cormat <- melted_cormat %>% filter(Var1!=Var2)
+hist(melted_cormat$value,100,main='Landmarks` pairwise correlation',xlab = 'Pearson`s r',ylab = 'Counts')
+
+corrplot(landmark_corr, method = 'color', 
+         order = 'hclust',tl.pos = 'n')

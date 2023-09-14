@@ -13,6 +13,8 @@ serology/.Rhistory
 serology/learning/__pycache__
 serology/results_intermediate_encoders/models/*
 serology/results_intermediate_encoders/pretrained_models/*
+serology/importance_results_cpa/translation/processed
+serology/importance_results_cpa/translation/processed/*
 learning/__pycache__
 preprocessing/.Rhistory
 preprocessing/.Rproj.user/

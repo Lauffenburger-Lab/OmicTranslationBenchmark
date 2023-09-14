@@ -1021,7 +1021,7 @@ plt.gca().set(title='Per feature performance of human decoder in cross-validatio
 plt.xlim(-1,1)
 # ax.yaxis.set_tick_params(labelsize = 5)
 plt.yticks([])
-ax.text(-0.5, 20,text, fontsize=42,fontweight='bold',bbox=dict(edgecolor='black',facecolor='none'))
+ax.text(-0.97, 20,text, fontsize=42,fontweight='bold',bbox=dict(edgecolor='black',facecolor='none'))
 plt.savefig('../results/perFeature_performance_decoder_'+str(latent_dim)+'dim'+str(NUM_EPOCHS)+'ep_human.png', bbox_inches='tight',dpi=600)
 
 

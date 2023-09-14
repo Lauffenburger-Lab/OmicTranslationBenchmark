@@ -6,21 +6,30 @@ library(rstatix)
 library(ggrepel)
 
 # Analysis for classification of protection-------------
+all_selected <- data.frame()
+for (i in 1:10){
+  fold_lrt_res <- data.table::fread(paste0('LRT_results_cpa/LRT_latent_embeddings_global',i,'_after_results.csv'))
+  fold_lrt_res$selected <- ifelse(fold_lrt_res$logp > (-log(0.05/32)), 1,0)
+  fold_lrt_res <- fold_lrt_res %>% dplyr::select(V1,selected) %>% mutate(Fold=paste0('global_',i)) %>% spread(key = V1,value = selected)
+  fold_lrt_res$lrt_counts <- sum(fold_lrt_res[,2:ncol(fold_lrt_res)])
+  all_selected <- rbind(all_selected,fold_lrt_res)
+}
+data.table::fwrite(all_selected,'LRT_results_cpa/LRT_selected_latent_variables.csv')
 
 # Load LRT results
-lrt_results <- data.table::fread('LRT_results/LRT_selected_latent_variables.csv') %>% select(-z32)
-lrt_results <- lrt_results %>% filter(Fold!='')
-colnames(lrt_results)[ncol(lrt_results)] <- 'lrt_counts'
-lrt_results <- lrt_results %>% gather('latent_var','value',-Fold,-lrt_counts)
-lrt_results <- lrt_results %>% filter(value>0) %>% select(-value) %>% mutate(lrt_importance='Important')
-lrt_results <- lrt_results%>% mutate(Fold = str_split(Fold,'_')) %>% unnest(Fold) %>% 
+LRT_results_cpa <- data.table::fread('LRT_results_cpa/LRT_selected_latent_variables.csv') #%>% select(-z32)
+LRT_results_cpa <- LRT_results_cpa %>% filter(Fold!='')
+colnames(LRT_results_cpa)[ncol(LRT_results_cpa)] <- 'lrt_counts'
+LRT_results_cpa <- LRT_results_cpa %>% gather('latent_var','value',-Fold,-lrt_counts)
+LRT_results_cpa <- LRT_results_cpa %>% filter(value>0) %>% select(-value) %>% mutate(lrt_importance='Important')
+LRT_results_cpa <- LRT_results_cpa%>% mutate(Fold = str_split(Fold,'_')) %>% unnest(Fold) %>% 
   filter(Fold!='global') %>% mutate(Fold = paste0('fold ',as.numeric(Fold)-1))
 
 # Load classification and lrt t-values results
 grad_results <- data.frame()
 lrt_all_results <- data.frame()
 for (i in 1:10){
-  tmp <- data.table::fread(paste0('importance_results/important_scores_to_classify_human_protection_',i-1,'.csv'))
+  tmp <- data.table::fread(paste0('importance_results_cpa/important_scores_to_classify_human_protection_',i-1,'.csv'))
   tmp <- tmp %>% select(-V1)
   mean_class_score <- colMeans(tmp)
   #mean_class_score <- apply(tmp,2,median)
@@ -31,7 +40,7 @@ for (i in 1:10){
   grad_results <- rbind(grad_results,df_class_score)
   
   # load LRT results
-  tmp <-  data.table::fread(paste0('LRT_results/LRT_latent_embeddings_global',i,'_results.csv'))
+  tmp <-  data.table::fread(paste0('LRT_results_cpa/LRT_latent_embeddings_global',i,'_after_results.csv'))
   colnames(tmp)[1] <- 'latent_var'
   tmp <- tmp %>% mutate(Fold = paste0('global_',i))
   tmp <- tmp %>% select(-logp)
@@ -42,12 +51,12 @@ grad_results <- grad_results %>% mutate(Fold = str_split(Fold,'_')) %>% unnest(F
   filter(Fold!='global') %>% mutate(Fold = paste0('fold ',as.numeric(Fold)-1))
 grad_results$Fold <- factor(grad_results$Fold,levels = paste0('fold ',seq(0,9)))
 grad_results <- grad_results %>% group_by(Fold) %>% mutate(mean_score=100*mean_score/max(abs(mean_score))) %>% ungroup()
-grad_results <- left_join(lrt_results,grad_results)
+grad_results <- left_join(LRT_results_cpa,grad_results)
 lrt_all_results$latent_var <- factor(lrt_all_results$latent_var,levels = paste0('z',seq(0,31)))
 lrt_all_results <- lrt_all_results %>% mutate(Fold = str_split(Fold,'_')) %>% unnest(Fold) %>% 
   filter(Fold!='global') %>% mutate(Fold = paste0('fold ',as.numeric(Fold)-1))
 lrt_all_results$Fold <- factor(lrt_all_results$Fold,levels = paste0('fold ',seq(0,9)))
-lrt_all_results <- left_join(lrt_results,lrt_all_results)
+lrt_all_results <- left_join(LRT_results_cpa,lrt_all_results)
 lrt_all_results <- lrt_all_results %>% select(Fold,latent_var,tvalue) %>% unique()
 grad_results <- left_join(grad_results,lrt_all_results)
 grad_results <- grad_results %>% mutate(agreement = ifelse(sign(mean_score)==sign(tvalue),'yes','no'))
@@ -68,7 +77,7 @@ p <- ggplot(grad_results,
 print(p)
 #fill='#0077b3'
 ggsave(
-  'importance_results/figures/importance_scores_classification.eps', 
+  'importance_results_cpa/figures/importance_scores_classification.eps', 
   device = cairo_ps,
   scale = 1,
   width = 18,
@@ -76,7 +85,7 @@ ggsave(
   units = "in",
   dpi = 600,
 )
-png('importance_results/figures/importance_scores_classification.png',width=18,height=16,units = "in",res = 600)
+png('importance_results_cpa/figures/importance_scores_classification.png',width=18,height=16,units = "in",res = 600)
 print(p)
 dev.off()
 
@@ -94,7 +103,7 @@ grad_results <- grad_results %>% filter(agreement=='yes') %>% select(-agreement)
 features_results <- data.frame()
 for (i in 1:10){
   if (paste0("fold ",i-1) %in% grad_results$Fold){
-    tmp <- data.table::fread(paste0('importance_results/important_scores_human_features_',i-1,'.csv'))
+    tmp <- data.table::fread(paste0('importance_results_cpa/important_scores_human_features_',i-1,'.csv'))
     tmp <- tmp %>% column_to_rownames('V1')
     fold_variables <- grad_results %>% filter(Fold==paste0("fold ",i-1)) %>% unique()
     fold_variables <- fold_variables$latent_var
@@ -127,16 +136,16 @@ feats <- feats %>% mutate(protected=ifelse(protection==1,'protected','non-protec
 feats$protected <- factor(feats$protected,levels = c('non-protected','protected'))
 feats <- feats %>% gather('feature','value',-protection,-protected)
 feats <- left_join(feats,features_results)
-pairwise.test_human = feats %>% filter(mean_percentage_score>=20) %>% group_by(feature) %>%
+pairwise.test_human = feats %>% filter(mean_percentage_score>=50) %>% group_by(feature) %>%
   wilcox_test(value ~ protected) %>% 
   adjust_pvalue(method = 'bonferroni') %>% ungroup()
-ggboxplot(feats %>% filter(mean_percentage_score>=20),
+ggboxplot(feats %>% filter(mean_percentage_score>=50),
           x='protected',y='value',color='protected',add='jitter')+
   xlab('')+
   facet_wrap(~feature) +
   stat_pvalue_manual(pairwise.test_human,
                      label = "p.adj = {scales::pvalue(p.adj)}",
-                     y.position = 4,
+                     y.position = 2,
                      size=7)+
   theme(axis.title = element_text(family = 'Arial',size=24),
         axis.text = element_text(family = 'Arial',size=24),
@@ -144,7 +153,7 @@ ggboxplot(feats %>% filter(mean_percentage_score>=20),
         strip.text.x = element_text(size = 14))
 #data.table::fwrite(pairwise.test_human,'results_intermediate_encoders/important_human_protection_features.csv')
 ggsave(
-  'importance_results/figures/importance_human_features_greather_than_20perc.eps', 
+  'importance_results_cpa/figures/importance_human_features_greather_than_20perc.eps', 
   device = cairo_ps,
   scale = 1,
   width = 18,
@@ -157,7 +166,7 @@ ggsave(
 features_results_primates <- data.frame()
 for (i in 1:10){
   if (paste0("fold ",i-1) %in% grad_results$Fold){
-    tmp <- data.table::fread(paste0('importance_results/important_scores_primates_features_',i-1,'.csv'))
+    tmp <- data.table::fread(paste0('importance_results_cpa/important_scores_primates_features_',i-1,'.csv'))
     tmp <- tmp %>% column_to_rownames('V1')
     fold_variables <- grad_results %>% filter(Fold==paste0("fold ",i-1)) %>% unique()
     fold_variables <- fold_variables$latent_var
@@ -203,20 +212,30 @@ ggboxplot(feats_primates %>% filter(mean_percentage_score>=20),
 
 
 # filter human features not statistically significantly different between protected and non-protected
+pairwise.test_human = feats %>% filter(mean_percentage_score>=20) %>% group_by(feature) %>%
+  wilcox_test(value ~ protected) %>% 
+  adjust_pvalue(method = 'bonferroni') %>% ungroup()
+feats <- left_join(feats,pairwise.test_human %>% select(feature,p.adj))
 feats_interesting <- rbind(feats_primates %>% filter(mean_percentage_score>=20) %>% 
   select('feature') %>% unique() %>% mutate(species='primates'),
   feats %>% filter(mean_percentage_score>=20) %>%
-    filter(!(feature %in% c('IgG3_CC_gp70V1V2A','secondary_gf_adcc_244_gdpos_peak'))) %>%
+    filter(p.adj<0.1) %>% select(-p.adj) %>%
     select('feature') %>% unique()%>% mutate(species='human'))
-data.table::fwrite(feats_interesting,'importance_results/interesting_features.csv',row.names = T)
+data.table::fwrite(feats_interesting,'importance_results_cpa/interesting_features.csv',row.names = T)
 
 # See the rank of importance of these primates important features for
 # human important features
 translation_importance <- data.frame()
+interesting_human_feats <- feats_interesting %>% filter(species=='human') %>% select(feature)
+interesting_human_feats <- unique(interesting_human_feats$feature)
 for (i in 1:10){
-  tmp <- data.table::fread(paste0('importance_results/translation/important_scores_primates_to_human_',i-1,'.csv'))
+  tmp <- data.table::fread(paste0('importance_results_cpa/translation/important_scores_primates_to_human_',i-1,'.csv'))
   tmp <- tmp %>% column_to_rownames('V1')
   mean_feature_score <- rowMeans(tmp)
+  tmp$mean_score <- mean_feature_score
+  tmp <- tmp %>% mutate(fold = i)
+  tmp <- tmp %>% select(fold,all_of(interesting_human_feats),mean_score)
+  data.table::fwrite(tmp,paste0('importance_results_cpa/translation/processed/important_scores_primates_to_human_',i-1,'.csv'))
   df_feature_score <- data.frame(mean_feature_score)
   colnames(df_feature_score) <- 'mean_score'
   df_feature_score <- df_feature_score %>% rownames_to_column('feature')
@@ -230,7 +249,7 @@ translation_importance <- translation_importance %>% group_by(feature) %>%
   mutate(mean_percentage_score = median(percentage_score)) %>% ungroup()
 translation_importance <- translation_importance %>% select(-Fold,-mean_score,-percentage_score) %>% unique()
 # Load primates correlation in validation
-pimates_performance <- data.table::fread('results_intermediate_encoders/10foldvalidation_decoder_32dim2000ep_perFeature_primates.csv')
+pimates_performance <- data.table::fread('results/10foldvalidation_decoder_32dim2000ep_perFeature_primates.csv')
 pimates_performance <- pimates_performance %>% select(-V1)
 pimates_feature_performance <- colMeans(pimates_performance)
 df_performance <- data.frame(r=pimates_feature_performance)
@@ -253,19 +272,23 @@ df_performance$quality <- factor(df_performance$quality,
                                             'medium','good',
                                             'high'))
 translation_importance <- left_join(translation_importance,df_performance)
-translation_importance <- translation_importance %>% mutate(annotation = ifelse(mean_percentage_score>=39,feature,''))
+translation_importance <- translation_importance %>% mutate(annotation = ifelse(abs(mean_percentage_score)>=20 & quality %in% c('high','good'),
+                                                                                feature,
+                                                                                ''))
 print(unique(translation_importance$quality))
 # Make baplot and save
 ggplot(translation_importance) +
   geom_bar(aes(x=reorder(feature,-mean_percentage_score), y=mean_percentage_score,fill=quality), stat="identity") +
-  scale_fill_manual(values = c('#b30024','#e67002','#d6e602','#00b374'))+
+  scale_fill_manual(values = c('#e67002','#d6e602','#00b374'))+
+  #scale_fill_manual(values = c('#b30024','#e67002','#d6e602','#00b374'))+
   geom_hline(yintercept = 0,linewidth=1)+
   geom_hline(yintercept = 20,linetype='dashed',linewidth=1)+
+  geom_hline(yintercept = -20,linetype='dashed',linewidth=1)+
   geom_label_repel(aes(x=feature,y=mean_percentage_score,label=annotation),
-                   size = 8,
-                   box.padding   = 1.5, 
+                   size = 5,
+                   box.padding   = 0.75, 
                    point.padding = 0.1,
-                   max.overlaps = 10,
+                   max.overlaps = 40,
                    segment.color = 'grey50')+
   xlab('primates serological features') + ylab('mean percentage score %') +
   ggtitle('Primates feature importance for protection associated human features')+
@@ -278,7 +301,7 @@ ggplot(translation_importance) +
         axis.text.x = element_blank(),
         plot.title = element_text(hjust = 0.5,size=32))
 ggsave(
-  'importance_results/figures/important_translation.eps', 
+  'importance_results_cpa/figures/important_translation.eps', 
   device = cairo_ps,
   scale = 1,
   width = 16,
@@ -298,12 +321,12 @@ feats_primates <- feats_primates %>% mutate(protected=ifelse(protection==1,'prot
 feats_primates$protected <- factor(feats_primates$protected,levels = c('non-protected','protected'))
 feats_primates <- feats_primates %>% gather('feature','value',-protection,-protected)
 feats_primates <- left_join(feats_primates,translation_importance)
-pairwise.test_primates = feats_primates %>% filter(mean_percentage_score>=30) %>% 
+pairwise.test_primates = feats_primates %>% filter(mean_percentage_score>=20) %>% 
   filter(quality=='high' | quality=='good' ) %>% group_by(feature) %>%
   wilcox_test(value ~ protected) %>% 
   adjust_pvalue(method = 'bonferroni') %>% ungroup()
 #pairwise.test_primates <- pairwise.test_primates %>% filter(p.adj<=0.05)
-ggboxplot(feats_primates %>% filter(mean_percentage_score>=30) %>% 
+ggboxplot(feats_primates %>% filter(mean_percentage_score>=20) %>% 
             filter(quality=='high' | quality=='good' )%>%
             filter(feature %in% pairwise.test_primates$feature),
           x='protected',y='value',color='protected',add='jitter')+
@@ -312,8 +335,8 @@ ggboxplot(feats_primates %>% filter(mean_percentage_score>=30) %>%
   stat_pvalue_manual(pairwise.test_primates,
                      label = "p.adj = {scales::pvalue(p.adj)}",
                      y.position = 1.25)
-png('importance_results/figures/importance_primates_features_greather_than_30perctranslation_goodhigh.png',width=18,height=16,units = "in",res = 600)
-ggboxplot(feats_primates %>% filter(mean_percentage_score>=30) %>% 
+png('importance_results_cpa/figures/importance_primates_features_greather_than_30perctranslation_goodhigh.png',width=18,height=16,units = "in",res = 600)
+ggboxplot(feats_primates %>% filter(mean_percentage_score>=20) %>% 
             filter(quality=='high' | quality=='good' )%>%
             filter(feature %in% pairwise.test_primates$feature),
           x='protected',y='value',color='protected',add='jitter')+
