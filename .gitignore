@@ -132,6 +132,11 @@ results/trained_models/alldata_landmarks_cpa_priord_pc3_ha1e.pt
 results/trained_models/trained_models.zip
 results/SameCellimputationModel/models_ae
 results/SameCellimputationModel/models_AutoTransOp
+results/SameCellimputationModel/preds_AutoTransOp
+results/SameCellimputationModel/IntermediateEncoder/models_AutoTransOp
+results/SameCellimputationModel/IntermediateEncoder/preds_AutoTransOp
+results/SameCellimputationModel/CPA/models_AutoTransOp
+results/SameCellimputationModel/CPA/preds_AutoTransOp
 results/test_stuff
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
