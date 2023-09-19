@@ -9,12 +9,22 @@ library(reshape2)
 # results_cpa <- data.frame()
 # for(cell in c("PC3","HT29","MCF7","A549","NPC","HEPG2","A375","YAPC","U2OS","MCF10A","HA1E","HCC515","ASC","VCAP","HUVEC","HELA")){
 #   tmp <- data.table::fread(paste0('../results/SameCellimputationModel/CPA/translation_results_',cell,'.csv'))
-#   colnames(tmp)[1] <- 'fold' 
+#   colnames(tmp)[1] <- 'fold'
 #   results_cpa <- rbind(results_cpa,tmp)
 # }
 # results_cpa <- distinct(results_cpa)
+# results_cpa <- results_cpa %>% mutate(model='AutoTransOp v2')
 # data.table::fwrite(results_cpa,'../results/SameCellimputationModel/CPA/translation_results.csv')
-### Load results---------------
+## Load results---------------
+# results <- data.frame()
+# for(cell in c("PC3","HT29","MCF7","A549","NPC","HEPG2","A375","YAPC","U2OS","MCF10A","HA1E","HCC515","ASC","VCAP","HUVEC","HELA")){
+#   tmp <- data.table::fread(paste0('../results/SameCellimputationModel/translation_results_',cell,'.csv'))
+#   colnames(tmp)[1] <- 'fold'
+#   results <- rbind(results,tmp)
+# }
+# results <- distinct(results)
+# results <- results %>% mutate(model=ifelse(model=='shuffled','shuffled v1','AutoTransOp v1'))
+# data.table::fwrite(results,'../results/SameCellimputationModel/translation_results.csv')
 results <- data.table::fread('../results/SameCellimputationModel/translation_results.csv')
 results <- results %>% filter(set=='validation') %>% select(-set)
 results <- distinct(results)
@@ -31,7 +41,7 @@ results_cpa <- results_cpa %>% mutate(mean_r = 0.5*(model_pearson2to1+model_pear
   unique()
 
 all_results <- rbind(results,results_cpa)
-all_results <- all_results %>% mutate(model = ifelse(model=='shuffled','shuffled v1',model))
+# all_results <- all_results %>% mutate(model = ifelse(model=='shuffled','shuffled v1',model))
 all_results$model <- factor(all_results$model,levels = c('AutoTransOp v1','AutoTransOp v2','shuffled v1'))
 
 ### Visualize results-------------
@@ -66,7 +76,7 @@ ggplot(all_results, aes(x = model, y = mean_r, color = cell)) +
   geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.6,na.rm = T) + 
   geom_jitter(position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.3), size = 1) +
   ylab('Average Pearson`s Correlation for Translation') +
-  scale_y_continuous(breaks = seq(0.0, 0.8, 0.1), limits = c(-0.1, 0.8)) +
+  scale_y_continuous(breaks = seq(0.0, 0.8, 0.1), limits = c(-0.1, 0.85)) +
   #geom_hline(yintercept = 0, linewidth = 0.75, color = 'black', linetype = 'dashed') +
   theme_pubr(base_size = 24,base_family = 'Arial')+
   theme(text = element_text(size = 24, family = 'Arial'),
@@ -81,9 +91,9 @@ ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_v2.png',
 ### All together
 ggboxplot(all_results,x='model',y='mean_r',color = 'model',add = 'jitter') +
   ylab('Average pearson`s correlation for translation')+
-  scale_y_continuous(breaks = seq(0.0,0.8,0.1),limits = c(-0.1,0.8))+
+  scale_y_continuous(breaks = seq(0.0,0.8,0.1),limits = c(-0.1,0.85))+
   geom_hline(yintercept = 0,linewidth=0.75,color='black',linetype = 'dashed')+
-  stat_compare_means(ref.group = 'shuffled',method = 'wilcox.test',size=6,label.y = 0.75)+
+  stat_compare_means(ref.group = 'shuffled v1',method = 'wilcox.test',size=6,label.y = 0.75)+
   theme(text = element_text(size=24,family = 'Arial'),
         panel.grid.major.y = element_line(linewidth = 1,linetype = 'dashed'),
         legend.position = 'none')
@@ -95,7 +105,7 @@ ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_v0.png',
 
 ### Same for reconstruction------------------------------
 all_results <- rbind(results,results_cpa)
-all_results <- all_results %>% mutate(model = ifelse(model=='shuffled','shuffled v1',model))
+# all_results <- all_results %>% mutate(model = ifelse(model=='shuffled','shuffled v1',model))
 all_results$model <- factor(all_results$model,levels = c('AutoTransOp v1','AutoTransOp v2','shuffled v1'))
 median_cell_values <- aggregate(mean_recon ~ cell, all_results, mean)
 all_results$cell <- factor(all_results$cell, levels = median_cell_values$cell[order(-median_cell_values$mean_recon)])

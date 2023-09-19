@@ -195,7 +195,7 @@ ggsave(filename = '../article_supplementary_info/differential_tf_activity_cpa.ep
 mean_tf_values <- aggregate(corr ~ TF, df_corr_all, mean)
 df_corr_all$TF <- factor(df_corr_all$TF, levels = mean_tf_values$TF[order(mean_tf_values$corr)])
 ggboxplot(df_corr_all,x='TF',y='corr',color ='TF' ,add = 'jitter') + 
-  ylim(c(0,0.85))+ylab('Pearson`s r')+
+  ylim(c(0.55,0.85))+ylab('Pearson`s r')+
   ggtitle('Performance in predicting TF activity')+
   theme(text = element_text(family = 'Arial',size=18),
         legend.position = 'none',
