@@ -141,6 +141,8 @@ results/SameCellimputationModel/all_kegg_results_same_cell_imputated.rds
 results/SameCellimputationModel/kegg_erichment_same_cell_imputation_original.rds
 results/SameCellimputationModel/go_enrichment_same_cell_imputation_original.rds
 results/SameCellimputationModel/all_go_results_same_cell_imputated.rds
+results/SameCellimputationModel/*.eps
+results/SameCellimputationModel/*.png
 results/test_stuff
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
