@@ -52,6 +52,9 @@ data/level5_beta_trt_cp_n720216x12328.gctx
 data/siginfo_beta.txt
 data/compoundinfo_beta.txt
 data/CCLE/*.csv
+results/Importance_results/linear_gene_importance_ha1e_to_pc3.csv
+results/Importance_results/linear_gene_importance_pc3_to_ha1e.csv
+learning/MultiRegressionDirectTranslation.ipynb
 results/FITmodel_results/models_noReg/*
 results/FITmodel_results/models/*
 results/TransCompR_results/models/*

@@ -103,13 +103,14 @@ cmap_median <- cmap_median %>% rownames_to_column('gene')
 
 #plot cmap median expression of a gene vs importance score
 df <- 0.5*(df1+df2)
+df_self <- diag(as.matrix(df))
 rownames(df) <- rownames(df1)
 df <- apply(df,1,median)
 df <- as.data.frame(df)
 df <- df %>% rownames_to_column('gene')
 df <- left_join(df,cmap_median)
 #%>% mutate(cmap_median=abs(cmap_median)) %>% mutate(df=abs(df))
-p <- ggscatter(df,
+p <- ggscatter(df ,#%>% mutate(cmap_median=abs(cmap_median)) %>% mutate(abs(df)),
                x='cmap_median',y='df',rug = TRUE,
                alpha = 0.5,size=1,color = '#1f77b4',
                cor.coef=T,cor.coef.size = 5) + 
@@ -131,8 +132,44 @@ ggsave(
   dpi = 600,
 )
 
+## Load linear weights for linear regression model
+# weights1 <- data.table::fread('../results/Importance_results/linear_gene_importance_pc3_to_ha1e.csv',header = T) %>% column_to_rownames('V1')
+# weights2 <- data.table::fread('../results/Importance_results/linear_gene_importance_ha1e_to_pc3.csv',header = T)%>% column_to_rownames('V1')
+# weights <- 0.5*(weights1+weights2)
+# weights <- weights[df$gene,]
+# weights <- scale(weights)
+
+### PCA important genes
+pca_cmap_paired <- prcomp(cmap_paired,center = T)
+# fviz_screeplot(pca_cmap_paired,ncp=20)
+pca_cmap_paired_results <- summary(pca_cmap_paired)$importance
+#pca_cmap_paired_results[3,5]
+loadings_cmap_paired <- pca_cmap_paired$rotation
+loadings_cmap_paired <- loadings_cmap_paired[,1:5]
+#pca_importance <- rowMeans(abs(loadings_cmap_paired))
+### Correlation calculation 
+genes_inferred <- geneInfo %>% filter(feature_space=='best inferred') %>% filter(gene_type=='protein-coding')
+cmap_corr_mat <- cor(cmap_paired,method='spearman')
+cmap_corr_mat <- cmap_corr_mat[lands,]
+cmap_corr_mat <- cmap_corr_mat[,which(!(colnames(tt) %in% lands))]
+cmap_corr_mat <- rowMeans(cmap_corr_mat)
+cmap_corr_mat_abs <- cor(abs(cmap),method='spearman')
+cmap_corr_mat_abs <- cmap_corr_mat_abs[lands,]
+cmap_corr_mat_abs <- cmap_corr_mat_abs[,which(!(colnames(tt) %in% lands))]
+cmap_corr_mat_abs <- rowMeans(cmap_corr_mat_abs)
+###
+self_gene_corr_abs <- NULL
+self_gene_corr <- NULL
 spearman_corr <- NULL
 spearman_corr_abs <- NULL
+spearman_corr_rand <- NULL
+spearman_corr_abs_rand <- NULL
+# spearman_corr_linear <- NULL
+# spearman_corr_abs_linear <- NULL
+spearman_corr_abs_rf <- NULL
+spearman_corr_rf <- NULL
+spearman_corr_abs_pca <- NULL
+spearman_corr_pca <- NULL
 for (i in 1:nrow(cmap)){
   gex <- cmap[i,]
   gex <- t(gex)
@@ -140,17 +177,59 @@ for (i in 1:nrow(cmap)){
   gex <- as.data.frame(gex)
   spearman_corr[i] <- cor(gex$gex, df$df, method = "spearman")
   spearman_corr_abs[i] <- cor(abs(gex$gex), abs(df$df), method = "spearman")
+  spearman_corr_rand[i] <- cor(gex$gex[sample.int(n=nrow(gex),size = nrow(gex),replace = F)], df$df, method = "spearman")
+  spearman_corr_abs_rand[i] <- cor(abs(gex$gex[sample.int(n=nrow(gex),size = nrow(gex),replace = F)]), abs(df$df), method = "spearman")
+  # spearman_corr_linear[i] <- cor(gex$gex, weights, method = "spearman")
+  # spearman_corr_abs_linear[i] <- cor(abs(gex$gex), abs(weights), method = "spearman")
+  # spearman_corr_rf[i] <- cor(gex$gex, importance_rf, method = "spearman")
+  # spearman_corr_abs_rf[i] <- cor(abs(gex$gex), abs(importance_rf), method = "spearman")
+  self_gene_corr_abs[i] <- cor(abs(gex$gex), abs(df_self), method = "spearman")
+  self_gene_corr[i] <- cor(gex$gex, df_self, method = "spearman")
+  spearman_corr_abs_pca[i] <- cor(abs(gex$gex),rowMeans(abs(loadings_cmap_paired)),method='spearman')
+  spearman_corr_pca[i] <- cor(gex$gex,rowMeans(loadings_cmap_paired),method='spearman')
   if (i %% 100 == 0 | i==1){
     print(paste0('Finished sample ',i))
   }
 }
 df_corr <- data.frame(abs_spear = spearman_corr_abs,spear = spearman_corr)
-p <- ggplot(df_corr,aes(x=abs_spear)) + geom_histogram(fill='#d3d3d3',color='black',bins = 40,lwd=1) +
+# df_corr_linear <- data.frame(abs_spear = spearman_corr_abs_linear,spear = spearman_corr_linear)
+df_corr_rand <- data.frame(abs_spear = spearman_corr_abs_rand,spear = spearman_corr_rand)
+# df_corr_rf <- data.frame(abs_spear = spearman_corr_abs_rf,spear = spearman_corr_rf)
+df_corr_gex_lands <- data.frame(abs_spear=cmap_corr_mat_abs,spear=cmap_corr_mat)
+df_corr_self <- data.frame(abs_spear=self_gene_corr_abs,spear=self_gene_corr)
+df_corr_pca <- data.frame(abs_spear=spearman_corr_abs_pca,spear=spearman_corr_pca)
+df_corr_all <- rbind(df_corr %>% mutate(type = 'model'),
+                     #df_corr_self %>% mutate(type = 'same gene-to-gene'),
+                     df_corr_pca %>% mutate(type='PCA importance'),
+                     # df_corr_gex_lands %>% mutate(type = 'landmarks Gene Exprs.'),
+                     #df_corr_rf %>% mutate(type = 'random forest'),
+                     #df_corr_linear %>% mutate(type = 'linear'),
+                     df_corr_rand %>% mutate(type = 'shuffled'))
+#'#d3d3d3'
+# p <- ggplot(df_corr_all,aes(x=abs_spear,fill=type)) + geom_density(aes(y=..scaled..),color='black',lwd=1,adjust=0.85) +
+#   xlab('per sample Spearman`s correlation') + ylab('scaled density') + #ylab('Counts') +
+#   ggtitle('Correlation between gene importance and expression')+
+#   theme_minimal(base_family = "Arial",base_size = 36)+
+#   theme(plot.title = element_text(size=33,hjust = 1),
+#         axis.text = element_text(family = "Arial",size = 38))
+model_vs_rand <- effectsize::cohens_d(df_corr$abs_spear,
+                                      df_corr_rand$abs_spear,
+                                      paired = T,
+                                      ci=0.95)$Cohens_d
+model_vs_pca <- effectsize::cohens_d(df_corr$abs_spear,
+                                      df_corr_pca$abs_spear,
+                                      paired = T,
+                                      ci=0.95)$Cohens_d
+df_corr_all$type <- factor(df_corr_all$type,levels = c('PCA importance','model','shuffled'))
+p <- ggplot(df_corr_all,aes(x=abs_spear,fill=type)) + geom_histogram(color='black',bins = 50,lwd=1,alpha = 0.5,position="identity") +
   xlab('per sample Spearman`s correlation') + ylab('Counts') + 
   ggtitle('Correlation between gene importance and expression')+
+  # geom_text(aes(x=abs_spear,y=count, label=effect_size),
+  #           data=cof_results ,inherit.aes = FALSE,size=5, hjust = 0)+
   theme_minimal(base_family = "Arial",base_size = 36)+
   theme(plot.title = element_text(size=33,hjust = 1),
-        axis.text = element_text(family = "Arial",size = 38))
+        axis.text = element_text(family = "Arial",size = 38),
+        legend.position = 'top')
 print(p)
 ggsave(
   '../figures/gex_vs_importance_spearman.eps',
@@ -846,9 +925,12 @@ ordered_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)]
 train_indices <- createDataPartition(gex$cell, p = 0.75, list = FALSE)
 # Subset your data into training and testing sets based on the indices
 train_data <- gex[train_indices, ]
+print(sum(train_data $cell==1)/nrow(train_data ))
 test_data <- gex[-train_indices, ]
+print(sum(test_data$cell==1)/nrow(test_data))
 gc()
-
+# saveRDS(train_data,'../../train_split_small_cell_glm.rds')
+# saveRDS(test_data,'../../train_split_small_cell_glm.rds')
 genes_to_keep <- c(1,3,5,10,15,20,25,30,35,40,45,50,70,100,150,200)
 F1 <- NULL
 for (i in 1:length(genes_to_keep)){
@@ -907,7 +989,7 @@ for (i in 1:length(genes_to_keep)){
   #F1[i] <- mean(random_f1s)
   message(paste0('Done top ',genes_to_keep[i],' genes'))
 }
-#saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
+saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
 F1 <- apply(radom_f1s, 1, mean,na.rm=T)
 F1_sds <- apply(radom_f1s, 1, sd,na.rm=T)
 gene_random_results <- data.frame(genes_number=genes_to_keep,F1=F1,F1_sds=F1_sds)
