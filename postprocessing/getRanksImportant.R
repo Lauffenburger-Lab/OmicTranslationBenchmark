@@ -929,10 +929,13 @@ print(sum(train_data $cell==1)/nrow(train_data ))
 test_data <- gex[-train_indices, ]
 print(sum(test_data$cell==1)/nrow(test_data))
 gc()
+# train_data <- readRDS('../../train_split_small_cell_glm.rds')
+# test_data <- readRDS('../../test_split_small_cell_glm.rds')
 # saveRDS(train_data,'../../train_split_small_cell_glm.rds')
-# saveRDS(test_data,'../../train_split_small_cell_glm.rds')
+# saveRDS(test_data,'../../test_split_small_cell_glm.rds')
 genes_to_keep <- c(1,3,5,10,15,20,25,30,35,40,45,50,70,100,150,200)
 F1 <- NULL
+ACC <- NULL
 for (i in 1:length(genes_to_keep)){
   df <- train_data %>% 
     dplyr::select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]],'cell'))))
@@ -941,12 +944,13 @@ for (i in 1:length(genes_to_keep)){
   mdl <- train(cell ~ ., data = df, method = "glm", trControl = ctrl,trace=F,family='binomial')
   y <- predict(mdl,newdata =test_data %>%
                  dplyr::select(all_of(unique(c(ordered_1[1:genes_to_keep[i]],ordered_2[1:genes_to_keep[i]])))))
-  conf <- confusionMatrix(test_data$cell,y)
-  F1[i] <- conf$byClass['F1']
+  conf <- confusionMatrix(reference=test_data$cell,data=y,positive = '1')
+  F1[i] <- conf$table[2,2]/(conf$table[2,2]+0.5*(conf$table[2,1]+conf$table[1,2]))
+  ACC[i] <- conf$overall['Accuracy']
   message(paste0('Done top ',genes_to_keep[i],' genes'))
 }
 
-gene_results <- data.frame(genes_number=genes_to_keep,F1=F1)
+gene_results <- data.frame(genes_number=genes_to_keep,F1=F1,accuracy = ACC)
 ggplot(gene_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + 
   geom_point(color='black',size=3)+
   geom_smooth(se=T,color='#4878CF') + ylim(c(0,100)) +
@@ -971,9 +975,13 @@ ggsave(
 random_iter <- 100
 genes_to_keep <- c(1,3,5,10,15,20,25,30,35,40,45,50,70,100,150,200)
 F1 <- NULL
+ACC <- NULL
 radom_f1s <- matrix(0,nrow = length(genes_to_keep),random_iter)
+radom_accs <- matrix(0,nrow = length(genes_to_keep),random_iter)
 for (i in 1:length(genes_to_keep)){
   #radom_f1s <- NULL
+  tt <- NULL
+  qq <- NULL
   for (j in 1:random_iter){
     random_genes <- sample(colnames(gex)[1:ncol(gex)-1],genes_to_keep[i])
     df <- train_data %>% 
@@ -983,16 +991,24 @@ for (i in 1:length(genes_to_keep)){
     mdl <- train(cell ~ ., data = df, method = "glm", trControl = ctrl,trace=F,family='binomial')
     y <- predict(mdl,newdata =test_data %>%
                    dplyr::select(all_of(unique(random_genes))))
-    conf <- confusionMatrix(test_data$cell,y)
-    radom_f1s[i,j] <- conf$byClass['F1']
+    conf <- confusionMatrix(reference=test_data$cell,data=y,positive = '1')
+    radom_f1s[i,j] <-  conf$table[2,2]/(conf$table[2,2]+0.5*(conf$table[2,1]+conf$table[1,2]))
+    radom_accs[i,j] <- conf$overall['Accuracy']
+    #tt[j] <- conf$overall['Accuracy']
+    #qq[j] <- conf$table[2,2]/(conf$table[2,2]+0.5*(conf$table[2,1]+conf$table[1,2]))
   }
+  # hist(tt)
+  # hist(qq)
   #F1[i] <- mean(random_f1s)
   message(paste0('Done top ',genes_to_keep[i],' genes'))
 }
 saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
+saveRDS(radom_accs,'../results/Importance_results/glm_radom_accs.rds')
 F1 <- apply(radom_f1s, 1, mean,na.rm=T)
 F1_sds <- apply(radom_f1s, 1, sd,na.rm=T)
-gene_random_results <- data.frame(genes_number=genes_to_keep,F1=F1,F1_sds=F1_sds)
+ACC <- apply(radom_accs, 1, mean,na.rm=T)
+ACC_sds <- apply(radom_accs, 1, sd,na.rm=T)
+gene_random_results <- data.frame(genes_number=genes_to_keep,F1=F1,F1_sds=F1_sds,accuracy=ACC,accuracy_sd=ACC_sds)
 ggplot(gene_random_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) + 
   geom_point(color='black',size=3)+
   geom_smooth(se=T,color='#4878CF') + ylim(c(0,100)) +
@@ -1006,18 +1022,18 @@ ggplot(gene_random_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) 
 
 #plot both together
 gene_random_results_combined <- rbind(gene_random_results %>% mutate(selected='random genes'),
-                                      gene_results %>% mutate(F1_sds=NA) %>% mutate(selected='important genes'))
-ggplot(gene_random_results_combined,aes(x=genes_number,y=F1*100,color=selected)) + 
+                                      gene_results %>% mutate(F1_sds=NA) %>% mutate(accuracy_sd=NA) %>% mutate(selected='important genes'))
+ggplot(gene_random_results_combined,aes(x=genes_number,y=accuracy*100,color=selected)) + 
   geom_point(size=3)+
   geom_errorbar(data=gene_random_results_combined %>% filter(!is.na(F1_sds)),
-                aes(ymin = 100*(F1-F1_sds), ymax = 100*(F1+F1_sds)), 
+                aes(ymin = 100*(accuracy-accuracy_sd), ymax = 100*(accuracy+accuracy_sd)), 
                 width = 2,linewidth=1)+
   geom_smooth(se=T) + ylim(c(0,100)) +
   scale_color_manual(values = c('#4878CF','#d97b38'))+
   scale_y_continuous(breaks=seq(0,100,20),limits = c(0,100))+
   geom_hline(yintercept = 50,color='red',lty='dashed',linewidth=1) + 
-  annotate('text',x=105,y=46,label = "random cell classification threshold: F1=50%",size=10)+
-  xlab(paste0('number of genes used from each cell-line'))+ ylab(paste0('F1 score (%)'))+theme_minimal()+
+  annotate('text',x=105,y=46,label = "random cell classification threshold: accuracy=50%",size=10)+
+  xlab(paste0('number of genes used from each cell-line'))+ ylab(paste0('accuracy (%)'))+theme_minimal()+
   ggtitle('GLM performance for classifying cell-line')+
   theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
         legend.text=element_text(size=30),legend.position = 'bottom')
@@ -1033,7 +1049,7 @@ ggsave(
 #saveRDS(gene_results,'../results/Importance_results/glm_genenumber_vs_f1.rds')
 
 
-### Seems like 25 genes from each cell-line are enough
+### Seems like 25 to 40 genes from each cell-line are enough
 ### Get these and put them to gProfiler
 saveRDS(imp_enc_1,'../results/Importance_results/imp_enc_1.rds')
 saveRDS(imp_enc_2,'../results/Importance_results/imp_enc_2.rds')
