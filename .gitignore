@@ -229,3 +229,5 @@ figures/*.ps
 figures/*.png
 figures/.Rhistory
 figures/MI_results/*.eps
+results/Importance_results/important_reconstruction_scores_pc3.csv
+results/Importance_results/important_reconstruction_scores_ha1e.csv

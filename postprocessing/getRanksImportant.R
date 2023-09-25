@@ -6,6 +6,14 @@ library(ggplot2)
 library(ggpubr)
 library(ggpattern)
 library(umap)
+library(corrplot)
+library(reshape2)
+library(EGSEAdata)
+library(topGO)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+egsea.data(species = "human",returnInfo = TRUE)
+human_keggs <- kegg.pathways$human$kg.sets
 # setEPS(paper='a3',pointsize=3)
 
 geneInfo <- read.delim('../../../L1000_2021_11_23/geneinfo_beta.txt')
@@ -138,24 +146,53 @@ ggsave(
 # weights <- 0.5*(weights1+weights2)
 # weights <- weights[df$gene,]
 # weights <- scale(weights)
+df <- 0.5*(abs(df1)+abs(df2))
+rownames(df) <- rownames(df1)
+df <- apply(df,1,median)
+df <- as.data.frame(df)
+df <- df %>% rownames_to_column('gene')
+df <- left_join(df,cmap_median)
+
+### Load reconstruction importance scores
+imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv') %>%
+  dplyr::select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
+imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
+imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv')%>%
+  dplyr::select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
+imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
+ordered_1 <- rownames(imp_enc_1)[order(-imp_enc_1$mean_imp)]
+ordered_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)]
+reconstruction_importance_pc3 <- data.table::fread('../results/Importance_results/important_reconstruction_scores_pc3.csv',header = T) %>%
+  column_to_rownames('V1')
+reconstruction_importance_pc3 <- reconstruction_importance_pc3 %>% dplyr::select(all_of(ordered_1[1:50]))
+reconstruction_importance_pc3 <- rowMeans(abs(reconstruction_importance_pc3))
+reconstruction_importance_pc3 <- as.data.frame(reconstruction_importance_pc3)
+reconstruction_importance_ha1e <- data.table::fread('../results/Importance_results/important_reconstruction_scores_ha1e.csv',header = T) %>%
+  column_to_rownames('V1')
+reconstruction_importance_ha1e <- reconstruction_importance_ha1e %>% dplyr::select(all_of(ordered_2[1:50]))
+reconstruction_importance_ha1e <- rowMeans(abs(reconstruction_importance_ha1e))
+reconstruction_importance_ha1e <- as.data.frame(reconstruction_importance_ha1e)
+print(all(rownames(reconstruction_importance_ha1e)==rownames(reconstruction_importance_pc3)))
+reconstruction_importance <- 0.5*(reconstruction_importance_ha1e+reconstruction_importance_pc3)
+colnames(reconstruction_importance) <- 'recon_score'
 
 ### PCA important genes
-pca_cmap_paired <- prcomp(cmap_paired,center = T)
-# fviz_screeplot(pca_cmap_paired,ncp=20)
-pca_cmap_paired_results <- summary(pca_cmap_paired)$importance
+pca_cmap <- prcomp(cmap,center = T)
+# fviz_screeplot(pca_cmap,ncp=20)
+pca_cmap_results <- summary(pca_cmap)$importance
 #pca_cmap_paired_results[3,5]
-loadings_cmap_paired <- pca_cmap_paired$rotation
-loadings_cmap_paired <- loadings_cmap_paired[,1:5]
-#pca_importance <- rowMeans(abs(loadings_cmap_paired))
+loadings_cmap <- pca_cmap$rotation
+loadings_cmap <- loadings_cmap[,1:5]
+pca_importance <- rowMeans(abs(loadings_cmap))
 ### Correlation calculation 
 genes_inferred <- geneInfo %>% filter(feature_space=='best inferred') %>% filter(gene_type=='protein-coding')
-cmap_corr_mat <- cor(cmap_paired,method='spearman')
+cmap_corr_mat <- cor(cmap,method='spearman')
 cmap_corr_mat <- cmap_corr_mat[lands,]
-cmap_corr_mat <- cmap_corr_mat[,which(!(colnames(tt) %in% lands))]
+cmap_corr_mat <- cmap_corr_mat[,which(!(colnames(cmap_corr_mat) %in% lands))]
 cmap_corr_mat <- rowMeans(cmap_corr_mat)
 cmap_corr_mat_abs <- cor(abs(cmap),method='spearman')
 cmap_corr_mat_abs <- cmap_corr_mat_abs[lands,]
-cmap_corr_mat_abs <- cmap_corr_mat_abs[,which(!(colnames(tt) %in% lands))]
+cmap_corr_mat_abs <- cmap_corr_mat_abs[,which(!(colnames(cmap_corr_mat_abs) %in% lands))]
 cmap_corr_mat_abs <- rowMeans(cmap_corr_mat_abs)
 ###
 self_gene_corr_abs <- NULL
@@ -170,6 +207,8 @@ spearman_corr_abs_rf <- NULL
 spearman_corr_rf <- NULL
 spearman_corr_abs_pca <- NULL
 spearman_corr_pca <- NULL
+spearman_corr_abs_recon <- NULL
+spearman_corr_recon <- NULL
 for (i in 1:nrow(cmap)){
   gex <- cmap[i,]
   gex <- t(gex)
@@ -185,8 +224,10 @@ for (i in 1:nrow(cmap)){
   # spearman_corr_abs_rf[i] <- cor(abs(gex$gex), abs(importance_rf), method = "spearman")
   self_gene_corr_abs[i] <- cor(abs(gex$gex), abs(df_self), method = "spearman")
   self_gene_corr[i] <- cor(gex$gex, df_self, method = "spearman")
-  spearman_corr_abs_pca[i] <- cor(abs(gex$gex),rowMeans(abs(loadings_cmap_paired)),method='spearman')
-  spearman_corr_pca[i] <- cor(gex$gex,rowMeans(loadings_cmap_paired),method='spearman')
+  spearman_corr_abs_pca[i] <- cor(abs(gex$gex),rowMeans(abs(loadings_cmap)),method='spearman')
+  spearman_corr_pca[i] <- cor(gex$gex,rowMeans(loadings_cmap),method='spearman')
+  spearman_corr_abs_recon[i] <- cor(abs(gex$gex),abs(reconstruction_importance$recon_score),method='spearman')
+  spearman_corr_recon[i] <- cor(gex$gex,reconstruction_importance$recon_score,method='spearman')
   if (i %% 100 == 0 | i==1){
     print(paste0('Finished sample ',i))
   }
@@ -198,9 +239,11 @@ df_corr_rand <- data.frame(abs_spear = spearman_corr_abs_rand,spear = spearman_c
 df_corr_gex_lands <- data.frame(abs_spear=cmap_corr_mat_abs,spear=cmap_corr_mat)
 df_corr_self <- data.frame(abs_spear=self_gene_corr_abs,spear=self_gene_corr)
 df_corr_pca <- data.frame(abs_spear=spearman_corr_abs_pca,spear=spearman_corr_pca)
+df_corr_recon <- data.frame(abs_spear=spearman_corr_abs_recon,spear=spearman_corr_recon)
 df_corr_all <- rbind(df_corr %>% mutate(type = 'model'),
                      #df_corr_self %>% mutate(type = 'same gene-to-gene'),
                      df_corr_pca %>% mutate(type='PCA importance'),
+                     #df_corr_recon %>% mutate(type='reconstruction importance'),
                      # df_corr_gex_lands %>% mutate(type = 'landmarks Gene Exprs.'),
                      #df_corr_rf %>% mutate(type = 'random forest'),
                      #df_corr_linear %>% mutate(type = 'linear'),
@@ -220,7 +263,7 @@ model_vs_pca <- effectsize::cohens_d(df_corr$abs_spear,
                                       df_corr_pca$abs_spear,
                                       paired = T,
                                       ci=0.95)$Cohens_d
-df_corr_all$type <- factor(df_corr_all$type,levels = c('PCA importance','model','shuffled'))
+df_corr_all$type <- factor(df_corr_all$type,levels = c('PCA importance','model','shuffled')) # ,'reconstruction importance'
 p <- ggplot(df_corr_all,aes(x=abs_spear,fill=type)) + geom_histogram(color='black',bins = 50,lwd=1,alpha = 0.5,position="identity") +
   xlab('per sample Spearman`s correlation') + ylab('Counts') + 
   ggtitle('Correlation between gene importance and expression')+
@@ -308,19 +351,19 @@ for (i in 1:nrow(cmap)){
 #   percentage_of_importants_in_top_regulated[j] <- length(which(top1000 %in% genes_regulated))/length(top1000)
 # }
 
-png('../figures/mean_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/mean_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=600)
 hist(mean_perc*100,breaks = 40,
-     main= 'Average percentages of top 1000 important genes per sample present in top 1000 expressed genes',xlab='Percentage (%)')
+     main= 'Average percentages of top 1000 important genes per sample present in top 1000 regulated genes',xlab='Percentage (%)')
 dev.off()
 
-png('../figures/std_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/std_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=600)
 hist(sd_perc*100,breaks = 40,
-     main= 'Percentages s.d. of top 1000 important genes per sample present in top 1000 expressed genes',xlab='Percentage (%)')
+     main= 'Percentages s.d. of top 1000 important genes per sample present in top 1000 regulated genes',xlab='Percentage (%)')
 dev.off()
 
-png('../figures/cv_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=300)
+png('../figures/cv_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=600)
 hist(100*sd_perc/mean_perc,breaks = 40,
-     main= 'Coefficent of variation of number of top 1000 important genes in most expressed genes',xlab='CV (%)')
+     main= 'Coefficent of variation of number of top 1000 important genes in most regulated genes',xlab='CV (%)')
 dev.off()
 
 ## Check correlation between genes and see if genes not in important
@@ -353,79 +396,6 @@ col <- colorRampPalette(brewer.pal(10, "RdBu"))(256)
 png('../figures/corrHeat_of_lands_to_lands_pc3_to_ha1e.png',width=12,height=8,units = "in",res=300)
 heatmap(GeneCorr,scale = "none",col=col)
 dev.off()
-
-### Perform pathway analysis in important----
-
-# Per sample analysis
-df_per_sample <- read.csv('../results/Importance_results/important_scores_ha1e_to_pc3_per_sample_allgenes.csv')
-df_per_sample <- df_per_sample %>% unique()
-rownames( df_per_sample ) <- NULL
-df_per_sample <- df_per_sample %>% column_to_rownames('X')
-colnames(df_per_sample) <- str_remove_all(colnames(df_per_sample),'X')
-df_ranked_per_sample <- apply(-abs(df_per_sample),1,rank)
-df_ranked_per_sample <- df_ranked_per_sample/nrow(df_per_sample)
-#df_aggragated <- apply(df_ranked_per_sample,1,median)
-
-library(EGSEAdata)
-egsea.data(species = "human",returnInfo = TRUE)
-human_keggs <- kegg.pathways$human$kg.sets
-
-findTop <- function(namedRank,top=1000){
-  return(names(namedRank[order(namedRank)])[1:top])
-}
-
-# data : data frame with rows of genes entrezid and columns the samples. It contains scores for each gene
-#geneSets : list containing the vector with entrez id of genes of a geneset
-pathway_analysis_fisher <- function(data,geneSets,top=1000,perSample = TRUE,
-                                    level=0.05,p.adj = TRUE,adj.method='BH',perc_samples=0.5){
-  #data_ranked <- rank(-abs(data))
-  #data_ranked <- data_ranked/nrow(data)
-  #names(data_ranked) <- names(data)
-  
-  data_ranked <- apply(-abs(data),1,rank)
-  data_ranked <- data_ranked/nrow(data)
-  
-  
-  topgenes <- apply(data_ranked,2,findTop)
-  
-  fisherExactTest <- function(geneSet,Top,measGenes){
-    not_in_geneset = sum(!(measGenes %in% geneSet ))
-    contigencyMat <- data.frame('dex'=c(sum(geneSet %in% Top),length(geneSet)-sum(geneSet %in% Top)),
-                                'not_dex'= c(sum(!(Top %in% geneSet)),not_in_geneset-sum(!(Top %in% geneSet))))
-    rownames(contigencyMat) <- c('in_set','not_in_set')
-    return(fisher.test(contigencyMat)$p.value)
-  }
-  pathEnrich <- function(Top,geneSets,measGenes){
-    return(unlist(lapply(geneSets,fisherExactTest,Top,measGenes)))
-  }
-  
-  get_signigicant_counts <- function(pvals,level=0.05){
-    return(length(which(pvals<level))/length(pvals))
-  }
-  
-  if (perSample==T){
-    kegg_pvals <- apply(topgenes,2,pathEnrich,geneSets,rownames(data_ranked))
-    if (p.adj==T){
-      kegg_pvals <- apply(kegg_pvals,2,p.adjust,adj.method)
-    }
-    significants <- apply(kegg_pvals, 1 ,get_signigicant_counts,level=level)
-    significants <- which(significants>=perc_samples)
-    sig_paths <- rownames(kegg_pvals)[significants]
-  } else{
-    topgenes <- unique(as.vector(topgenes))
-    kegg_pvals <- pathEnrich(topgenes,geneSets,rownames(data_ranked))
-    if (p.adj==T){
-      kegg_pvals <- p.adjust(kegg_pvals,adj.method)
-    }
-    sig_paths <- names(kegg_pvals[which(kegg_pvals<level)])
-  }
-  return(list(kegg_pvals,sig_paths))
-}
-paths <- pathway_analysis_fisher(df_per_sample,human_keggs,top=1000,p.adj = T,adj.method='BH',perc_samples=0.5)
-print(paths[[2]])
-
-kegg_pvals <- paths[[1]]
-kegg_paths <- paths[[2]]
 
 ### Importance scores to encode-----
 library(tidyverse)
@@ -1002,8 +972,8 @@ for (i in 1:length(genes_to_keep)){
   #F1[i] <- mean(random_f1s)
   message(paste0('Done top ',genes_to_keep[i],' genes'))
 }
-saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
-saveRDS(radom_accs,'../results/Importance_results/glm_radom_accs.rds')
+# saveRDS(radom_f1s,'../results/Importance_results/glm_radom_f1s.rds')
+# saveRDS(radom_accs,'../results/Importance_results/glm_radom_accs.rds')
 F1 <- apply(radom_f1s, 1, mean,na.rm=T)
 F1_sds <- apply(radom_f1s, 1, sd,na.rm=T)
 ACC <- apply(radom_accs, 1, mean,na.rm=T)
@@ -1277,6 +1247,277 @@ fig <- fig %>% add_markers(size=1)
 fig
 ###
 
+### Perform genesets functional analysis in important----------------------------------------------------------------------------
+importance_translation <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_allgenes_withclass_noabs.csv')
+importance_translation <- importance_translation %>% column_to_rownames('X')
+colnames(importance_translation) <- rownames(importance_translation)
+cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
+gc()
+
+
+### Perform the averaging analysis with absolute values
+importance_translation_mean <- as.matrix(rowMeans(abs(importance_translation)))
+# importance_translation_mean <- scale(importance_translation_mean,center = T,scale=T)
+hist(importance_translation_mean,40)
+colnames(importance_translation_mean) <- 'PC3_2_HA1E'
+avg_keggs <- fastenrichment(colnames(importance_translation_mean),
+                            colnames(cmap),
+                            importance_translation_mean,
+                            enrichment_space = "kegg",
+                            order_columns = F,
+                            pval_adjustment=T,
+                            n_permutations=10000)
+avg_keggs_nes <- as.data.frame(as.matrix(avg_keggs[["NES"]]$`NES KEGG`)) %>% rownames_to_column('KEGG pathway')
+colnames(avg_keggs_nes)[2] <- 'NES'
+avg_keggs_pval <- as.data.frame(as.matrix(avg_keggs[["Pval"]]$`Pval KEGG`)) %>% rownames_to_column('KEGG pathway')
+colnames(avg_keggs_pval)[2] <- 'p.adj'
+df_avg_keggs <- left_join(avg_keggs_nes,avg_keggs_pval)
+df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=strsplit(`KEGG pathway`,"_"))
+df_avg_keggs <- df_avg_keggs %>% unnest(`KEGG pathway`) %>% filter(!(`KEGG pathway` %in% c("KEGG","FL1000")))
+df_avg_keggs <- df_avg_keggs %>% filter(p.adj<=0.05)
+df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=as.character(`KEGG pathway`))
+df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=substr(`KEGG pathway`, 9, nchar(`KEGG pathway`)))
+df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$NES)])
+ggplot(df_avg_keggs,aes(x=NES,y=`KEGG pathway`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.5) +
+  scale_fill_gradient(low = "red",high = "white") +
+  ggtitle('Significantly enriched KEGG pathways for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 24)+
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = 'right',
+        legend.justification = "center")
+ggsave('../figures/significant_KEGG_PC3_to_HA1E.eps',
+       device = cairo_ps,
+       height = 9,
+       width = 12,
+       units = 'in',
+       dpi=600) 
+ggsave('../figures/significant_KEGG_PC3_to_HA1E.png',
+       height = 9,
+       width = 12,
+       units = 'in',
+       dpi=600)
+
+### Repeat the same for GO Terms
+avg_gos <- fastenrichment(colnames(importance_translation_mean),
+                            colnames(cmap),
+                            importance_translation_mean,
+                            enrichment_space = "go_bp",
+                            order_columns = F,
+                            pval_adjustment=T,
+                            n_permutations=10000)
+avg_gos_nes <- as.data.frame(as.matrix(avg_gos[["NES"]]$`NES GO BP`)) %>% rownames_to_column('GO Terms')
+colnames(avg_gos_nes)[2] <- 'NES'
+avg_gos_pval <- as.data.frame(as.matrix(avg_gos[["Pval"]]$`Pval GO BP`)) %>% rownames_to_column('GO Terms')
+colnames(avg_gos_pval)[2] <- 'p.adj'
+df_avg_gos <- left_join(avg_gos_nes,avg_gos_pval)
+df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=strsplit(`GO Terms`,"_"))
+df_avg_gos <- df_avg_gos %>% unnest(`GO Terms`) %>% filter(!(`GO Terms` %in% c("GO","BP","FL1000")))
+go_annotations_list <- as.list(GOTERM)
+go_annotations <- data.frame(GOs = Term(GOTERM),
+                             'GO Terms' = GOID(GOTERM),
+                             definition = Definition(GOTERM),
+                             ontology = Ontology(GOTERM))
+colnames(go_annotations) <- c('GO','GO Terms','definition','ontology')
+df_avg_gos <- left_join(df_avg_gos,go_annotations)
+df_avg_gos <- df_avg_gos %>% dplyr::select(GO,NES,p.adj) %>% unique()
+colnames(df_avg_gos)[1] <- 'GO Terms'
+df_avg_gos <- df_avg_gos %>% filter(p.adj<0.05)
+df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=as.character(`GO Terms`))
+#df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=substr(`GO Terms`, 9, nchar(`GO Terms`)))
+df_avg_gos$`GO Terms` <- factor(df_avg_gos$`GO Terms`,levels = df_avg_gos$`GO Terms`[order(df_avg_gos$NES)])
+ggplot(df_avg_gos %>% filter(NES>=1.887),aes(x=NES,y=`GO Terms`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1) +
+  scale_fill_gradient(low = "red",high = "white") +
+  ggtitle('Top 50 significantly enriched GO Terms for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 18)+
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = 'right',
+        legend.justification = "center")
+ggsave('../figures/significant_GOs_PC3_to_HA1E.eps',
+       device = cairo_ps,
+       height = 12,
+       width = 24,
+       units = 'in',
+       dpi=600) 
+ggsave('../figures/significant_GOs_PC3_to_HA1E.png',
+       height = 12,
+       width = 24,
+       units = 'in',
+       dpi=600)
+### Perform GSEA with TFs
+geneInfo <- geneInfo %>% filter(feature_space!='inferred') %>% filter(gene_type=='protein-coding')
+x <- importance_translation_mean
+print(all(rownames(x)==geneInfo$gene_id))
+rownames(x) <- geneInfo$gene_symbol
+avg_tfs <- fastenrichment(colnames(x),
+                          rownames(x),
+                          x,
+                          enrichment_space = "tf_dorothea",
+                          order_columns = F,
+                          pval_adjustment=T,
+                          tf_path='../../../Artificial-Signaling-Network/TF activities/annotation/dorothea.tsv',
+                          n_permutations=10000)
+avg_tfs_nes <- as.data.frame(as.matrix(avg_tfs[["NES"]]$`NES TF`)) %>% rownames_to_column('TF')
+colnames(avg_tfs_nes)[2] <- 'NES'
+avg_tfs_pval <- as.data.frame(as.matrix(avg_tfs[["Pval"]]$`Pval TF`)) %>% rownames_to_column('TF')
+colnames(avg_tfs_pval)[2] <- 'p.adj'
+df_avg_tfs <- left_join(avg_tfs_nes,avg_tfs_pval)
+df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=strsplit(`TF`,"_"))
+df_avg_tfs <- df_avg_tfs %>% unnest(`TF`) %>% filter(!(`TF` %in% c("TF","DOROTHEA","FL1000")))
+df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05)
+df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=as.character(`TF`))
+#df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=substr(`TF`, 9, nchar(`TF`)))
+df_avg_tfs$`TF` <- factor(df_avg_tfs$`TF`,levels = df_avg_tfs$`TF`[order(df_avg_tfs$NES)])
+ggplot(df_avg_tfs,aes(x=NES,y=`TF`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.2) +
+  scale_fill_gradient(low = "red",high = "white") +
+  ggtitle('Significantly enriched TFs for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 24)+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_text(size=14),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = 'right',
+        legend.justification = "center")
+ggsave('../figures/significant_TF_PC3_to_HA1E.eps',
+       device = cairo_ps,
+       height = 9,
+       width = 12,
+       units = 'in',
+       dpi=600) 
+ggsave('../figures/significant_TF_PC3_to_HA1E.png',
+       height = 9,
+       width = 12,
+       units = 'in',
+       dpi=600)
+
+### Repeat per sample for KEGGS and tfs
+# avg_keggs <- fastenrichment(colnames(importance_translation),
+#                             colnames(cmap),
+#                             importance_translation,
+#                             enrichment_space = "kegg",
+#                             order_columns = T,
+#                             pval_adjustment=T,
+#                             n_permutations=1000)
+avg_keggs <- readRDS('../../../../Downloads/avg_keggs_per_sample.rds')
+avg_keggs_nes <- as.data.frame(as.matrix(avg_keggs[["NES"]]$`NES KEGG`)) %>% rownames_to_column('KEGG pathway')
+# avg_keggs_nes <-  avg_keggs_nes %>% mutate(meanNES=rowMeans(avg_keggs_nes[,2:10087]))
+# avg_keggs_nes <-  avg_keggs_nes %>% mutate(sdNES=apply(avg_keggs_nes[,2:10087],1,sd))
+avg_keggs_nes <- avg_keggs_nes %>% gather('gene','NES',-`KEGG pathway`)
+avg_keggs_pval <- as.data.frame(as.matrix(avg_keggs[["Pval"]]$`Pval KEGG`)) %>% rownames_to_column('KEGG pathway')
+avg_keggs_pval <- avg_keggs_pval %>% gather('gene','p.adj',-`KEGG pathway`)
+df_avg_keggs <- left_join(avg_keggs_nes,avg_keggs_pval)
+df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=strsplit(`KEGG pathway`,"_"))
+df_avg_keggs <- df_avg_keggs %>% unnest(`KEGG pathway`) %>% filter(!(`KEGG pathway` %in% c("KEGG","FL1000")))
+df_avg_keggs <- df_avg_keggs %>% group_by(`KEGG pathway`) %>% mutate(significant_counts = sum(p.adj<0.05)) %>% ungroup()
+df_avg_keggs <- df_avg_keggs %>% filter(p.adj<0.05) %>% group_by(`KEGG pathway`) %>%
+  mutate(meanNES = mean(NES)) %>% mutate(sdNES=sd(NES)) %>% ungroup()
+#df_avg_keggs <- df_avg_keggs %>% filter(p.adj<=0.05)
+df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=as.character(`KEGG pathway`))
+df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=substr(`KEGG pathway`, 9, nchar(`KEGG pathway`)))
+df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = unique(df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$meanNES)]))
+df_avg_keggs <- df_avg_keggs %>% filter(significant_counts>=1)
+ggplot(df_avg_keggs %>% dplyr::select(`KEGG pathway`,meanNES,sdNES,significant_counts) %>% 
+         filter(significant_counts>=10)%>% unique(),
+       aes(x=meanNES,y=`KEGG pathway`,fill=significant_counts)) + geom_bar(stat = 'identity',color='black',size=1.5) +
+  scale_fill_gradient(low = "white",high = "red") +
+  ggtitle('Significantly enriched KEGG pathways for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 10)+
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = 'right',
+        legend.justification = "center")
+ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.eps',
+       device = cairo_ps,
+       height = 9,
+       width = 12,
+       units = 'in',
+       dpi=600) 
+ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.png',
+       height = 9,
+       width = 12,
+       units = 'in',
+       dpi=600)
+
+## Run for TFS
+# x <- importance_translation
+# print(all(rownames(x)==geneInfo$gene_id))
+# rownames(x) <- geneInfo$gene_symbol
+# avg_tfs <- fastenrichment(colnames(x),
+#                           rownames(x),
+#                           x,
+#                           enrichment_space = "tf_dorothea",
+#                           order_columns = F,
+#                           pval_adjustment=T,
+#                           tf_path='../../../Artificial-Signaling-Network/TF activities/annotation/dorothea.tsv',
+#                           n_permutations=10000)
+avg_tfs <- readRDS('../results/avg_tfs.rds')
+
+
+### Per sample analysis GSEA--------------------------------------------------------------------------------------------
+df_per_sample <- read.csv('../results/Importance_results/important_scores_ha1e_to_pc3_per_sample_allgenes.csv')
+df_per_sample <- df_per_sample %>% unique()
+rownames( df_per_sample ) <- NULL
+df_per_sample <- df_per_sample %>% column_to_rownames('X')
+colnames(df_per_sample) <- str_remove_all(colnames(df_per_sample),'X')
+df_ranked_per_sample <- apply(-abs(df_per_sample),1,rank)
+df_ranked_per_sample <- df_ranked_per_sample/nrow(df_per_sample)
+#df_aggragated <- apply(df_ranked_per_sample,1,median)
+findTop <- function(namedRank,top=1000){
+  return(names(namedRank[order(namedRank)])[1:top])
+}
+
+# data : data frame with rows of genes entrezid and columns the samples. It contains scores for each gene
+#geneSets : list containing the vector with entrez id of genes of a geneset
+pathway_analysis_fisher <- function(data,geneSets,top=1000,perSample = TRUE,
+                                    level=0.05,p.adj = TRUE,adj.method='BH',perc_samples=0.5){
+  #data_ranked <- rank(-abs(data))
+  #data_ranked <- data_ranked/nrow(data)
+  #names(data_ranked) <- names(data)
+  
+  data_ranked <- apply(-abs(data),1,rank)
+  data_ranked <- data_ranked/nrow(data)
+  
+  
+  topgenes <- apply(data_ranked,2,findTop)
+  
+  fisherExactTest <- function(geneSet,Top,measGenes){
+    not_in_geneset = sum(!(measGenes %in% geneSet ))
+    contigencyMat <- data.frame('dex'=c(sum(geneSet %in% Top),length(geneSet)-sum(geneSet %in% Top)),
+                                'not_dex'= c(sum(!(Top %in% geneSet)),not_in_geneset-sum(!(Top %in% geneSet))))
+    rownames(contigencyMat) <- c('in_set','not_in_set')
+    return(fisher.test(contigencyMat)$p.value)
+  }
+  pathEnrich <- function(Top,geneSets,measGenes){
+    return(unlist(lapply(geneSets,fisherExactTest,Top,measGenes)))
+  }
+  
+  get_signigicant_counts <- function(pvals,level=0.05){
+    return(length(which(pvals<level))/length(pvals))
+  }
+  
+  if (perSample==T){
+    kegg_pvals <- apply(topgenes,2,pathEnrich,geneSets,rownames(data_ranked))
+    if (p.adj==T){
+      kegg_pvals <- apply(kegg_pvals,2,p.adjust,adj.method)
+    }
+    significants <- apply(kegg_pvals, 1 ,get_signigicant_counts,level=level)
+    significants <- which(significants>=perc_samples)
+    sig_paths <- rownames(kegg_pvals)[significants]
+  } else{
+    topgenes <- unique(as.vector(topgenes))
+    kegg_pvals <- pathEnrich(topgenes,geneSets,rownames(data_ranked))
+    if (p.adj==T){
+      kegg_pvals <- p.adjust(kegg_pvals,adj.method)
+    }
+    sig_paths <- names(kegg_pvals[which(kegg_pvals<level)])
+  }
+  return(list(kegg_pvals,sig_paths))
+}
+paths <- pathway_analysis_fisher(df_per_sample,human_keggs,top=1000,p.adj = T,adj.method='BH',perc_samples=0.5)
+print(paths[[2]])
+
+kegg_pvals <- paths[[1]]
+kegg_paths <- paths[[2]]
 ## Important to encode in the common latent space----------------
 important_forCommon_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv',header=T) %>% column_to_rownames('V1')
 important_forCommon_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv',header=T) %>% column_to_rownames('V1')

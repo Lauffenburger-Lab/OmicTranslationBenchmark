@@ -7,6 +7,7 @@ fastenrichment <- function(signature_ids,
                            order_columns =T,
                            pval_adjustment=T,
                            tf_path=NULL,
+                           confLevel = c('A','B'),
                            n_permutations=1000){
   # signature_ids: the signature ids to calculate enrichment scores
   # gene_space: feature space of genes to use, one of "all","landmark" and "best_inferred"
@@ -37,7 +38,9 @@ fastenrichment <- function(signature_ids,
   }else{
     measurements <- measurements[as.character(gene_ids),]
   }
-  
+  if (length(sig_ids)<2){
+    measurements <- as.matrix(measurements)
+  }
   # load pathway data
   egsea.data(species = "human",returnInfo = TRUE)
   
@@ -177,8 +180,23 @@ fastenrichment <- function(signature_ids,
   }
   
   if("tf_dorothea" %in% enrichment_space) {
-    load(tf_path)
-    tf_list <- viper_regulon
+    #load(tf_path)
+    #tf_list <- viper_regulon
+    dorothera_regulon <- read.delim(tf_path)
+    dorothera_regulon <- dorothera_regulon %>% filter(confidence %in% confLevel)
+    dorothera_regulon <- dorothera_regulon %>% dplyr::select(tf,target)
+    dorothera_regulon <- distinct(dorothera_regulon)
+    tf_list <- NULL
+    # names_tfs <- NULL
+    # i <- 1
+    for (ind in unique(dorothera_regulon$tf)){
+      tmp <- dorothera_regulon %>% filter(tf==ind)
+      tf_list[[ind]] <- tmp$target
+      # names_tfs[i] <- ind
+      # i <- i+1
+    }
+    # tf_list <- tf_list$data
+    # names(tf_list) <- names_tfs
     names(tf_list) <- paste0("FL1000_TF_DOROTHEA_",names(tf_list))
     all_genesets <- c(all_genesets,tf_list)
   }
@@ -198,15 +216,19 @@ fastenrichment <- function(signature_ids,
   }else{
     pval <- genesets_list[[1]]$pval
   }
-  
-  for (i in 2:length(genesets_list)) {
-    
-    NES <- cbind(NES,genesets_list[[i]]$NES)
-    if (pval_adjustment==T){
-      pval <- cbind(pval,genesets_list[[i]]$padj)
-    }else{
-      pval <- cbind(pval,genesets_list[[i]]$pval)
+  if (length(genesets_list)>1){
+    for (i in 2:length(genesets_list)) {
+      
+      NES <- cbind(NES,genesets_list[[i]]$NES)
+      if (pval_adjustment==T){
+        pval <- cbind(pval,genesets_list[[i]]$padj)
+      }else{
+        pval <- cbind(pval,genesets_list[[i]]$pval)
+      }
     }
+  }else{
+    NES <- as.matrix(NES)
+    pval <- as.matrix(pval)
   }
   
   colnames(NES) <- names(genesets_list)
