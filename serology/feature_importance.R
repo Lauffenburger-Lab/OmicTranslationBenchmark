@@ -235,7 +235,7 @@ for (i in 1:10){
   tmp$mean_score <- mean_feature_score
   tmp <- tmp %>% mutate(fold = i)
   tmp <- tmp %>% select(fold,all_of(interesting_human_feats),mean_score)
-  data.table::fwrite(tmp,paste0('importance_results_cpa/translation/processed/important_scores_primates_to_human_',i-1,'.csv'))
+  data.table::fwrite(tmp,paste0('importance_results_cpa/translation/processed/important_scores_primates_to_human_',i-1,'.csv'),row.names = T)
   df_feature_score <- data.frame(mean_feature_score)
   colnames(df_feature_score) <- 'mean_score'
   df_feature_score <- df_feature_score %>% rownames_to_column('feature')
