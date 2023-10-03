@@ -16,6 +16,7 @@ serology/results_intermediate_encoders/pretrained_models/*
 serology/importance_results_cpa/translation/processed
 serology/importance_results_cpa/translation/processed/*
 learning/__pycache__
+learning/MI_Estimator.py
 preprocessing/.Rhistory
 preprocessing/.Rproj.user/
 preprocessing/preprocessed_data/cmap_*
@@ -232,3 +233,4 @@ figures/MI_results/*.eps
 results/Importance_results/important_reconstruction_scores_pc3.csv
 results/Importance_results/important_reconstruction_scores_ha1e.csv
 results/MI_results/mi_estimations
+results/PriorLossAnalysis

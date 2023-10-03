@@ -277,8 +277,8 @@ class SimpleEncoder(torch.nn.Module):
             x = self.activation(x)
             x = self.dropout(x)
         z_latent = self.linear_latent(x)
-        # if self.normalizeOutput == True:
-        #     z_latent = torch.nn.functional.normalize(z_latent)
+        if self.normalizeOutput == True:
+            z_latent = torch.nn.functional.normalize(z_latent)
         return z_latent
 
     def L2Regularization(self, L2):

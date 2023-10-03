@@ -1,10 +1,11 @@
 library(tidyverse)
 library(ggplot2)
 library(ggpubr)
+library(ggridges)
 library(infotheo)
 library(doFuture)
 # parallel: set number of workers
-cores <- 16
+cores <- 14
 registerDoFuture()
 plan(multisession,workers = cores)
 library(doRNG)
@@ -43,89 +44,9 @@ sigInfo <- sigInfo %>% group_by(duplIdentifier) %>% mutate(dupl_counts = n()) %>
 # Drug condition information
 sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
 
-### Start analysis to figure out how many bins you need-------
-df_empirical_dmi_vector <- NULL
-dmi_modeld_vector <- NULL
-for (i in 0:9){
-  trainInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
-                     data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
-  trainPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
-  trainInfo <- rbind(trainInfo,
-                     trainPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
-                     trainPaired %>% select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
-  trainInfo <- trainInfo %>% unique()
-  trainInfo <- trainInfo %>% select(sig_id,conditionId,cell_iname)
-  
-  valInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
-                   data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
-  valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
-  valInfo <- rbind(valInfo,
-                   valPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
-                   valPaired %>% select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
-  valInfo <- valInfo %>% unique()
-  valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
-  
-  # Load embeddings of pre-trained
-  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach/train/trainEmbs_basev2_',i,'_a375.csv'),header = T),
-                      data.table::fread(paste0('../results/MI_results/embs/CPA_approach/train/trainEmbs_basev2_',i,'_ht29.csv'),header = T)) %>% unique() %>%
-    column_to_rownames('V1')
-  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach/validation/valEmbs_basev2_',i,'_a375.csv'),header = T),
-                     data.table::fread(paste0('../results/MI_results/embs/CPA_approach/validation/valEmbs_basev2_',i,'_ht29.csv'),header = T)) %>% unique() %>%
-    column_to_rownames('V1')
-  
-  # Estimate MI from embeddings
-  if (i<10){
-    print(paste0('Calculate empirical MI in fold : ',i))
-    mi_empirical <- readRDS(paste0('../results/MI_results/mi_estimations/CPA/empirical_mi_a375_ht29_fold',i,'.rds'))
-  }else{
-    embs_all <- rbind(embs_train,embs_test)
-    print(paste0('Calculate empirical MI in fold : ',i))
-    mi_empirical_list <- foreach(j = seq(1:nrow(embs_all))) %dopar% {
-      apply(embs_all,1,JSDMI,y=as.matrix(embs_all[j,]))
-    }
-    mi_empirical <- do.call(cbind,mi_empirical_list)
-    colnames(mi_empirical) <- rownames(embs_all)
-    mi_empirical <- as.data.frame(mi_empirical) %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='empirical')
-    mi_empirical <- left_join(mi_empirical,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId')))
-    mi_empirical <- left_join(mi_empirical,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId')))
-    mi_empirical <- mi_empirical %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
-    print(paste0('Save empirical MI in fold : ',i))
-    saveRDS(mi_empirical,paste0('../results/MI_results/mi_estimations/CPA/empirical_mi_a375_ht29_fold',i,'.rds'))
-  }
-  dmi_empirical <- mi_empirical %>% group_by(relationship) %>% mutate(meanMI=mean(MI)) %>% ungroup()
-  # pos_mi <- dmi_empirical %>% filter(relationship=='same condition') %>% select(meanMI) %>% unique()
-  # pos_mi <- pos_mi$meanMI
-  # neg_mi <- dmi_empirical %>% filter(relationship!='same condition') %>% select(meanMI) %>% unique()
-  # neg_mi <- neg_mi$meanMI
-  pos_mi <- dmi_empirical %>% filter(relationship=='same condition') %>% select(MI) %>% unique()
-  pos_mi <- pos_mi$MI
-  neg_mi <- dmi_empirical %>% filter(relationship!='same condition') %>% select(MI) %>% unique()
-  neg_mi <- neg_mi$MI
-  neg_mi <- sample(neg_mi,length(pos_mi),replace = F)
-  tmp <- sapply(pos_mi,'-',neg_mi)
-  df_empirical_dmi_vector <- c(df_empirical_dmi_vector,c(tmp))
-  # ggboxplot(mi_empirical,x='relationship',y='MI')
-  
-  # ### read mi modeled
-  # tmp <- data.table::fread(paste0('../results/MI_results/mi_estimations/CPA/DeltaMI_ht29_a375_fold',i-1,'.csv'),header = T) %>% select(-V1)
-  # tmp <- as.matrix(tmp)
-  # tmp <- c(tmp)
-  # tmp <- tmp[which(tmp!=0)]
-  # dmi_modeld_vector <- c(dmi_modeld_vector,tmp)
-  
-}
-df_empirical_dmi <- as.data.frame(df_empirical_dmi_vector)
-colnames(df_empirical_dmi)[1] <- 'DMI'
-df_empirical_dmi <- df_empirical_dmi %>% mutate(fold = seq(0,9))
-df_empirical_dmi <- df_empirical_dmi %>% mutate(type='empirical')
-saveRDS(df_empirical_dmi,'../results/MI_results/mi_estimations/CPA/df_empirical_dmi_ht29_a375.rds')
-dmi_modeld <- data.table::fread('../results/MI_results/mi_estimations/CPA/DeltaMI_ht29_a375.csv',header = T) %>% select(-V1)
-dmi_modeld <- dmi_modeld %>% mutate(type='modeled')
-df_dmi <- rbind(dmi_modeld,df_empirical_dmi)
-ggdotplot(df_dmi,x='type',y='DMI',fill='type') + 
-  theme(legend.position = 'none')
 
-### Compare empirically and modeled MI------------------------
+### Estimate and visualize empirical MI------------------------
+dmi_empirical_all <- data.frame()
 for (i in 0:9){
   trainInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
                      data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
@@ -146,51 +67,168 @@ for (i in 0:9){
   valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
   
   # Load embeddings of pre-trained
-  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach/train/trainEmbs_basev2_',i,'_a375.csv'),header = T),
-                      data.table::fread(paste0('../results/MI_results/embs/CPA_approach/train/trainEmbs_basev2_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
+                      data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/CPA_approach/validation/valEmbs_basev2_',i,'_a375.csv'),header = T),
-                     data.table::fread(paste0('../results/MI_results/embs/CPA_approach/validation/valEmbs_basev2_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
+                     data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
     column_to_rownames('V1')
-  embs_proc_train <- process_embeddings(embs_train,sigInfo,trainInfo)
-  embs_proc_test <- process_embeddings(embs_test,sigInfo,valInfo)
-  
-  # load MI estimation
-  # mi_positives <- data.table::fread(paste0('../results/MI_results/mi_estimations/CPA/estimated_mi_positives_ht29_a375_fold',i,'.csv'),header = T)
-  # mi_positives <- distinct(mi_positives)
-  # mi_positives <- mi_positives %>% column_to_rownames('V1')
-  # mi_positives <- mi_positives %>% select(all_of(rownames(mi_positives)))
-  # mi_positives <- mi_positives %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='modeled')
-  # mi_positives <- left_join(mi_positives,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId')))
-  # mi_positives <- left_join(mi_positives,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId')))
-  # mi_positives <- mi_positives %>% filter(MI!=0)
-  # mi_negatives <- data.table::fread(paste0('../results/MI_results/mi_estimations/CPA/estimated_mi_negatives_ht29_a375_fold',i,'.csv'),header = T)
-  # mi_negatives <- distinct(mi_negatives)
-  # mi_negatives <- mi_negatives %>% column_to_rownames('V1')
-  # mi_negatives <- mi_negatives %>% select(all_of(rownames(mi_negatives)))
-  # mi_negatives <- mi_negatives %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='modeled')
-  # mi_negatives <- left_join(mi_negatives,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId')))
-  # mi_negatives <- left_join(mi_negatives,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId')))
-  # mi_negatives <- mi_negatives %>% filter(MI!=0)
-  # mi_modeled <- rbind(mi_positives,mi_negatives)
-  mi_modeled <- data.table::fread(paste0('../results/MI_results/mi_estimations/CPA/estimated_mi_ht29_a375_fold',i,'.csv'),header = T)
-  mi_modeled <- distinct(mi_modeled)
-  mi_modeled <- mi_modeled %>% column_to_rownames('V1')
-  mi_modeled <- mi_modeled %>% select(all_of(rownames(mi_modeled)))
-  mi_modeled <- mi_modeled %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='modeled')
-  mi_modeled <- left_join(mi_modeled,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId')))
-  mi_modeled <- left_join(mi_modeled,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId')))
-  mi_modeled <- mi_modeled %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
-  
-  
-  ggboxplot(rbind(mi_modeled,mi_empirical) %>% filter(relationship=='same condition'),x='type',y='MI',
-            color = 'type',add='jitter')+
-    theme(legend.position = 'none')
-  
   
   # Estimate MI from embeddings
-  embs_proc_all <- rbind(embs_proc_train,embs_proc_test)
-  embs_proc_all <- embs_proc_all[,1:293]
-  mi_empirical <- mutinformation(embs_proc_all[,2:293],embs_proc_all[,2:293],method='emp')
+  print(paste0('Calculate empirical MI in fold : ',i))
+  # mi_empirical <- readRDS(paste0('../results/MI_results/mi_estimations/OneGlobal/empirical_mi_a375_ht29_fold',i,'.rds'))
+  embs_all <- rbind(embs_train,embs_test)
+  print(paste0('Calculate empirical MI in fold : ',i))
+  mi_empirical_list <- foreach(j = seq(1:nrow(embs_all))) %dopar% {
+      apply(embs_all,1,JSDMI,y=as.matrix(embs_all[j,]))
+  }
+  mi_empirical <- do.call(cbind,mi_empirical_list)
+  colnames(mi_empirical) <- rownames(embs_all)
+  mi_empirical <- as.data.frame(mi_empirical) %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='empirical')
+  mi_empirical <- left_join(mi_empirical,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId')))
+  mi_empirical <- left_join(mi_empirical,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId')))
+  mi_empirical <- mi_empirical %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  print(paste0('Save empirical MI in fold : ',i))
+  # saveRDS(mi_empirical,paste0('../results/MI_results/mi_estimations/OneGlobal/empirical_mi_a375_ht29_fold',i,'.rds'))
+  
+  dmi_empirical_all <- rbind(dmi_empirical_all,mi_empirical %>% mutate(fold=i))
+  print(paste0('Finished fold ',i))
   
 }
+gc()
+p1 <- ggplot(dmi_empirical_all, aes(x = MI, y = as.factor(fold),fill = relationship)) +
+  geom_density_ridges(stat = "binline",bins = 200,alpha = 0.8,
+                      color='black') +
+  xlab('Empirical MI') + ylab('fold-split')+ 
+  theme_pubr(base_family = "Arial",base_size = 20) + 
+  theme(text = element_text(family = 'Arial'))
+# print(p1)
+ggsave('../article_supplementary_info/empirical_mutual_information_histograms.eps',
+       plot = p1,
+       device=cairo_ps,
+       height = 12,
+       width = 9,
+       units = 'in')
+
+### See the effect of uniformity------------------------
+mi_all <- data.frame()
+for (i in 0:9){
+  trainInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
+                     data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
+  trainPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/train_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+  trainInfo <- rbind(trainInfo,
+                     trainPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
+                     trainPaired %>% select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
+  trainInfo <- trainInfo %>% unique()
+  trainInfo <- trainInfo %>% select(sig_id,conditionId,cell_iname)
+  
+  valInfo <- rbind(data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_a375_',i,'.csv'),header = T) %>% column_to_rownames('V1'),
+                   data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_ht29_',i,'.csv'),header = T) %>% column_to_rownames('V1'))
+  valPaired = data.table::fread(paste0('../preprocessing/preprocessed_data/10fold_validation_spit/val_paired_',i,'.csv'),header = T) %>% column_to_rownames('V1')
+  valInfo <- rbind(valInfo,
+                   valPaired %>% select(c('sig_id'='sig_id.x'),c('cell_iname'='cell_iname.x'),conditionId),
+                   valPaired %>% select(c('sig_id'='sig_id.y'),c('cell_iname'='cell_iname.y'),conditionId))
+  valInfo <- valInfo %>% unique()
+  valInfo <- valInfo %>% select(sig_id,conditionId,cell_iname)
+  
+  # Load embeddings of pre-trained
+  embs_train <- rbind(data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_a375.csv'),header = T),
+                      data.table::fread(paste0('../results/MI_results/embs/train/trainEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+    column_to_rownames('V1')
+  embs_test <- rbind(data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_a375.csv'),header = T),
+                     data.table::fread(paste0('../results/MI_results/embs/validation/valEmbs_',i,'_ht29.csv'),header = T)) %>% unique() %>%
+    column_to_rownames('V1')
+  
+  sds <- apply(rbind(embs_train,embs_test),2,sd)
+  mus <- apply(rbind(embs_train,embs_test),2,mean)
+  covariance_matrix <- cov(rbind(embs_train,embs_test))
+  random_normal <- MASS::mvrnorm(n=85,mu = mus,Sigma = covariance_matrix)
+  random_uniform <-  replicate(292, runif(n = 85,min = 1e-03,max=0.999))
+  #add noise and remember 1:30 and 70:30 are the same
+  random_normal <- rbind(random_normal,random_normal[1:15,] + 1e-3*rnorm(292))
+  random_uniform <- rbind(random_uniform,random_uniform[1:15,] + 1e-3*rnorm(292))
+  # Select also all the paired conditions of my data and randomly 30 paired and select also the rest to sum up to 100 sig_ids
+  sample_paired <- sample_n(rbind(trainPaired,valPaired) %>% filter(sig_id.x!=sig_id.y),17)
+  sample_unpaired <- sample_n(rbind(trainInfo,valInfo),70)
+  embs <- rbind(embs_train,embs_test)
+  embs <- embs[which(rownames(embs) %in% c(sample_paired$sig_id.x,sample_paired$sig_id.y,sample_unpaired$sig_id)),]
+  embs <- distinct(embs)
+  
+  # Calculate MI of these vectors
+  
+  #First for my embeddings
+  mi_embs_list <- foreach(j = seq(1:nrow(embs))) %dopar% {
+      apply(embs,1,JSDMI,y=as.matrix(embs[j,]))
+  }
+  mi_embs <- do.call(cbind,mi_embs_list)
+  colnames(mi_embs) <- rownames(embs)
+  mi_embs <- as.data.frame(mi_embs) %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='sampled embeddings')
+  mi_embs <- suppressMessages(left_join(mi_embs,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId'))))
+  mi_embs <- suppressMessages(left_join(mi_embs,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId'))))
+  mi_embs <- mi_embs %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  #Secondly for random normal
+  mi_normal_list <- foreach(j = seq(1:nrow(random_normal))) %dopar% {
+    apply(random_normal,1,JSDMI,y=as.matrix(random_normal[j,]))
+  }
+  mi_normal <- do.call(cbind,mi_normal_list)
+  colnames(mi_normal) <- paste0('id_',seq(1:100))
+  rownames(mi_normal) <- paste0('id_',seq(1:100))
+  df_info <- data.frame(sig_id.y = paste0('id_',seq(1:100)),
+                        conditionId.y=c(paste0('cid_',seq(1:85)),paste0('cid_',seq(1:15))))
+  mi_normal <- as.data.frame(mi_normal) %>% mutate(conditionId.x= c(paste0('cid_',seq(1:85)),paste0('cid_',seq(1:15))))
+  mi_normal <- mi_normal %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x,-conditionId.x) 
+  mi_normal <- suppressMessages(left_join(mi_normal,df_info))
+  mi_normal <- mi_normal %>% mutate(type='random normal')
+  mi_normal <- mi_normal %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  mi_normal <- mi_normal %>% dplyr::select(all_of(colnames(mi_embs)))
+  #Last for random uniform
+  mi_uniform_list <- foreach(j = seq(1:nrow(random_uniform))) %dopar% {
+    apply(random_uniform,1,JSDMI,y=as.matrix(random_uniform[j,]))
+  }
+  mi_uniform <- do.call(cbind,mi_uniform_list)
+  colnames(mi_uniform) <- paste0('id_',seq(1:100))
+  rownames(mi_uniform) <- paste0('id_',seq(1:100))
+  df_info <- data.frame(sig_id.y = paste0('id_',seq(1:100)),
+                        conditionId.y=c(paste0('cid_',seq(1:85)),paste0('cid_',seq(1:15))))
+  mi_uniform <- as.data.frame(mi_uniform) %>% mutate(conditionId.x= c(paste0('cid_',seq(1:85)),paste0('cid_',seq(1:15))))
+  mi_uniform <- mi_uniform %>% rownames_to_column('sig_id.x') %>% gather('sig_id.y','MI',-sig_id.x,-conditionId.x) 
+  mi_uniform <- suppressMessages(left_join(mi_uniform,df_info))
+  mi_uniform <- mi_uniform %>% mutate(type='random uniform')
+  mi_uniform <- mi_uniform %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  mi_uniform <- mi_uniform %>% dplyr::select(all_of(colnames(mi_embs)))
+  
+  # combine all data
+  mi_all <- rbind(mi_all,rbind(mi_embs,mi_normal,mi_uniform) %>% mutate(fold=i))
+  print(paste0('Finished fold ',i))
+  
+}
+mi_all <- mi_all %>% mutate(relationship=ifelse(relationship=='same condition','same','different'))
+mi_all$relationship <- factor(mi_all$relationship,levels = c('different','same'))
+p3 <- ggboxplot(mi_all %>% mutate(fold=paste0('fold ',fold)),x='relationship',y='MI',color='type') + 
+  ylab('Empirical MI') + xlab('condition') +
+  facet_wrap(~fold)+
+  theme(text = element_text(family='Arial',size=20))
+print(p3)
+ggsave('../article_supplementary_info/empirical_mi_random_vs_embs.eps',
+       plot = p3,
+       device=cairo_ps,
+       height = 12,
+       width = 16,
+       units = 'in')
+
+p4 <- ggboxplot(mi_all %>% mutate(fold=paste0('fold ',fold)) %>% 
+                  filter(type!='sampled embeddings') %>% 
+                  mutate(type=ifelse(type=='random uniform','uniform','normal')),
+                x='type',y='MI',color='relationship') + 
+  ylab('Empirical MI') + xlab('random distribution') +
+  facet_wrap(~fold)+
+  theme(text = element_text(family='Arial',size=20))
+print(p4)
+ggsave('../article_supplementary_info/empirical_mi_uniform_vs_normal.eps',
+       plot = p4,
+       device=cairo_ps,
+       height = 12,
+       width = 16,
+       units = 'in')
+
+### Compare U2OS MI of embs with beta = 1.0 and beta = 1000 for uniform distribution-----------------------------------

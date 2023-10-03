@@ -5,6 +5,7 @@ library(factoextra)
 library(ggplot2)
 library(ggpubr)
 library(ggpattern)
+library(ggridges)
 library(umap)
 library(corrplot)
 library(reshape2)
@@ -154,27 +155,27 @@ df <- df %>% rownames_to_column('gene')
 df <- left_join(df,cmap_median)
 
 ### Load reconstruction importance scores
-imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv') %>%
-  dplyr::select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
-imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
-imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv')%>%
-  dplyr::select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
-imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
-ordered_1 <- rownames(imp_enc_1)[order(-imp_enc_1$mean_imp)]
-ordered_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)]
-reconstruction_importance_pc3 <- data.table::fread('../results/Importance_results/important_reconstruction_scores_pc3.csv',header = T) %>%
-  column_to_rownames('V1')
-reconstruction_importance_pc3 <- reconstruction_importance_pc3 %>% dplyr::select(all_of(ordered_1[1:50]))
-reconstruction_importance_pc3 <- rowMeans(abs(reconstruction_importance_pc3))
-reconstruction_importance_pc3 <- as.data.frame(reconstruction_importance_pc3)
-reconstruction_importance_ha1e <- data.table::fread('../results/Importance_results/important_reconstruction_scores_ha1e.csv',header = T) %>%
-  column_to_rownames('V1')
-reconstruction_importance_ha1e <- reconstruction_importance_ha1e %>% dplyr::select(all_of(ordered_2[1:50]))
-reconstruction_importance_ha1e <- rowMeans(abs(reconstruction_importance_ha1e))
-reconstruction_importance_ha1e <- as.data.frame(reconstruction_importance_ha1e)
-print(all(rownames(reconstruction_importance_ha1e)==rownames(reconstruction_importance_pc3)))
-reconstruction_importance <- 0.5*(reconstruction_importance_ha1e+reconstruction_importance_pc3)
-colnames(reconstruction_importance) <- 'recon_score'
+# imp_enc_1 <- data.table::fread('../results/Importance_results/important_scores_pc3_to_encode.csv') %>%
+#   dplyr::select(c('Gene_1'='V1'),all_of(var_1)) %>% column_to_rownames('Gene_1')
+# imp_enc_1 <- imp_enc_1 %>% mutate(mean_imp=rowMeans(imp_enc_1))
+# imp_enc_2 <- data.table::fread('../results/Importance_results/important_scores_ha1e_to_encode.csv')%>%
+#   dplyr::select(c('Gene_2'='V1'),all_of(var_2)) %>% column_to_rownames('Gene_2')
+# imp_enc_2 <- imp_enc_2 %>% mutate(mean_imp=rowMeans(imp_enc_2))
+# ordered_1 <- rownames(imp_enc_1)[order(-imp_enc_1$mean_imp)]
+# ordered_2 <- rownames(imp_enc_2)[order(imp_enc_2$mean_imp)]
+# reconstruction_importance_pc3 <- data.table::fread('../results/Importance_results/important_reconstruction_scores_pc3.csv',header = T) %>%
+#   column_to_rownames('V1')
+# reconstruction_importance_pc3 <- reconstruction_importance_pc3 %>% dplyr::select(all_of(ordered_1[1:50]))
+# reconstruction_importance_pc3 <- rowMeans(abs(reconstruction_importance_pc3))
+# reconstruction_importance_pc3 <- as.data.frame(reconstruction_importance_pc3)
+# reconstruction_importance_ha1e <- data.table::fread('../results/Importance_results/important_reconstruction_scores_ha1e.csv',header = T) %>%
+#   column_to_rownames('V1')
+# reconstruction_importance_ha1e <- reconstruction_importance_ha1e %>% dplyr::select(all_of(ordered_2[1:50]))
+# reconstruction_importance_ha1e <- rowMeans(abs(reconstruction_importance_ha1e))
+# reconstruction_importance_ha1e <- as.data.frame(reconstruction_importance_ha1e)
+# print(all(rownames(reconstruction_importance_ha1e)==rownames(reconstruction_importance_pc3)))
+# reconstruction_importance <- 0.5*(reconstruction_importance_ha1e+reconstruction_importance_pc3)
+# colnames(reconstruction_importance) <- 'recon_score'
 
 ### PCA important genes
 pca_cmap <- prcomp(cmap,center = T)
@@ -285,6 +286,89 @@ ggsave(
   dpi = 600,
 )
 
+# From the important genes how many are also highly regulated in the cell line we translate from
+FindPercentageIntersection <- function(grdRanks,DeXs,no_top=1000){
+  #df_gene <- grdRanks
+  tops <- names(grdRanks[order(grdRanks)])[1:no_top]
+  percentage <- length(which(tops %in% DeXs))/length(tops)
+  return(percentage)
+}
+cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
+sample_paired <- data.table::fread('../preprocessing/preprocessed_data/10fold_validation_spit/alldata/paired_pc3_ha1e.csv',header=T) %>% column_to_rownames('V1')
+cmap <- cmap[sample_paired$sig_id.x,]
+cmap <- as.matrix(abs(cmap))
+genes_regulated <- NULL
+mean_perc <- NULL
+sd_perc <- NULL
+gc()
+
+FindPercentageIntersection <- function(grdRanks,DeXs,no_top=1000){
+  num_genes <- nrow(DeXs)
+  grdRanked <- 1 * (grdRanks <= (top_num/num_genes))
+  DeXs <- DeXs[names(grdRanked),]
+  grdRanked <- replicate(ncol(DeXs),grdRanked)
+  percentage <- grdRanked + DeXs
+  percentage <- percentage == 2
+  percentage <- 1 * percentage
+  percentage <- apply(percentage,2,sum)
+  percentage <- percentage/no_top
+  return(percentage)
+}
+#### Use per sample analysis
+top_nums  <- c(10,20,50,100,250,500,1000,2000)
+df_results <- data.frame()
+for (top_num in top_nums){
+  gex <- apply(-t(cmap),2,rank)
+  gex <- 1* (gex <= top_num)
+  percentage_of_importants_in_top_regulated <- apply(df_ranked,2,FindPercentageIntersection,DeXs=gex,no_top=top_num)
+  mean_perc <- apply(percentage_of_importants_in_top_regulated,1,mean)
+  sd_perc <- apply(percentage_of_importants_in_top_regulated,1,sd)
+  # combine in dataframe
+  tmp <- data.frame(mu = mean_perc,
+                   sd = sd_perc)
+  tmp <- tmp %>% mutate(top_number = top_num)
+  df_results <- rbind(df_results,tmp)
+  print(paste0('Finished for top ',top_num,' genes'))
+}
+# saveRDS(df_results,'../results/Importance_results/overlap_important_regulated.rds')
+
+df_results <- df_results %>% mutate(mu = 100* mu) %>% mutate(sd = 100* sd) 
+p_imp_gex_suppl <- ggplot(df_results, aes(x = mu, y = as.factor(top_number))) +
+  geom_density_ridges(stat = "binline",bins = 50,alpha = 0.8,fill = '#125b80',color='black') +
+  xlab('average overlap (%)') + ylab('# top genes')+
+  theme_pubr(base_family = "Arial",base_size = 24) +
+  theme(text = element_text(family = 'Arial'))
+print(p_imp_gex_suppl)
+ggsave('../figures/figure4C_suppl.eps',
+       device = cairo_ps,
+       plot = p_imp_gex_suppl,
+       height = 9,
+       width = 9,
+       units = 'in',
+       dpi = 600)
+p_imp_gex <- ggplot(rbind(df_results %>% group_by(top_number) %>% mutate(avg = mean(mu)) %>% mutate(sigma = sd(mu)) %>% 
+                    ungroup() %>% dplyr::select(avg,sigma,top_number) %>% unique() %>% mutate(metric = 'mean'),
+                    df_results %>% group_by(top_number) %>% mutate(avg = mean(sd)) %>% mutate(sigma = sd(sd)) %>% 
+                      ungroup() %>% dplyr::select(avg,sigma,top_number) %>% unique() %>% mutate(metric = 'standard deviation')) , 
+                    aes(x = top_number, y = avg,color = metric)) +
+  geom_point(size=1.5) +
+  geom_line(linewidth = 0.5)+
+  geom_errorbar(aes(ymin = avg - 2.576*sigma/sqrt(nrow(cmap)) , ymax = avg + 2.576*sigma/sqrt(nrow(cmap))), width = 20,linewidth = 0.75)+
+  annotate('text',x=1200, y =11, label='Less than ~10% for looking up to ~100 top genes',size=6) +
+  geom_hline(yintercept = 10,linewidth=1,color='black',linetype='dashed')+
+  xlab('# top genes') + ylab('mean overlap (%)')+ 
+  theme_pubr(base_family = "Arial",base_size = 24) + 
+  theme(text = element_text(family = 'Arial'),
+        legend.position = 'top')
+print(p_imp_gex)
+ggsave('../figures/figure4C.eps',
+       device = cairo_ps,
+       plot = p_imp_gex,
+       height = 9,
+       width = 9,
+       units = 'in',
+       dpi = 600)
+
 ### Importance analysis----
 ## Per sample analysis in all
 percentage_of_lands_in_important <- NULL
@@ -329,42 +413,6 @@ cmap <- as.matrix(abs(cmap))
 genes_regulated <- NULL
 mean_perc <- NULL
 sd_perc <- NULL
-
-#### Use per sample analysis
-for (i in 1:nrow(cmap)){
-  #gradients <- data.table::fread(paste0('../results/ImportantGenesResults/gradient_scores_allgenes_a375_to_ht29_pairedsample',
-  #                                      i,'.csv'),header=T) %>% column_to_rownames('V1')
-  #grad_rank <- apply(-abs(grad_rank),2,rank)
-  #grad_rank <- grad_rank/nrow(gradients)
-  GeX <- cmap[i,]
-  genes_regulated <- names(GeX)[order(GeX,decreasing = T)][1:1000]
-  
-  percentage_of_importants_in_top_regulated <- apply(df_ranked,2,FindPercentageIntersection,DeXs=genes_regulated)
-  mean_perc[i] <- mean(percentage_of_importants_in_top_regulated)
-  sd_perc[i] <- sd(percentage_of_importants_in_top_regulated)
-}
-
-# percentage_of_importants_in_top_regulated <- NULL
-# for (j in 1:ncol(df_rank)){
-#   df_gene <- df_rank[,j]
-#   top1000 <- names(df_gene[order(df_gene)])[1:1000]
-#   percentage_of_importants_in_top_regulated[j] <- length(which(top1000 %in% genes_regulated))/length(top1000)
-# }
-
-png('../figures/mean_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=600)
-hist(mean_perc*100,breaks = 40,
-     main= 'Average percentages of top 1000 important genes per sample present in top 1000 regulated genes',xlab='Percentage (%)')
-dev.off()
-
-png('../figures/std_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=600)
-hist(sd_perc*100,breaks = 40,
-     main= 'Percentages s.d. of top 1000 important genes per sample present in top 1000 regulated genes',xlab='Percentage (%)')
-dev.off()
-
-png('../figures/cv_percentage_of_important_in_1000gex_pc3_to_ha1e.png',width=16,height=8,units = "in",res=600)
-hist(100*sd_perc/mean_perc,breaks = 40,
-     main= 'Coefficent of variation of number of top 1000 important genes in most regulated genes',xlab='CV (%)')
-dev.off()
 
 ## Check correlation between genes and see if genes not in important
 # are correlated with some important
