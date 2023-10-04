@@ -231,7 +231,7 @@ ggsave('../article_supplementary_info/empirical_mi_uniform_vs_normal.eps',
        width = 16,
        units = 'in')
 
-### Compare U2OS MI of embs with beta = 1.0 and beta = 1000 for uniform distribution-----------------------------------
+### Compare U2OS MI of embs with beta = 1.0 and beta = 10000 for uniform distribution-----------------------------------
 ### First for the strong mse-like loss
 mi_u2os <- data.frame()
 for (i in 0:4){
@@ -382,6 +382,10 @@ ggsave('../article_supplementary_info/empirical_mi_different_priors.eps',
 histograms_unif_state <- NULL
 histograms_normal_state <- NULL
 histograms_current <- NULL
+histograms_normal_discr <- NULL
+histograms_normal_KLD <- NULL
+histograms_unif_discr <- NULL
+bin_size <-  20
 for (i in 0:4){
   trainInfo <- data.table::fread(paste0('../preprocessing/preprocessed_data/SameCellimputationModel/U2OS/train_',i,'.csv'))
   valInfo <- data.table::fread(paste0('../preprocessing/preprocessed_data/SameCellimputationModel/U2OS/val_',i,'.csv'))
@@ -396,7 +400,7 @@ for (i in 0:4){
     mutate(sig_id = paste0(sig_id,'___genes2')) %>%
     column_to_rownames('sig_id')
   embs_train <- rbind(embs_train_1,embs_train_2)
-  ks_list_unif <- apply(embs_train,2,ks.test,runif(nrow(embs_train)))
+  ks_list_unif <- apply(embs_train,2,ks.test,runif(10000))
   ks_inf <- NULL
   for (j in 1:length(ks_list_unif)){
     ks_inf[j] <- ks_list_unif[[j]]$statistic
@@ -405,13 +409,13 @@ for (i in 0:4){
   tmp <- as.data.frame(embs_train[,ind])
   colnames(tmp) <- 'z'
   histograms_unif_state[[i+1]] <- ggplot(tmp,aes(x=z)) + 
-    geom_histogram(bins = 20,alpha = 0.8,fill = '#125b80',color='black')+
-    ggtitle(paste0('Latent distribution in fold ',i))+
+    geom_histogram(bins = bin_size,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('fold ',i))+
     xlab(paste0('Latent variable z',ind-1))+
     ylab('counts')+
-    theme_pubr(base_family = "Arial",base_size = 20) + 
+    theme_pubr(base_family = "Arial",base_size = 18) + 
     theme(plot.title = element_text(hjust = 0.5))
-  print('Finished uniform state loss embs')
+  # print('Finished uniform state loss embs')
   ### Repeat for state loss normal
   embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/train_embs1_fold',
                                            i,'_beta10000.0.csv'),header = T) %>% 
@@ -422,7 +426,7 @@ for (i in 0:4){
     mutate(sig_id = paste0(sig_id,'___genes2')) %>%
     column_to_rownames('sig_id')
   embs_train <- rbind(embs_train_1,embs_train_2)
-  ks_list_normal <- apply(embs_train,2,ks.test,rnorm(nrow(embs_train)))
+  ks_list_normal <- apply(embs_train,2,ks.test,rnorm(10000))
   ks_normal <- NULL
   for (j in 1:length(ks_list_normal)){
     ks_normal[j] <- ks_list_normal[[j]]$statistic
@@ -431,13 +435,13 @@ for (i in 0:4){
   tmp <- as.data.frame(embs_train[,ind])
   colnames(tmp) <- 'z'
   histograms_normal_state[[i+1]] <- ggplot(tmp,aes(x=z)) + 
-    geom_histogram(bins = 20,alpha = 0.8,fill = '#125b80',color='black')+
-    ggtitle(paste0('Latent distribution in fold ',i))+
+    geom_histogram(bins = bin_size,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('fold ',i))+
     xlab(paste0('Latent variable z',ind-1))+
     ylab('counts')+
-    theme_pubr(base_family = "Arial",base_size = 20) + 
+    theme_pubr(base_family = "Arial",base_size = 18) + 
     theme(plot.title = element_text(hjust = 0.5))
-  print('Finished normal state loss embs')
+  # print('Finished normal state loss embs')
   
   ### Repeat for current
   embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/train_embs1_fold',
@@ -449,7 +453,7 @@ for (i in 0:4){
     mutate(sig_id = paste0(sig_id,'___genes2')) %>%
     column_to_rownames('sig_id')
   embs_train <- rbind(embs_train_1,embs_train_2)
-  ks_list_current <- apply(embs_train,2,ks.test,rnorm(nrow(embs_train)))
+  ks_list_current <- apply(embs_train,2,ks.test,rnorm(10000))
   ks_current <- NULL
   for (j in 1:length(ks_list_current)){
     ks_current[j] <- ks_list_current[[j]]$statistic
@@ -458,16 +462,215 @@ for (i in 0:4){
   tmp <- as.data.frame(embs_train[,ind])
   colnames(tmp) <- 'z'
   histograms_current[[i+1]] <- ggplot(tmp,aes(x=z)) + 
-    geom_histogram(bins = 20,alpha = 0.8,fill = '#125b80',color='black')+
-    ggtitle(paste0('Latent distribution in fold ',i))+
+    geom_histogram(bins = bin_size,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('fold ',i))+
     xlab(paste0('Latent variable z',ind-1))+
     ylab('counts')+
-    theme_pubr(base_family = "Arial",base_size = 20) + 
+    theme_pubr(base_family = "Arial",base_size = 18) + 
     theme(plot.title = element_text(hjust = 0.5))
-  print('Finished current embs')
+  # print('Finished current embs')
+  
+  ### Repeat for normal KLD
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_KLD_normal/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_KLD_normal/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  ks_list_kld <- apply(embs_train,2,ks.test,rnorm(10000))
+  ks_kld <- NULL
+  for (j in 1:length(ks_list_kld)){
+    ks_kld[j] <- ks_list_kld[[j]]$statistic
+  }
+  ind <- which.min(ks_kld)
+  tmp <- as.data.frame(embs_train[,ind])
+  colnames(tmp) <- 'z'
+  histograms_normal_KLD[[i+1]] <- ggplot(tmp,aes(x=z)) + 
+    geom_histogram(bins = bin_size,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('fold ',i))+
+    xlab(paste0('Latent variable z',ind-1))+
+    ylab('counts')+
+    theme_pubr(base_family = "Arial",base_size = 18) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  ### Repeat for normal discriminator
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_discr_normal/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_discr_normal/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  ks_list_discr_normal <- apply(embs_train,2,ks.test,rnorm(10000))
+  ks_discr_normal <- NULL
+  for (j in 1:length(ks_list_discr_normal)){
+    ks_discr_normal[j] <- ks_list_discr_normal[[j]]$statistic
+  }
+  ind <- which.min(ks_discr_normal)
+  tmp <- as.data.frame(embs_train[,ind])
+  colnames(tmp) <- 'z'
+  histograms_normal_discr[[i+1]] <- ggplot(tmp,aes(x=z)) + 
+    geom_histogram(bins = bin_size,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('fold ',i))+
+    xlab(paste0('Latent variable z',ind-1))+
+    ylab('counts')+
+    theme_pubr(base_family = "Arial",base_size = 18) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  # print('Finished current embs')
+  
+  ## Repeat for uniform discriminator
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_discr_uniform/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_discr_uniform/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  ks_list_discr_uniform <- apply(embs_train,2,ks.test,runif(10000))
+  ks_discr_uniform <- NULL
+  for (j in 1:length(ks_list_discr_uniform)){
+    ks_discr_uniform[j] <- ks_list_discr_uniform[[j]]$statistic
+  }
+  ind <- which.min(ks_discr_uniform)
+  tmp <- as.data.frame(embs_train[,ind])
+  colnames(tmp) <- 'z'
+  histograms_unif_discr[[i+1]] <- ggplot(tmp,aes(x=z)) + 
+    geom_histogram(bins = bin_size,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('fold ',i))+
+    xlab(paste0('Latent variable z',ind-1))+
+    ylab('counts')+
+    theme_pubr(base_family = "Arial",base_size = 18) + 
+    theme(plot.title = element_text(hjust = 0.5))
+
   print(paste0('Finished fold ',i))
   
 }
 
-ggarrange(plotlist=histograms_current,
-          ncol=3,nrow=2)
+
+### Save uniform disciminator
+histograms <- ggarrange(plotlist = histograms_unif_discr)
+ggsave('../article_supplementary_info/prior_analysis/uniform_disciminator_embs_beta10000_hist_allfolds.eps',
+       plot = histograms,
+       device = cairo_ps,
+       height = 9,
+       width=12,
+       units = 'in',
+       dpi=600)
+for (j in 1:length(histograms_unif_discr)){
+  histogram <- histograms_unif_discr[[j]]
+  ggsave(paste0('../article_supplementary_info/prior_analysis/uniform_disciminator_embs_beta10000_hist_fold',j-1,'.eps'),
+         plot = histogram,
+         device = cairo_ps,
+         height = 9,
+         width=9,
+         units = 'in',
+         dpi=600)
+}
+
+
+### Save normal disciminator
+histograms <- ggarrange(plotlist = histograms_normal_discr)
+ggsave('../article_supplementary_info/prior_analysis/normal_disciminator_embs_beta10000_hist_allfolds.eps',
+       plot = histograms,
+       device = cairo_ps,
+       height = 9,
+       width=12,
+       units = 'in',
+       dpi=600)
+for (j in 1:length(histograms_normal_discr)){
+  histogram <- histograms_normal_discr[[j]]
+  ggsave(paste0('../article_supplementary_info/prior_analysis/normal_disciminator_embs_beta10000_hist_fold',j-1,'.eps'),
+         plot = histogram,
+         device = cairo_ps,
+         height = 9,
+         width=9,
+         units = 'in',
+         dpi=600)
+}
+
+### Save uniform state
+histograms <- ggarrange(plotlist = histograms_unif_state)
+ggsave('../article_supplementary_info/prior_analysis/uniform_stateLoss_embs_beta10000_hist_allfolds.eps',
+       plot = histograms,
+       device = cairo_ps,
+       height = 9,
+       width=12,
+       units = 'in',
+       dpi=600)
+for (j in 1:length(histograms_unif_state)){
+  histogram <- histograms_unif_state[[j]]
+  ggsave(paste0('../article_supplementary_info/prior_analysis/uniform_stateLoss_embs_beta10000_hist_fold',j-1,'.eps'),
+         plot = histogram,
+         device = cairo_ps,
+         height = 9,
+         width=9,
+         units = 'in',
+         dpi=600)
+}
+
+### Save normal state
+histograms <- ggarrange(plotlist = histograms_normal_state)
+ggsave('../article_supplementary_info/prior_analysis/normal_stateLoss_embs_beta10000_hist_allfolds.eps',
+       plot = histograms,
+       device = cairo_ps,
+       height = 9,
+       width=12,
+       units = 'in',
+       dpi=600)
+for (j in 1:length(histograms_normal_state)){
+  histogram <- histograms_normal_state[[j]]
+  ggsave(paste0('../article_supplementary_info/prior_analysis/normal_stateLoss_embs_beta10000_hist_fold',j-1,'.eps'),
+         plot = histogram,
+         device = cairo_ps,
+         height = 9,
+         width=9,
+         units = 'in',
+         dpi=600)
+}
+
+### Save current embs
+histograms <- ggarrange(plotlist = histograms_current)
+ggsave('../article_supplementary_info/prior_analysis/current_embs_beta10000_hist_allfolds.eps',
+       plot = histograms,
+       device = cairo_ps,
+       height = 9,
+       width=12,
+       units = 'in',
+       dpi=600)
+for (j in 1:length(histograms_current)){
+  histogram <- histograms_current[[j]]
+  ggsave(paste0('../article_supplementary_info/prior_analysis/current_embs_beta10000_hist_fold',j-1,'.eps'),
+         plot = histogram,
+         device = cairo_ps,
+         height = 9,
+         width=9,
+         units = 'in',
+         dpi=600)
+}
+
+### Save KLD embs
+histograms <- ggarrange(plotlist = histograms_normal_KLD)
+ggsave('../article_supplementary_info/prior_analysis/KLD_embs_beta10000_hist_allfolds.eps',
+       plot = histograms,
+       device = cairo_ps,
+       height = 9,
+       width=12,
+       units = 'in',
+       dpi=600)
+for (j in 1:length(histograms_normal_KLD)){
+  histogram <- histograms_normal_KLD[[j]]
+  ggsave(paste0('../article_supplementary_info/prior_analysis/kld_normal_embs_beta10000_hist_fold',j-1,'.eps'),
+         plot = histogram,
+         device = cairo_ps,
+         height = 9,
+         width=9,
+         units = 'in',
+         dpi=600)
+}

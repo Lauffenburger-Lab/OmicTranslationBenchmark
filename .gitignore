@@ -190,6 +190,7 @@ learning/PreTrainAdverseClass.py
 .Rproj.user
 .Rhistory
 article_supplementary_info/*.eps
+article_supplementary_info/prior_analysis
 serology/.Rhistory
 serology/*.eps
 serology/*.pdf
