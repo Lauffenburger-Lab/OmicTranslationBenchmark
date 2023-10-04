@@ -153,14 +153,15 @@ latent_var <- latent_var %>% mutate(d=ifelse(model=='DCS',effect_size_dcs[larges
 p2 <- ggboxplot(latent_var, x = "cell", y = "latent variable with larger effect size",
          color = "cell",outlier.shape = NA)+
   geom_jitter(aes(color=cell),width = 0.25,alpha=0.5,size=1)+
-  geom_text(aes(x=1.5,y=3.2, label=d),
+  geom_text(aes(x=1.5,y=5, label=d),
             data=latent_var %>% select(model,d) %>% unique(),inherit.aes = FALSE,
             size=6)+
+  scale_color_manual(values = c("#C4961A","#293352"))+
   facet_wrap(~model)+
   ggtitle('Latent variable comparison')+
   stat_compare_means(comparisons = list(c('A375','HT29')),
                      method = 't.test',
-                     size=6,label.y = 1)+
+                     size=6,label.y = 3.2)+
   theme(text = element_text(family = 'Arial',size=24),
         plot.title = element_text(hjust = 0.5),
         legend.position = 'none')
@@ -305,9 +306,9 @@ violin <- ggplot(violin_data, aes(x=model, y=value, fill = model)) +
  annotate('text',x = 1.5,y=1.5,label=paste0('Cohen`s D : ',round(cohen,digits = 2)),size=6)
 print(violin)
 ggsave('../figures/fig1_dcs_vs_model_samecell_cosines.eps',
-       plot = p,
+       plot = violin,
        device = cairo_ps,
-       width = 12,
+       width = 9,
        height = 9,
        units = 'in',
        dpi = 600)
