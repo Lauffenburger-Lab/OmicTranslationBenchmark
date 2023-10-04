@@ -232,3 +232,242 @@ ggsave('../article_supplementary_info/empirical_mi_uniform_vs_normal.eps',
        units = 'in')
 
 ### Compare U2OS MI of embs with beta = 1.0 and beta = 1000 for uniform distribution-----------------------------------
+### First for the strong mse-like loss
+mi_u2os <- data.frame()
+for (i in 0:4){
+  trainInfo <- data.table::fread(paste0('../preprocessing/preprocessed_data/SameCellimputationModel/U2OS/train_',i,'.csv'))
+  valInfo <- data.table::fread(paste0('../preprocessing/preprocessed_data/SameCellimputationModel/U2OS/val_',i,'.csv'))
+  
+  
+  # Load state loss embs
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_uniform_mselike/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_uniform_mselike/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  embs_test_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_uniform_mselike/val_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_test_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_uniform_mselike/val_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_test <- rbind(embs_test_1,embs_test_2)
+  embs <- rbind(embs_train,embs_test)
+  embs <- sample_frac(embs)
+  embs <- sample_n(embs,500)
+  # Calculate MI of these vectors
+  mi_embs_list <- foreach(j = seq(1:nrow(embs))) %dopar% {
+    apply(embs,1,JSDMI,y=as.matrix(embs[j,]))
+  }
+  mi_embs_state_unif <- do.call(cbind,mi_embs_list)
+  colnames(mi_embs_state_unif) <- rownames(embs)
+  mi_embs_state_unif <- as.data.frame(mi_embs_state_unif) %>% rownames_to_column('sig_id.x')
+  mi_embs_state_unif <- mi_embs_state_unif %>% mutate(sig_id.x=strsplit(sig_id.x,'___')) %>% unnest(sig_id.x) %>% filter(!grepl('gene',sig_id.x))
+  mi_embs_state_unif <- mi_embs_state_unif %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='state loss uniform')
+  mi_embs_state_unif <- mi_embs_state_unif %>% mutate(sig_id.y=strsplit(sig_id.y,'___')) %>% unnest(sig_id.y) %>% filter(!grepl('gene',sig_id.y))
+  mi_embs_state_unif <- suppressMessages(left_join(mi_embs_state_unif,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId'))))
+  mi_embs_state_unif <- suppressMessages(left_join(mi_embs_state_unif,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId'))))
+  mi_embs_state_unif <- mi_embs_state_unif %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  print('Finished uniform state loss embs')
+  ### Repeat for state loss normal
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  embs_test_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/val_embs1_fold',
+                                          i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_test_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/val_embs2_fold',
+                                          i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_test <- rbind(embs_test_1,embs_test_2)
+  embs <- rbind(embs_train,embs_test)
+  embs <- sample_frac(embs)
+  embs <- sample_n(embs,500)
+  # Calculate MI of these vectors
+  mi_embs_list <- foreach(j = seq(1:nrow(embs))) %dopar% {
+    apply(embs,1,JSDMI,y=as.matrix(embs[j,]))
+  }
+  mi_embs_state_normal <- do.call(cbind,mi_embs_list)
+  colnames(mi_embs_state_normal) <- rownames(embs)
+  mi_embs_state_normal <- as.data.frame(mi_embs_state_normal) %>% rownames_to_column('sig_id.x')
+  mi_embs_state_normal <- mi_embs_state_normal %>% mutate(sig_id.x=strsplit(sig_id.x,'___')) %>% unnest(sig_id.x) %>% filter(!grepl('gene',sig_id.x))
+  mi_embs_state_normal <- mi_embs_state_normal %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='state loss normal')
+  mi_embs_state_normal <- mi_embs_state_normal %>% mutate(sig_id.y=strsplit(sig_id.y,'___')) %>% unnest(sig_id.y) %>% filter(!grepl('gene',sig_id.y))
+  mi_embs_state_normal <- suppressMessages(left_join(mi_embs_state_normal,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId'))))
+  mi_embs_state_normal <- suppressMessages(left_join(mi_embs_state_normal,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId'))))
+  mi_embs_state_normal <- mi_embs_state_normal %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  print('Finished normal state loss embs')
+  
+  ### Repeat for current
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  embs_test_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/val_embs1_fold',
+                                          i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_test_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/val_embs2_fold',
+                                          i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_test <- rbind(embs_test_1,embs_test_2)
+  embs <- rbind(embs_train,embs_test)
+  embs <- sample_frac(embs)
+  embs <- sample_n(embs,500)
+  # Calculate MI of these vectors
+  mi_embs_list <- foreach(j = seq(1:nrow(embs))) %dopar% {
+    apply(embs,1,JSDMI,y=as.matrix(embs[j,]))
+  }
+  mi_embs <- do.call(cbind,mi_embs_list)
+  colnames(mi_embs) <- rownames(embs)
+  mi_embs <- as.data.frame(mi_embs) %>% rownames_to_column('sig_id.x')
+  mi_embs <- mi_embs %>% mutate(sig_id.x=strsplit(sig_id.x,'___')) %>% unnest(sig_id.x) %>% filter(!grepl('gene',sig_id.x))
+  mi_embs <- mi_embs %>% gather('sig_id.y','MI',-sig_id.x) %>% mutate(type='current approach')
+  mi_embs <- mi_embs %>% mutate(sig_id.y=strsplit(sig_id.y,'___')) %>% unnest(sig_id.y) %>% filter(!grepl('gene',sig_id.y))
+  mi_embs <- suppressMessages(left_join(mi_embs,sigInfo %>% select(c('sig_id.x'='sig_id'),c('conditionId.x'='conditionId'))))
+  mi_embs <- suppressMessages(left_join(mi_embs,sigInfo %>% select(c('sig_id.y'='sig_id'),c('conditionId.y'='conditionId'))))
+  mi_embs <- mi_embs %>% mutate(relationship = ifelse(conditionId.x==conditionId.y,'same condition','different condition'))
+  print('Finished current embs')
+  
+  # combine all data
+  mi_u2os <- rbind(mi_u2os,rbind(mi_embs,mi_embs_state_normal,mi_embs_state_unif) %>% mutate(fold=i))
+  
+  
+  print(paste0('Finished fold ',i))
+  
+}
+mi_u2os <- mi_u2os %>% mutate(relationship=ifelse(relationship=='same condition','same','different'))
+mi_u2os$relationship <- factor(mi_u2os$relationship,levels = c('different','same'))
+mi_u2os <- mi_u2os %>% mutate(type = ifelse(type=='current approach',
+                                            'current',
+                                            ifelse(type=='state loss normal',
+                                                   'normal',
+                                                   'uniform')))
+
+p4 <- ggboxplot(mi_u2os %>% mutate(fold=paste0('fold ',fold)),
+                x='relationship',y='MI',color='type') + 
+  ylab('Empirical MI') + xlab('relationship') +
+  guides(fill=guide_legend(title="prior loss approach"))+
+  facet_wrap(~fold)+
+  theme(text = element_text(family='Arial',size=20))
+print(p4)
+ggsave('../article_supplementary_info/empirical_mi_different_priors.eps',
+       plot = p4,
+       device=cairo_ps,
+       height = 12,
+       width = 16,
+       units = 'in')
+
+### Find latent variable with most uniform like shape-------------------------------------------------------
+histograms_unif_state <- NULL
+histograms_normal_state <- NULL
+histograms_current <- NULL
+for (i in 0:4){
+  trainInfo <- data.table::fread(paste0('../preprocessing/preprocessed_data/SameCellimputationModel/U2OS/train_',i,'.csv'))
+  valInfo <- data.table::fread(paste0('../preprocessing/preprocessed_data/SameCellimputationModel/U2OS/val_',i,'.csv'))
+  
+  # Load state loss embs
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_uniform_mselike/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_uniform_mselike/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  ks_list_unif <- apply(embs_train,2,ks.test,runif(nrow(embs_train)))
+  ks_inf <- NULL
+  for (j in 1:length(ks_list_unif)){
+    ks_inf[j] <- ks_list_unif[[j]]$statistic
+  }
+  ind <- which.min(ks_inf)
+  tmp <- as.data.frame(embs_train[,ind])
+  colnames(tmp) <- 'z'
+  histograms_unif_state[[i+1]] <- ggplot(tmp,aes(x=z)) + 
+    geom_histogram(bins = 20,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('Latent distribution in fold ',i))+
+    xlab(paste0('Latent variable z',ind-1))+
+    ylab('counts')+
+    theme_pubr(base_family = "Arial",base_size = 20) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  print('Finished uniform state loss embs')
+  ### Repeat for state loss normal
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_normal_mselike/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  ks_list_normal <- apply(embs_train,2,ks.test,rnorm(nrow(embs_train)))
+  ks_normal <- NULL
+  for (j in 1:length(ks_list_normal)){
+    ks_normal[j] <- ks_list_normal[[j]]$statistic
+  }
+  ind <- which.min(ks_normal)
+  tmp <- as.data.frame(embs_train[,ind])
+  colnames(tmp) <- 'z'
+  histograms_normal_state[[i+1]] <- ggplot(tmp,aes(x=z)) + 
+    geom_histogram(bins = 20,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('Latent distribution in fold ',i))+
+    xlab(paste0('Latent variable z',ind-1))+
+    ylab('counts')+
+    theme_pubr(base_family = "Arial",base_size = 20) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  print('Finished normal state loss embs')
+  
+  ### Repeat for current
+  embs_train_1 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/train_embs1_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes1')) %>%
+    column_to_rownames('sig_id')
+  embs_train_2 <- data.table::fread(paste0('../results/PriorLossAnalysis/embs_AutoTransOp/U2OS_current/train_embs2_fold',
+                                           i,'_beta10000.0.csv'),header = T) %>% 
+    mutate(sig_id = paste0(sig_id,'___genes2')) %>%
+    column_to_rownames('sig_id')
+  embs_train <- rbind(embs_train_1,embs_train_2)
+  ks_list_current <- apply(embs_train,2,ks.test,rnorm(nrow(embs_train)))
+  ks_current <- NULL
+  for (j in 1:length(ks_list_current)){
+    ks_current[j] <- ks_list_current[[j]]$statistic
+  }
+  ind <- which.min(ks_current)
+  tmp <- as.data.frame(embs_train[,ind])
+  colnames(tmp) <- 'z'
+  histograms_current[[i+1]] <- ggplot(tmp,aes(x=z)) + 
+    geom_histogram(bins = 20,alpha = 0.8,fill = '#125b80',color='black')+
+    ggtitle(paste0('Latent distribution in fold ',i))+
+    xlab(paste0('Latent variable z',ind-1))+
+    ylab('counts')+
+    theme_pubr(base_family = "Arial",base_size = 20) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  print('Finished current embs')
+  print(paste0('Finished fold ',i))
+  
+}
+
+ggarrange(plotlist=histograms_current,
+          ncol=3,nrow=2)
