@@ -148,6 +148,7 @@ results/SameCellimputationModel/all_go_results_same_cell_imputated.rds
 results/SameCellimputationModel/*.eps
 results/SameCellimputationModel/*.png
 results/test_stuff
+results/LatentDimAnalysis
 learning/.ipynb_checkpoints
 preprocessing/preprocessed_data/sampledDatasetes/A375_HT29/*.csv
 preprocessing/preprocessed_data/sampledDatasetes/A375_PC3/*.csv

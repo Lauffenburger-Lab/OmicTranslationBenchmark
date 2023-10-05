@@ -6,6 +6,7 @@ library(ggplot2)
 library(ggpubr)
 library(ggpattern)
 library(ggridges)
+library(ggVennDiagram)
 library(umap)
 library(corrplot)
 library(reshape2)
@@ -1296,7 +1297,7 @@ fig
 ###
 
 ### Perform genesets functional analysis in important----------------------------------------------------------------------------
-importance_translation <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_allgenes_withclass_noabs.csv')
+importance_translation <- read.csv('../results/Importance_results/important_scores_ha1e_to_pc3_allgenes_withclass_noabs.csv')
 importance_translation <- importance_translation %>% column_to_rownames('X')
 colnames(importance_translation) <- rownames(importance_translation)
 cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
@@ -1307,7 +1308,7 @@ gc()
 importance_translation_mean <- as.matrix(rowMeans(abs(importance_translation)))
 # importance_translation_mean <- scale(importance_translation_mean,center = T,scale=T)
 hist(importance_translation_mean,40)
-colnames(importance_translation_mean) <- 'PC3_2_HA1E'
+colnames(importance_translation_mean) <- 'HA1E_2_PC3'
 avg_keggs <- fastenrichment(colnames(importance_translation_mean),
                             colnames(cmap),
                             importance_translation_mean,
@@ -1325,74 +1326,78 @@ df_avg_keggs <- df_avg_keggs %>% unnest(`KEGG pathway`) %>% filter(!(`KEGG pathw
 df_avg_keggs <- df_avg_keggs %>% filter(p.adj<=0.05)
 df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=as.character(`KEGG pathway`))
 df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=substr(`KEGG pathway`, 9, nchar(`KEGG pathway`)))
+saveRDS(df_avg_keggs,'../results/Importance_results/keggs_enrich_HA1E_to_PC3.rds')
+top_keggs <-df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$p.adj)]
+top_keggs <- top_keggs[1:15]
+df_avg_keggs <- df_avg_keggs %>% filter(`KEGG pathway` %in% top_keggs)
 df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$NES)])
 ggplot(df_avg_keggs,aes(x=NES,y=`KEGG pathway`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.5) +
-  scale_fill_gradient(low = "red",high = "white") +
-  ggtitle('Significantly enriched KEGG pathways for translating PC3 to HA1E')+
-  theme_pubr(base_family = 'Arial',base_size = 24)+
-  theme(plot.title = element_text(hjust = 0.5),
+  scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_keggs$p.adj),0.05)) +
+  ggtitle('Top 15 significant KEGG pathways for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 22)+
+  theme(plot.title = element_text(hjust = 0.8),
         legend.key.size = unit(1.5, "lines"),
         legend.position = 'right',
         legend.justification = "center")
-ggsave('../figures/significant_KEGG_PC3_to_HA1E.eps',
+ggsave('../figures/significant_KEGG_HA1E_to_PC3.eps',
        device = cairo_ps,
        height = 9,
        width = 12,
        units = 'in',
        dpi=600) 
-ggsave('../figures/significant_KEGG_PC3_to_HA1E.png',
+ggsave('../figures/significant_KEGG_HA1E_to_PC3.png',
        height = 9,
        width = 12,
        units = 'in',
        dpi=600)
 
-### Repeat the same for GO Terms
-avg_gos <- fastenrichment(colnames(importance_translation_mean),
-                            colnames(cmap),
-                            importance_translation_mean,
-                            enrichment_space = "go_bp",
-                            order_columns = F,
-                            pval_adjustment=T,
-                            n_permutations=10000)
-avg_gos_nes <- as.data.frame(as.matrix(avg_gos[["NES"]]$`NES GO BP`)) %>% rownames_to_column('GO Terms')
-colnames(avg_gos_nes)[2] <- 'NES'
-avg_gos_pval <- as.data.frame(as.matrix(avg_gos[["Pval"]]$`Pval GO BP`)) %>% rownames_to_column('GO Terms')
-colnames(avg_gos_pval)[2] <- 'p.adj'
-df_avg_gos <- left_join(avg_gos_nes,avg_gos_pval)
-df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=strsplit(`GO Terms`,"_"))
-df_avg_gos <- df_avg_gos %>% unnest(`GO Terms`) %>% filter(!(`GO Terms` %in% c("GO","BP","FL1000")))
-go_annotations_list <- as.list(GOTERM)
-go_annotations <- data.frame(GOs = Term(GOTERM),
-                             'GO Terms' = GOID(GOTERM),
-                             definition = Definition(GOTERM),
-                             ontology = Ontology(GOTERM))
-colnames(go_annotations) <- c('GO','GO Terms','definition','ontology')
-df_avg_gos <- left_join(df_avg_gos,go_annotations)
-df_avg_gos <- df_avg_gos %>% dplyr::select(GO,NES,p.adj) %>% unique()
-colnames(df_avg_gos)[1] <- 'GO Terms'
-df_avg_gos <- df_avg_gos %>% filter(p.adj<0.05)
-df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=as.character(`GO Terms`))
-#df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=substr(`GO Terms`, 9, nchar(`GO Terms`)))
-df_avg_gos$`GO Terms` <- factor(df_avg_gos$`GO Terms`,levels = df_avg_gos$`GO Terms`[order(df_avg_gos$NES)])
-ggplot(df_avg_gos %>% filter(NES>=1.887),aes(x=NES,y=`GO Terms`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1) +
-  scale_fill_gradient(low = "red",high = "white") +
-  ggtitle('Top 50 significantly enriched GO Terms for translating PC3 to HA1E')+
-  theme_pubr(base_family = 'Arial',base_size = 18)+
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.key.size = unit(1.5, "lines"),
-        legend.position = 'right',
-        legend.justification = "center")
-ggsave('../figures/significant_GOs_PC3_to_HA1E.eps',
-       device = cairo_ps,
-       height = 12,
-       width = 24,
-       units = 'in',
-       dpi=600) 
-ggsave('../figures/significant_GOs_PC3_to_HA1E.png',
-       height = 12,
-       width = 24,
-       units = 'in',
-       dpi=600)
+# ### Repeat the same for GO Terms
+# avg_gos <- fastenrichment(colnames(importance_translation_mean),
+#                             colnames(cmap),
+#                             importance_translation_mean,
+#                             enrichment_space = "go_bp",
+#                             order_columns = F,
+#                             pval_adjustment=T,
+#                             n_permutations=10000)
+# avg_gos_nes <- as.data.frame(as.matrix(avg_gos[["NES"]]$`NES GO BP`)) %>% rownames_to_column('GO Terms')
+# colnames(avg_gos_nes)[2] <- 'NES'
+# avg_gos_pval <- as.data.frame(as.matrix(avg_gos[["Pval"]]$`Pval GO BP`)) %>% rownames_to_column('GO Terms')
+# colnames(avg_gos_pval)[2] <- 'p.adj'
+# df_avg_gos <- left_join(avg_gos_nes,avg_gos_pval)
+# df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=strsplit(`GO Terms`,"_"))
+# df_avg_gos <- df_avg_gos %>% unnest(`GO Terms`) %>% filter(!(`GO Terms` %in% c("GO","BP","FL1000")))
+# go_annotations_list <- as.list(GOTERM)
+# go_annotations <- data.frame(GOs = Term(GOTERM),
+#                              'GO Terms' = GOID(GOTERM),
+#                              definition = Definition(GOTERM),
+#                              ontology = Ontology(GOTERM))
+# colnames(go_annotations) <- c('GO','GO Terms','definition','ontology')
+# df_avg_gos <- left_join(df_avg_gos,go_annotations)
+# df_avg_gos <- df_avg_gos %>% dplyr::select(GO,NES,p.adj) %>% unique()
+# colnames(df_avg_gos)[1] <- 'GO Terms'
+# df_avg_gos <- df_avg_gos %>% filter(p.adj<0.05)
+# df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=as.character(`GO Terms`))
+# #df_avg_gos <- df_avg_gos %>% mutate(`GO Terms`=substr(`GO Terms`, 9, nchar(`GO Terms`)))
+# df_avg_gos$`GO Terms` <- factor(df_avg_gos$`GO Terms`,levels = df_avg_gos$`GO Terms`[order(df_avg_gos$NES)])
+# ggplot(df_avg_gos %>% filter(NES>=1.887),aes(x=NES,y=`GO Terms`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1) +
+#   scale_fill_gradient(low = "red",high = "white") +
+#   ggtitle('Top 50 significantly enriched GO Terms for translating PC3 to HA1E')+
+#   theme_pubr(base_family = 'Arial',base_size = 18)+
+#   theme(plot.title = element_text(hjust = 0.5),
+#         legend.key.size = unit(1.5, "lines"),
+#         legend.position = 'right',
+#         legend.justification = "center")
+# ggsave('../figures/significant_GOs_PC3_to_HA1E.eps',
+#        device = cairo_ps,
+#        height = 12,
+#        width = 24,
+#        units = 'in',
+#        dpi=600) 
+# ggsave('../figures/significant_GOs_PC3_to_HA1E.png',
+#        height = 12,
+#        width = 24,
+#        units = 'in',
+#        dpi=600)
 ### Perform GSEA with TFs
 geneInfo <- geneInfo %>% filter(feature_space!='inferred') %>% filter(gene_type=='protein-coding')
 x <- importance_translation_mean
@@ -1415,30 +1420,34 @@ df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=strsplit(`TF`,"_"))
 df_avg_tfs <- df_avg_tfs %>% unnest(`TF`) %>% filter(!(`TF` %in% c("TF","DOROTHEA","FL1000")))
 df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05)
 df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=as.character(`TF`))
+saveRDS(df_avg_tfs,'../results/Importance_results/tfs_enrich_HA1E_to_PC3.rds')
 #df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=substr(`TF`, 9, nchar(`TF`)))
+top_tfs <-df_avg_tfs$`TF`[order(df_avg_tfs$p.adj)]
+top_tfs <- top_tfs[1:16]
+df_avg_tfs <- df_avg_tfs %>% filter(`TF` %in% top_tfs)
 df_avg_tfs$`TF` <- factor(df_avg_tfs$`TF`,levels = df_avg_tfs$`TF`[order(df_avg_tfs$NES)])
 ggplot(df_avg_tfs,aes(x=NES,y=`TF`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.2) +
-  scale_fill_gradient(low = "red",high = "white") +
-  ggtitle('Significantly enriched TFs for translating PC3 to HA1E')+
+  scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_tfs$p.adj),0.05)) +
+  ggtitle('Top 16 Significant TFs for translating PC3 to HA1E')+
   theme_pubr(base_family = 'Arial',base_size = 24)+
-  theme(plot.title = element_text(hjust = 0.5),
+  theme(plot.title = element_text(hjust = 0.8),
         axis.text.y = element_text(size=14),
         legend.key.size = unit(1.5, "lines"),
         legend.position = 'right',
         legend.justification = "center")
-ggsave('../figures/significant_TF_PC3_to_HA1E.eps',
+ggsave('../figures/significant_TF_HA1E_to_PC3.eps',
        device = cairo_ps,
        height = 9,
        width = 12,
        units = 'in',
        dpi=600) 
-ggsave('../figures/significant_TF_PC3_to_HA1E.png',
+ggsave('../figures/significant_TF_HA1E_to_PC3.png',
        height = 9,
        width = 12,
        units = 'in',
        dpi=600)
 
-### Repeat per sample for KEGGS and tfs
+# ## Repeat per sample for KEGGS and tfs
 # avg_keggs <- fastenrichment(colnames(importance_translation),
 #                             colnames(cmap),
 #                             importance_translation,
@@ -1446,47 +1455,46 @@ ggsave('../figures/significant_TF_PC3_to_HA1E.png',
 #                             order_columns = T,
 #                             pval_adjustment=T,
 #                             n_permutations=1000)
-avg_keggs <- readRDS('../../../../Downloads/avg_keggs_per_sample.rds')
-avg_keggs_nes <- as.data.frame(as.matrix(avg_keggs[["NES"]]$`NES KEGG`)) %>% rownames_to_column('KEGG pathway')
-# avg_keggs_nes <-  avg_keggs_nes %>% mutate(meanNES=rowMeans(avg_keggs_nes[,2:10087]))
-# avg_keggs_nes <-  avg_keggs_nes %>% mutate(sdNES=apply(avg_keggs_nes[,2:10087],1,sd))
-avg_keggs_nes <- avg_keggs_nes %>% gather('gene','NES',-`KEGG pathway`)
-avg_keggs_pval <- as.data.frame(as.matrix(avg_keggs[["Pval"]]$`Pval KEGG`)) %>% rownames_to_column('KEGG pathway')
-avg_keggs_pval <- avg_keggs_pval %>% gather('gene','p.adj',-`KEGG pathway`)
-df_avg_keggs <- left_join(avg_keggs_nes,avg_keggs_pval)
-df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=strsplit(`KEGG pathway`,"_"))
-df_avg_keggs <- df_avg_keggs %>% unnest(`KEGG pathway`) %>% filter(!(`KEGG pathway` %in% c("KEGG","FL1000")))
-df_avg_keggs <- df_avg_keggs %>% group_by(`KEGG pathway`) %>% mutate(significant_counts = sum(p.adj<0.05)) %>% ungroup()
-df_avg_keggs <- df_avg_keggs %>% filter(p.adj<0.05) %>% group_by(`KEGG pathway`) %>%
-  mutate(meanNES = mean(NES)) %>% mutate(sdNES=sd(NES)) %>% ungroup()
-#df_avg_keggs <- df_avg_keggs %>% filter(p.adj<=0.05)
-df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=as.character(`KEGG pathway`))
-df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=substr(`KEGG pathway`, 9, nchar(`KEGG pathway`)))
-df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = unique(df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$meanNES)]))
-df_avg_keggs <- df_avg_keggs %>% filter(significant_counts>=1)
-ggplot(df_avg_keggs %>% dplyr::select(`KEGG pathway`,meanNES,sdNES,significant_counts) %>% 
-         filter(significant_counts>=1000)%>% unique(),
-       aes(x=meanNES,y=`KEGG pathway`,fill=significant_counts)) + geom_bar(stat = 'identity',color='black',size=1.5) +
-  scale_fill_gradient(low = "#fae1e1",high = "red") +
-  ggtitle('Significantly enriched KEGG pathways for translating PC3 to HA1E')+
-  theme_pubr(base_family = 'Arial',base_size = 10)+
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.key.size = unit(1.5, "lines"),
-        legend.position = 'right',
-        legend.justification = "center")
-ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.eps',
-       device = cairo_ps,
-       height = 9,
-       width = 12,
-       units = 'in',
-       dpi=600) 
-ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.png',
-       height = 9,
-       width = 12,
-       units = 'in',
-       dpi=600)
-
-## Run for TFS
+# avg_keggs <- readRDS('../../../../Downloads/avg_keggs_per_sample.rds')
+# avg_keggs_nes <- as.data.frame(as.matrix(avg_keggs[["NES"]]$`NES KEGG`)) %>% rownames_to_column('KEGG pathway')
+# # avg_keggs_nes <-  avg_keggs_nes %>% mutate(meanNES=rowMeans(avg_keggs_nes[,2:10087]))
+# # avg_keggs_nes <-  avg_keggs_nes %>% mutate(sdNES=apply(avg_keggs_nes[,2:10087],1,sd))
+# avg_keggs_nes <- avg_keggs_nes %>% gather('gene','NES',-`KEGG pathway`)
+# avg_keggs_pval <- as.data.frame(as.matrix(avg_keggs[["Pval"]]$`Pval KEGG`)) %>% rownames_to_column('KEGG pathway')
+# avg_keggs_pval <- avg_keggs_pval %>% gather('gene','p.adj',-`KEGG pathway`)
+# df_avg_keggs <- left_join(avg_keggs_nes,avg_keggs_pval)
+# df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=strsplit(`KEGG pathway`,"_"))
+# df_avg_keggs <- df_avg_keggs %>% unnest(`KEGG pathway`) %>% filter(!(`KEGG pathway` %in% c("KEGG","FL1000")))
+# df_avg_keggs <- df_avg_keggs %>% group_by(`KEGG pathway`) %>% mutate(significant_counts = sum(p.adj<0.05)) %>% ungroup()
+# df_avg_keggs <- df_avg_keggs %>% filter(p.adj<0.05) %>% group_by(`KEGG pathway`) %>%
+#   mutate(meanNES = mean(NES)) %>% mutate(sdNES=sd(NES)) %>% ungroup()
+# #df_avg_keggs <- df_avg_keggs %>% filter(p.adj<=0.05)
+# df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=as.character(`KEGG pathway`))
+# df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=substr(`KEGG pathway`, 9, nchar(`KEGG pathway`)))
+# df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = unique(df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$meanNES)]))
+# df_avg_keggs <- df_avg_keggs %>% filter(significant_counts>=1)
+# ggplot(df_avg_keggs %>% dplyr::select(`KEGG pathway`,meanNES,sdNES,significant_counts) %>% 
+#          filter(significant_counts>=1000)%>% unique(),
+#        aes(x=meanNES,y=`KEGG pathway`,fill=significant_counts)) + geom_bar(stat = 'identity',color='black',size=1.5) +
+#   scale_fill_gradient(low = "#fae1e1",high = "red") +
+#   ggtitle('Significantly enriched KEGG pathways for translating PC3 to HA1E')+
+#   theme_pubr(base_family = 'Arial',base_size = 10)+
+#   theme(plot.title = element_text(hjust = 0.5),
+#         legend.key.size = unit(1.5, "lines"),
+#         legend.position = 'right',
+#         legend.justification = "center")
+# ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.eps',
+#        device = cairo_ps,
+#        height = 9,
+#        width = 12,
+#        units = 'in',
+#        dpi=600) 
+# ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.png',
+#        height = 9,
+#        width = 12,
+#        units = 'in',
+#        dpi=600)
+# ## Run for TFS
 # x <- importance_translation
 # print(all(rownames(x)==geneInfo$gene_id))
 # rownames(x) <- geneInfo$gene_symbol
@@ -1498,46 +1506,105 @@ ggsave('../figures/significant_KEGG_PC3_to_HA1E_persample.png',
 #                           pval_adjustment=T,
 #                           tf_path='../../../Artificial-Signaling-Network/TF activities/annotation/dorothea.tsv',
 #                           n_permutations=10000)
-avg_tfs <- readRDS('../../../../Downloads/avg_tfs_per_sample.rds')
-avg_tfs_nes <- as.data.frame(as.matrix(avg_tfs[["NES"]]$`NES TF`)) %>% rownames_to_column('TF')
-avg_tfs_pval <- as.data.frame(as.matrix(avg_tfs[["Pval"]]$`Pval TF`)) %>% rownames_to_column('TF')
-avg_tfs_nes <- avg_tfs_nes %>% gather('gene','NES',-`TF`)
-avg_tfs_pval <- avg_tfs_pval %>% gather('gene','p.adj',-`TF`)
-df_avg_tfs <- left_join(avg_tfs_nes,avg_tfs_pval)
-df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=strsplit(`TF`,"_"))
-df_avg_tfs <- df_avg_tfs %>% unnest(`TF`) %>% filter(!(`TF` %in% c("TF","DOROTHEA","FL1000")))
-df_avg_tfs <- df_avg_tfs %>% group_by(`TF`) %>% mutate(significant_counts = sum(p.adj<0.05)) %>% ungroup()
-df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05)
-df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05) %>% group_by(`TF`) %>%
-  mutate(meanNES = mean(NES)) %>% mutate(sdNES=sd(NES)) %>% ungroup()
-df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=as.character(`TF`))
-#df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=substr(`TF`, 9, nchar(`TF`)))
-df_avg_tfs$`TF` <- factor(df_avg_tfs$`TF`,levels = unique(df_avg_tfs$`TF`[order(df_avg_tfs$meanNES)]))
-df_avg_tfs <- df_avg_tfs %>% filter(significant_counts>=1)
-ggplot(df_avg_tfs %>% dplyr::select(`TF`,meanNES,sdNES,significant_counts) %>% 
-         filter(significant_counts>=5000)%>% unique(),
-       aes(x=meanNES,y=`TF`,fill=significant_counts)) + geom_bar(stat = 'identity',color='black',size=1.5) +
-  scale_fill_gradient(high = "red",low = "#fae1e1") +
-  ggtitle('Top 50% significantly enriched TFs for translating PC3 to HA1E')+
-  theme_pubr(base_family = 'Arial',base_size = 24)+
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.text.y = element_text(size=14),
-        legend.key.size = unit(1.5, "lines"),
-        legend.position = 'right',
-        legend.justification = "center")
-ggsave('../figures/significant_TF_PC3_to_HA1E_perSample.eps',
+# avg_tfs <- readRDS('../../../../Downloads/avg_tfs_per_sample.rds')
+# avg_tfs_nes <- as.data.frame(as.matrix(avg_tfs[["NES"]]$`NES TF`)) %>% rownames_to_column('TF')
+# avg_tfs_pval <- as.data.frame(as.matrix(avg_tfs[["Pval"]]$`Pval TF`)) %>% rownames_to_column('TF')
+# avg_tfs_nes <- avg_tfs_nes %>% gather('gene','NES',-`TF`)
+# avg_tfs_pval <- avg_tfs_pval %>% gather('gene','p.adj',-`TF`)
+# df_avg_tfs <- left_join(avg_tfs_nes,avg_tfs_pval)
+# df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=strsplit(`TF`,"_"))
+# df_avg_tfs <- df_avg_tfs %>% unnest(`TF`) %>% filter(!(`TF` %in% c("TF","DOROTHEA","FL1000")))
+# df_avg_tfs <- df_avg_tfs %>% group_by(`TF`) %>% mutate(significant_counts = sum(p.adj<0.05)) %>% ungroup()
+# df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05)
+# df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05) %>% group_by(`TF`) %>%
+#   mutate(meanNES = mean(NES)) %>% mutate(sdNES=sd(NES)) %>% ungroup()
+# df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=as.character(`TF`))
+# #df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=substr(`TF`, 9, nchar(`TF`)))
+# df_avg_tfs$`TF` <- factor(df_avg_tfs$`TF`,levels = unique(df_avg_tfs$`TF`[order(df_avg_tfs$meanNES)]))
+# df_avg_tfs <- df_avg_tfs %>% filter(significant_counts>=1)
+# ggplot(df_avg_tfs %>% dplyr::select(`TF`,meanNES,sdNES,significant_counts) %>% 
+#          filter(significant_counts>=5000)%>% unique(),
+#        aes(x=meanNES,y=`TF`,fill=significant_counts)) + geom_bar(stat = 'identity',color='black',size=1.5) +
+#   scale_fill_gradient(high = "red",low = "#fae1e1") +
+#   ggtitle('Top 50% significantly enriched TFs for translating PC3 to HA1E')+
+#   theme_pubr(base_family = 'Arial',base_size = 24)+
+#   theme(plot.title = element_text(hjust = 0.5),
+#         axis.text.y = element_text(size=14),
+#         legend.key.size = unit(1.5, "lines"),
+#         legend.position = 'right',
+#         legend.justification = "center")
+# ggsave('../figures/significant_TF_PC3_to_HA1E_perSample.eps',
+#        device = cairo_ps,
+#        height = 9,
+#        width = 12,
+#        units = 'in',
+#        dpi=600) 
+# ggsave('../figures/significant_TF_PC3_to_HA1E_perSample.png',
+#        height = 9,
+#        width = 12,
+#        units = 'in',
+#        dpi=600)
+
+### Investigate the overlap between the 2 directions of translation
+dorothera_regulon <- read.delim('../../../Artificial-Signaling-Network/TF activities/annotation/dorothea.tsv')
+confLevel <- c('A','B')
+dorothera_regulon <- dorothera_regulon %>% filter(confidence %in% confLevel)
+dorothera_regulon <- dorothera_regulon %>% dplyr::select(tf,target)
+dorothera_regulon <- dorothera_regulon %>% filter(target %in% rownames(x))
+dorothera_regulon <- distinct(dorothera_regulon)
+print(length(unique(dorothera_regulon$tf)))
+dorothera_regulon <- dorothera_regulon %>% dplyr::select(c('TF'='tf')) %>% mutate(set='in_regulon') %>% unique()
+tfs_pc3_2_ha1e <- readRDS('../results/Importance_results/tfs_enrich_PC3_to_HA1E.rds')
+tfs_pc3_2_ha1e <- tfs_pc3_2_ha1e %>% gather('metric','value',-TF) %>% mutate(set='PC3_2_HA1E')
+tfs_ha1e_2_pc3 <- readRDS('../results/Importance_results/tfs_enrich_HA1E_to_PC3.rds')
+tfs_ha1e_2_pc3 <- tfs_ha1e_2_pc3 %>% gather('metric','value',-TF) %>% mutate(set='HA1E_2_PC3')
+tf_overlap <- rbind(tfs_ha1e_2_pc3,tfs_pc3_2_ha1e)
+ggVennDiagram(list("PC3 to HA1E" = tfs_pc3_2_ha1e$TF,
+                   "HA1E to PC3" = tfs_ha1e_2_pc3$TF),
+              label_alpha = 0) + 
+  scale_fill_gradient(low="white",high = "red",limits = c(0,42)) + 
+  scale_color_manual(values = c('black','black'))+
+  ggtitle('Overlap of enriched TFs') +
+  theme(text = element_text(family = 'Arial',size = 20),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'none')
+ggsave('../figures/significant_tfs_overlap_HA1E_PC3.eps',
        device = cairo_ps,
        height = 9,
-       width = 12,
+       width = 9,
        units = 'in',
        dpi=600) 
-ggsave('../figures/significant_TF_PC3_to_HA1E_perSample.png',
+ggsave('../figures/significant_tfs_overlap_HA1E_PC3.png',
        height = 9,
-       width = 12,
+       width = 9,
        units = 'in',
        dpi=600)
-
-
+## Same for KEGGs
+keggs_pc3_2_ha1e <- readRDS('../results/Importance_results/keggs_enrich_PC3_to_HA1E.rds')
+keggs_pc3_2_ha1e <- keggs_pc3_2_ha1e %>% gather('metric','value',-`KEGG pathway`) %>% mutate(set='PC3_2_HA1E')
+keggs_ha1e_2_pc3 <- readRDS('../results/Importance_results/keggs_enrich_HA1E_to_PC3.rds')
+keggs_ha1e_2_pc3 <- keggs_ha1e_2_pc3 %>% gather('metric','value',-`KEGG pathway`) %>% mutate(set='HA1E_2_PC3')
+kegg_overlap <- rbind(keggs_ha1e_2_pc3,keggs_pc3_2_ha1e)
+ggVennDiagram(list("PC3 to HA1E" = keggs_pc3_2_ha1e$`KEGG pathway`,
+                   "HA1E to PC3" = keggs_ha1e_2_pc3$`KEGG pathway`),
+              label_alpha = 0) + 
+  scale_fill_gradient(low="white",high = "red",limits = c(0,15)) + 
+  scale_color_manual(values = c('black','black'))+
+  ggtitle('Overlap of enriched KEGG pathways') +
+  theme(text = element_text(family = 'Arial',size = 20),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'none')
+ggsave('../figures/significant_KEGG_overlap_HA1E_PC3.eps',
+       device = cairo_ps,
+       height = 9,
+       width = 9,
+       units = 'in',
+       dpi=600) 
+ggsave('../figures/significant_KEGG_overlap_HA1E_PC3.png',
+       height = 9,
+       width = 9,
+       units = 'in',
+       dpi=600)
 ### Per sample analysis GSEA--------------------------------------------------------------------------------------------
 df_per_sample <- read.csv('../results/Importance_results/important_scores_ha1e_to_pc3_per_sample_allgenes.csv')
 df_per_sample <- df_per_sample %>% unique()
