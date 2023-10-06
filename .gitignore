@@ -232,6 +232,8 @@ figures/*.ps
 figures/*.png
 figures/.Rhistory
 figures/MI_results/*.eps
+results/Importance_results/important_scores_ht29_to_a375_allgenes_withclass_noabs.csv
+results/Importance_results/important_scores_a375_to_ht29_allgenes_withclass_noabs.csv
 results/Importance_results/important_reconstruction_scores_pc3.csv
 results/Importance_results/important_reconstruction_scores_ha1e.csv
 results/MI_results/mi_estimations
