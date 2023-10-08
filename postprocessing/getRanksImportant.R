@@ -1333,7 +1333,7 @@ df_avg_keggs <- df_avg_keggs %>% filter(`KEGG pathway` %in% top_keggs)
 df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$NES)])
 ggplot(df_avg_keggs,aes(x=NES,y=`KEGG pathway`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.5) +
   scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_keggs$p.adj),0.05)) +
-  ggtitle('Top 15 significant KEGG pathways for translating PC3 to HA1E')+
+  ggtitle('Top 15 significant KEGG pathways for translating HA1E to PC3')+
   theme_pubr(base_family = 'Arial',base_size = 22)+
   theme(plot.title = element_text(hjust = 0.8),
         legend.key.size = unit(1.5, "lines"),
@@ -1428,7 +1428,7 @@ df_avg_tfs <- df_avg_tfs %>% filter(`TF` %in% top_tfs)
 df_avg_tfs$`TF` <- factor(df_avg_tfs$`TF`,levels = df_avg_tfs$`TF`[order(df_avg_tfs$NES)])
 ggplot(df_avg_tfs,aes(x=NES,y=`TF`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.2) +
   scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_tfs$p.adj),0.05)) +
-  ggtitle('Top 16 Significant TFs for translating PC3 to HA1E')+
+  ggtitle('Top 16 Significant TFs for translating HA1E to PC3')+
   theme_pubr(base_family = 'Arial',base_size = 24)+
   theme(plot.title = element_text(hjust = 0.8),
         axis.text.y = element_text(size=14),

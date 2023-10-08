@@ -6,6 +6,7 @@ library(ggplot2)
 library(colorblindr)
 library(viridis)
 library(RColorBrewer)
+library(lsa)
 
 #Process function to add condition ids and duplicate ids
 pca_visualize <- function(embbedings,
@@ -437,4 +438,56 @@ emb2 <- distinct(data.table::fread('../results/trained_embs_all/AllEmbs_MI_ha1e_
 emb2 <- emb2 %>% mutate(cell='HA1E')
 all_embs <- rbind(emb1,emb2)
 
-### KAI THELEI DISTRIBUTION KAI PROCESSING
+### Calculate pairwise distances
+all_embs_proc <- left_join(all_embs %>% rownames_to_column('sig_id'),
+                           sigInfo %>% select(sig_id,cmap_name) %>% unique())
+
+mat <- all_embs_proc %>% column_to_rownames('sig_id') %>%
+  select(-cmap_name,-cell)
+mat <- t(mat)
+dist <- 1 - suppressMessages(cosine(mat))
+# Convert to long format data frame
+# Keep only unique (non-self) pairs
+dist[lower.tri(dist,diag = T)] <- NA
+dist <- reshape2::melt(dist)
+dist <- dist %>% filter(!is.na(value))
+# Merge meta-data info and distances values
+dist <- suppressMessages(left_join(dist,sigInfo %>% select(sig_id,cmap_name) %>% unique(),by = c("Var1"="sig_id")))
+dist <- suppressMessages(left_join(dist,sigInfo %>% select(sig_id,cmap_name) %>% unique(),by = c("Var2"="sig_id")))
+dist <- dist %>% filter(!is.na(value))
+dist <- dist %>% mutate(is_same = (cmap_name.x==cmap_name.y))
+dist <-dist %>% mutate(is_same=ifelse(is_same==T,
+                                      'Same drug','Random Signatures')) %>%
+  mutate(is_same = factor(is_same,
+                          levels = c('Random Signatures',
+                                     'Same drug')))
+
+eff_ssize <- effectsize::cohens_d(as.matrix(dist %>% filter(is_same!="Same drug") %>% select(value)),
+                                  as.matrix(dist %>% filter(is_same=="Same drug") %>% select(value)),
+                                  ci=0.95)
+
+### Visualize
+p <- ggplot(dist, aes(x=is_same, y=value, fill = is_same)) +
+  geom_violin(position = position_dodge(width = 1),width = 1)+geom_boxplot(position = position_dodge(width = 1),width = 0.05,
+                                                                           size=1,outlier.shape = NA)+
+  scale_fill_discrete(name="Latent embeddings` distance distributions",
+                      labels=c("Random Signatures","Same drug"))+
+  ylim(0,2)+
+  xlab("pairwise relationship")+ylab("Cosine Distance")+
+  annotate('text',x=1.5,y=1.3,label=paste0('Cohen`s d = ',round(eff_ssize$Cohens_d,2)),
+           size=5,fontface='bold') +
+  theme_minimal(base_family = "Arial",base_size = 30) +
+  theme(text = element_text(family = "Arial",size = 30),
+        axis.ticks.x=element_blank(),
+        axis.text = element_text(family = "Arial",face = 'bold'),
+        axis.text.x =element_text(family = "Arial",face = 'bold',size=28),
+        legend.position = "none")
+
+print(p)
+ggsave('../article_supplementary_info/drugs_distance_separ_ha1e_pc3.eps',
+       plot = p,
+       device = cairo_ps,
+       height = 9,
+       width = 9,
+       units = 'in',
+       dpi=600)

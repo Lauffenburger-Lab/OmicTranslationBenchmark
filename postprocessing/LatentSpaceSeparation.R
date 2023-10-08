@@ -40,7 +40,7 @@ samples_separation <- function(processed_embbedings,save_name,
     dist <- as.matrix(dist(embs, method = metric))
   }
   
-  # Conver to long format data frame
+  # Convert to long format data frame
   # Keep only unique (non-self) pairs
   dist[lower.tri(dist,diag = T)] <- NA
   dist <- reshape2::melt(dist)
