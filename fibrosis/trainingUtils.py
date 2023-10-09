@@ -88,6 +88,7 @@ class NBLoss(torch.nn.Module):
 def _nan2inf(x):
     return torch.where(torch.isnan(x), torch.zeros_like(x) + np.inf, x)
 
+# Taken and implenented from https://github.com/facebookresearch/CPA
 def _convert_mean_disp_to_counts_logits(mu, theta, eps=1e-6):
     r"""NB parameterizations conversion
     Parameters

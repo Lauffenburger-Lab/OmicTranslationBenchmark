@@ -240,3 +240,5 @@ results/Importance_results/important_reconstruction_scores_ha1e.csv
 results/MI_results/mi_estimations
 results/PriorLossAnalysis
 postprocessing/ccleGSEA.R
+fibrosis/data/10foldcrossval_lung/csvFiles
+fibrosis/results/preds
