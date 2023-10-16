@@ -1,0 +1,37 @@
+specific_cell,cell_type,cell_counts
+T-lymphocytes,immune,1518
+AT2 cells,epithelial,2711
+VECs,endothelial,772
+Vcam1+ VECs,endothelial,338
+Neutrophils,immune,452
+AM (PBS),immune,1194
+Cd163+/Cd11c- IMs,immune,480
+NK cells,immune,229
+B-lymphocytes,immune,911
+Cd163-/Cd11c+ IMs,immune,734
+Goblet cells,epithelial,264
+Club cells,epithelial,1020
+AT1 cells,epithelial,38
+AM (Bleo),immune,3286
+Ciliated cells,epithelial,856
+Ciliated cell subset,epithelial,114
+CECs,endothelial,172
+Cd103+ DCs,immune,689
+Fibroblasts,mesenchymal,356
+Mesothelial cells,stem cell,351
+DCs,immune,1911
+Ccl17+ DCs,immune,283
+Plasma cells,immune,243
+Non-classical monocytes (Ly6c2-),immune,172
+Recruited macrophages,immune,1000
+Activated AT2 cells,epithelial,788
+LECs,endothelial,256
+Krt8 ADI,epithelial,700
+Resolution macrophages,immune,1935
+Activated mesothelial cells,stem cell,301
+Myofibroblasts,mesenchymal,518
+M2 macrophages,immune,2361
+Fn1+ macrophages,immune,247
+Mki67+ proliferating cells,immune,917
+T cell subset,immune,114
+Themis+ T-lymphocytes,immune,160

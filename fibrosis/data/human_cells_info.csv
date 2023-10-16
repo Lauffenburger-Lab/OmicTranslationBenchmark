@@ -1,0 +1,32 @@
+specific_cell,cell_type,cell_counts
+AT2,epithelial,2392
+Proliferating Epithelial Cells,epithelial,56
+Monocytes,immune,2348
+Endothelial Cells,endothelial,1487
+Macrophages,immune,6350
+NK Cells,immune,72
+Ciliated,epithelial,693
+B Cells,immune,216
+cDCs,immune,410
+AT1,epithelial,178
+Transitional AT2,epithelial,77
+PLIN2+ Fibroblasts,mesenchymal,865
+Lymphatic Endothelial Cells,endothelial,193
+Basal,epithelial,172
+Proliferating Macrophages,immune,128
+Plasma Cells,immune,300
+Mesothelial Cells,mesenchymal,47
+SCGB3A2+ SCGB1A1+,epithelial,112
+SCGB3A2+,epithelial,316
+Proliferating T Cells,immune,108
+Fibroblasts,mesenchymal,88
+Myofibroblasts,mesenchymal,301
+T Cells,immune,390
+Mast Cells,immune,355
+MUC5B+,epithelial,114
+Smooth Muscle Cells,mesenchymal,177
+Differentiating Ciliated,epithelial,25
+pDCs,immune,20
+HAS1 High Fibroblasts,mesenchymal,179
+MUC5AC+ High,epithelial,2
+KRT5-/KRT17+,epithelial,22
