@@ -21,6 +21,10 @@
 20. CPA_PerformancePretrainClass.py: Script containing code to pre-train the adverse classifier for the performance analysis from Figure 2, for the CPA-based approach, using the landmark genes.
 21. IntermediateTranslators.ipynb: Jupyter notebook to train CPA-based model but with intermediate ANNs to add the cell line effect.
 22. SameCellimputationModel.ipynb : Jupyter notebook to train a whole translation model of the same cell line trained to predict 1/2 the genes using the other 1/2.
+23. SameCellimputationModelCPA.ipynb: Jupyter notebook to train a whole translation model of the same cell line trained to predict 1/2 the genes using the other 1/2, using the CPA-based approach.
+24. PriorLossAnalysis_U2OS.ipynb: Jupyter notebook to train models with different prior distribution constraints.
+25. LatentDimAnalysis_allgenes.py: Script to train and save models and their performance with different sizes for the dimension of the latent space, for using all genes from the L1000 dataset.
+26. LatentDimAnalysis_lands.py: Script to train and save models and their performance with different sizes for the dimension of the latent space, for using landmarks from the L1000 dataset.
 
 ## References
 [^1]: Umarov, Ramzan, Yu Li, and Erik Arner. "DeepCellState: An autoencoder-based framework for predicting cell type specific transcriptional states induced by drug treatment." PLoS Computational Biology 17.10 (2021): e1009465.

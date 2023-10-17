@@ -30,6 +30,12 @@ The data required to run this script are coming from 4 single-cell RNA sequencin
 14. InterDatasetEvaluation.R: Script to analyze and evaluate the results on the external test-set datasets (mouse lung new, human liver cirrhosis)
 15. performanceEval.R: Script to evaluate the performance of models in the inter-species lung fibrosis translation
 16. SpeciesSeparateAnalysis.R: Analysis to find fibrosis relevant genes in specific species separately, by using simple PCA and linear regression models.
+17. labelFolds.R: Script to label validation folds with cell types.
+18. predictValidation.py: Script to use trained models and make predictions for reconstruction and translation at each validation split, **for the CPA-based approach**.
+19. predictValidationHomologues.py: Script to use trained models and make predictions for reconstruction and translation at each validation split, **for the CPA-based approach using only homologues**.
+20. predictValidationDCS.py: Script to use trained models and make predictions for reconstruction and translation at each validation split, **for the DCS approach**.
+21. predictValidationTransCompR.py: Script to use trained models and make predictions for reconstruction and translation at each validation split, **for TransCompR**.
+22. perCellEvaluation.R: Script to evaluate the performance of models in the inter-species lung fibrosis translation **per individual cell type**.
 
 ## References
 [^1]: Habermann, A. C. et al. Single-cell RNA sequencing reveals profibrotic roles of distinct epithelial and mesenchymal lineages in pulmonary fibrosis. Science Advances 6, eaba1972 (2020).
