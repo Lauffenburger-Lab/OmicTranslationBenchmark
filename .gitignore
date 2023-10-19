@@ -205,7 +205,6 @@ serology/results_intermediate_encoders/models/10fold_1000ep
 serology/results_intermediate_encoders/models/10fold_1000ep/*
 serology/results_intermediate_encoders/pretrained_models/5fold
 serology/results_intermediate_encoders/pretrained_models/5fold/*
-serology/results/10foldvalidation_*
 serology/results/translated/*
 serology/results/translated
 serology/results_intermediate_encoders/translated/*
