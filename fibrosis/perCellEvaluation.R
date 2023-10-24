@@ -177,6 +177,21 @@ p_human <- ggboxplot(rbind(data_mean,data_var),x='specific_cell',y='r',add = 'ji
         plot.title = element_text(hjust = 0.5),
         legend.position = 'right')+
   coord_flip()
+p_human2 <- ggboxplot(rbind(data_mean,data_var)%>% filter(predicting=="Predicting per cell type mean"),
+                     x='specific_cell',y='r',add = 'jitter',color = 'cell_counts') +
+  scale_color_gradient(trans = "log10",high = 'red',low='white',limits = c(0.2,max(rbind(data_mean,data_var)$cell_counts)))+
+  facet_wrap(vars(species,predicting))+
+  xlab('cell type')+
+  #ylab(expression(R^2))+
+  ylab('pearson`s r')+
+  ylim(c(0,1))+
+  labs(color='cell counts')+
+  #ggtitle('Reconstruction performance')+
+  theme(text=element_text(family = 'Arial',size=20),
+        axis.text.y = element_text(size=18),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'right')+
+  coord_flip()
 # print(p_human)
 # Do for mouse CPA
 data <- results4Boxplot %>% filter(species=='mouse') %>% mutate(predicting = paste0('Predicting per cell type ',predicting)) %>% arrange(desc(mean_r))
@@ -207,18 +222,44 @@ p_mouse <- ggboxplot(rbind(data_mean,data_var),x='specific_cell',y='r',add = 'ji
         plot.title = element_text(hjust = 0.5),
         legend.position = 'right')+
   coord_flip()
+p_mouse2 <- ggboxplot(rbind(data_mean,data_var) %>% filter(predicting=="Predicting per cell type mean"),
+                     x='specific_cell',y='r',add = 'jitter',color = 'cell_counts') +
+  scale_color_gradient(trans = "log10",high = 'red',low='white',limits = c(0.2,max(rbind(data_mean,data_var)$cell_counts)))+
+  facet_wrap(vars(species,predicting))+
+  xlab('cell type')+
+  # ylab(expression(R^2))+
+  ylab('pearson`s r')+
+  ylim(c(0,1))+
+  labs(color='cell counts')+
+  ggtitle('')+
+  theme(text=element_text(family = 'Arial',size=20),
+        axis.text.y = element_text(size=18),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'right')+
+  coord_flip()
 # print(p_mouse)
 # p <- p_human / p_mouse
 p <- wrap_plots(list(p_human,p_mouse),nrow = 2)
 print(p)
-ggsave('../figures/cpa_fibrosis_reconstruction_perCelltype.eps',
+ggsave('../figures/cpa_fibrosis_reconstruction_perCelltype.png',
        plot = p,
-       device = cairo_ps,
        width = 16,
        height = 16,
        units = 'in',
        dpi=600)
 
+p <- ggarrange(plotlist = list(p_human2,p_mouse2),common.legend = T,legend = 'right')
+print(p)
+# ggsave('../figures/cpa_fibrosis_reconstruction_perCelltype.pdf',
+#        plot = p,
+#        device = cairo_pdf,
+#        width = 18,
+#        height = 18,
+#        units = 'in',
+#        dpi=600)
+postscript('../figures/cpa_fibrosis_reconstruction_perCelltype.eps',width = 18,height = 18)
+print(p)
+dev.off()
 ### Compare the different approaches per cell type
 results_reconstruction <- results_reconstruction %>% group_by(predicting,species,model,fold) %>%
   mutate(averageCellr = mean(r,na.rm = T)) %>% mutate(sdCellr = sd(r,na.rm = T)) %>% ungroup()
@@ -287,14 +328,16 @@ p2 <- ggboxplot(results %>% select(model,r,specific_cell,fold,predicting,species
         legend.title = element_blank(),
         axis.text.x = element_blank())
 print(p2)
-ggsave('../figures/fibrosis_performance_reconstruction_comparison_allgrouped.eps', 
+ggsave('../figures/fibrosis_performance_reconstruction_comparison_allgrouped.png', 
        plot=p2,
-       device = cairo_ps,
        scale = 1,
        width = 12,
        height = 12,
        units = "in",
        dpi = 600)
+postscript('../figures/fibrosis_performance_reconstruction_comparison_allgrouped.eps',width = 16,height = 16)
+print(p2)
+dev.off()
 
 #### Translation performance for specific cells-----------------------------------
 # First find equivalent cells to translate
@@ -495,7 +538,9 @@ for (trans in all_trans){
 results_translation <- results_translation %>% group_by(predicting,translation,model,specific_cell_mapped) %>%
   mutate(mean_r = mean(r,na.rm = T)) %>% mutate(sd_r = sd(r,na.rm = T)) %>% ungroup()
 
-p_scatter_1 <- ggscatter(results_translation %>% filter(model=='CPA'),
+p_scatter_1 <- ggscatter(results_translation %>% filter(model=='CPA') %>% mutate(translation=ifelse(grepl('human',translation),
+                                                                                                   'mouse to human',
+                                                                                                   'human to mouse')),
                          x='cell_counts',y='mean_r',
                          add = 'none',cor.coef = T,
                          cor.coef.size = 6,add.params = list(color='blue'))+
@@ -540,7 +585,8 @@ data_mean$specific_cell_mapped <- factor(data_mean$specific_cell_mapped,
 data_var$specific_cell_mapped <- factor(data_var$specific_cell_mapped,
                                  levels = mean_levels)
 data <- data %>% mutate(translation = 'mouse to human')
-p_human <- ggboxplot(rbind(data_mean,data_var),x='specific_cell_mapped',y='r',add = 'jitter',color = 'cell_counts') +
+p_human <- ggboxplot(rbind(data_mean,data_var) %>% mutate(translation=ifelse(grepl('human',translation),'mouse to human','human to mouse')),
+                     x='specific_cell_mapped',y='r',add = 'jitter',color = 'cell_counts') +
   scale_color_gradient(trans = "log10",high = 'red',low='white',limits = c(0.2,max(rbind(data_mean,data_var)$cell_counts)))+
   facet_wrap(vars(translation,predicting))+
   xlab('cell type')+
@@ -549,8 +595,24 @@ p_human <- ggboxplot(rbind(data_mean,data_var),x='specific_cell_mapped',y='r',ad
   ylim(c(0,1))+
   labs(color='cell counts')+
   ggtitle('Translation performance')+
-  theme(text=element_text(family = 'Arial',size=20),
-        axis.text.y = element_text(size=16),
+  theme(text=element_text(family = 'Arial',size=22),
+        axis.text.y = element_text(size=19),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'right')+
+  coord_flip()
+p_human2 <- ggboxplot(rbind(data_mean,data_var)%>% filter(predicting=="Predicting per cell type mean") %>% 
+                        mutate(translation=ifelse(grepl('human',translation),'mouse to human','human to mouse')),
+                      x='specific_cell_mapped',y='r',add = 'jitter',color = 'cell_counts') +
+  scale_color_gradient(trans = "log10",high = 'red',low='white',limits = c(0.2,max(rbind(data_mean,data_var)$cell_counts)))+
+  facet_wrap(vars(translation,predicting))+
+  xlab('cell type')+
+  #ylab(expression(R^2))+
+  ylab('pearson`s r')+
+  ylim(c(0,1))+
+  labs(color='cell counts')+
+  #ggtitle('Translation performance')+
+  theme(text=element_text(family = 'Arial',size=22),
+        axis.text.y = element_text(size=19),
         plot.title = element_text(hjust = 0.5),
         legend.position = 'right')+
   coord_flip()
@@ -571,7 +633,8 @@ data_mean$specific_cell_mapped <- factor(data_mean$specific_cell_mapped,
 data_var$specific_cell_mapped <- factor(data_var$specific_cell_mapped,
                                  levels = mean_levels)
 data <- data %>% mutate(translation = 'human to mouse')
-p_mouse <- ggboxplot(rbind(data_mean,data_var),x='specific_cell_mapped',y='r',add = 'jitter',color = 'cell_counts') +
+p_mouse <- ggboxplot(rbind(data_mean,data_var) %>% mutate(translation=ifelse(grepl('human',translation),'mouse to human','human to mouse')),
+                     x='specific_cell_mapped',y='r',add = 'jitter',color = 'cell_counts') +
   scale_color_gradient(trans = "log10",high = 'red',low='white',limits = c(0.2,max(rbind(data_mean,data_var)$cell_counts)))+
   facet_wrap(vars(translation,predicting))+
   xlab('cell type')+
@@ -580,8 +643,24 @@ p_mouse <- ggboxplot(rbind(data_mean,data_var),x='specific_cell_mapped',y='r',ad
   ylim(c(0,1))+
   labs(color='cell counts')+
   ggtitle('')+
-  theme(text=element_text(family = 'Arial',size=20),
-        axis.text.y = element_text(size=16),
+  theme(text=element_text(family = 'Arial',size=22),
+        axis.text.y = element_text(size=19),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'right')+
+  coord_flip()
+p_mouse2 <- ggboxplot(rbind(data_mean,data_var) %>% filter(predicting=="Predicting per cell type mean") %>%
+                        mutate(translation=ifelse(grepl('human',translation),'mouse to human','human to mouse')),
+                     x='specific_cell_mapped',y='r',add = 'jitter',color = 'cell_counts') +
+  scale_color_gradient(trans = "log10",high = 'red',low='white',limits = c(0.2,max(rbind(data_mean,data_var)$cell_counts)))+
+  facet_wrap(vars(translation,predicting))+
+  xlab('cell type')+
+  # ylab(expression(R^2))+
+  ylab('pearson`s r')+
+  ylim(c(0,1))+
+  labs(color='cell counts')+
+  ggtitle('')+
+  theme(text=element_text(family = 'Arial',size=22),
+        axis.text.y = element_text(size=19),
         plot.title = element_text(hjust = 0.5),
         legend.position = 'right')+
   coord_flip()
@@ -589,13 +668,17 @@ p_mouse <- ggboxplot(rbind(data_mean,data_var),x='specific_cell_mapped',y='r',ad
 # p <- p_human / p_mouse
 p <- wrap_plots(list(p_human,p_mouse),nrow = 2)
 print(p)
-ggsave('../figures/cpa_fibrosis_translation_perCelltype.eps',
+ggsave('../figures/cpa_fibrosis_translation_perCelltype.png',
        plot = p,
-       device = cairo_ps,
        width = 16,
-       height = 16,
+       height = 8,
        units = 'in',
        dpi=600)
+p <- ggarrange(plotlist = list(p_human2,p_mouse2),common.legend = T,legend = 'right')
+print(p)
+postscript('../figures/cpa_fibrosis_translation_perCelltype.eps',width = 16,height = 8)
+print(p)
+dev.off()
 
 ### Compare the different approaches per cell type
 results_translation <- results_translation %>% group_by(predicting,translation,model,fold) %>%
@@ -707,16 +790,18 @@ p3 <- ggboxplot(results %>% select(model,r,fold,predicting,translation,specific_
                      size =6,
                      aes(group=model),
                      comparisons = my_comparisons) +
-  theme(text = element_text(family = 'Arial',size=23),
-        plot.title = element_text(hjust = 0.5,size=23),
+  theme(text = element_text(family = 'Arial',size=24),
+        plot.title = element_text(hjust = 0.5,size=24),
         legend.title = element_blank(),
         axis.text.x = element_blank())
 print(p3)
-ggsave('../figures/fibrosis_performance_translation_comparison_allgrouped.eps', 
+ggsave('../figures/fibrosis_performance_translation_comparison_allgrouped.png', 
        plot=p3,
-       device = cairo_ps,
        scale = 1,
-       width = 12,
-       height = 12,
+       width = 16,
+       height = 8,
        units = "in",
        dpi = 600)
+postscript('../figures/fibrosis_performance_translation_comparison_allgrouped.eps',width = 16,height = 8)
+print(p3)
+dev.off()

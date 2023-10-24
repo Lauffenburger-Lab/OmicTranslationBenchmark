@@ -103,12 +103,19 @@ p1 <- ggplot(dmi_empirical_all, aes(x = MI, y = as.factor(fold),fill = relations
   theme_pubr(base_family = "Arial",base_size = 20) + 
   theme(text = element_text(family = 'Arial'))
 # print(p1)
-ggsave('../article_supplementary_info/empirical_mutual_information_histograms.eps',
+ggsave('../article_supplementary_info/empirical_mutual_information_histograms.png',
        plot = p1,
-       device=cairo_ps,
        height = 12,
        width = 9,
        units = 'in')
+postscript('../article_supplementary_info/empirical_mutual_information_histograms.eps',width = 12,height = 9)
+ggplot(dmi_empirical_all, aes(x = MI, y = as.factor(fold),fill = relationship)) +
+  geom_density_ridges(stat = "binline",bins = 200,
+                      color='black') +
+  xlab('Empirical MI') + ylab('fold-split')+ 
+  theme_pubr(base_family = "Arial",base_size = 20) + 
+  theme(text = element_text(family = 'Arial'))
+dev.off()
 
 ### See the effect of uniformity------------------------
 mi_all <- data.frame()
@@ -209,13 +216,15 @@ p3 <- ggboxplot(mi_all %>% mutate(fold=paste0('fold ',fold)),x='relationship',y=
   facet_wrap(~fold)+
   theme(text = element_text(family='Arial',size=20))
 print(p3)
-ggsave('../article_supplementary_info/empirical_mi_random_vs_embs.eps',
+# saveRDS(mi_all,'../results/MI_results/mi_estimations/mi_all.rds')
+ggsave('../article_supplementary_info/empirical_mi_random_vs_embs.png',
        plot = p3,
-       device=cairo_ps,
        height = 12,
        width = 16,
        units = 'in')
-
+postscript('../article_supplementary_info/empirical_mi_random_vs_embs.eps',width = 16,height = 12)
+print(p3)
+dev.off()
 p4 <- ggboxplot(mi_all %>% mutate(fold=paste0('fold ',fold)) %>% 
                   filter(type!='sampled embeddings') %>% 
                   mutate(type=ifelse(type=='random uniform','uniform','normal')),
@@ -224,12 +233,14 @@ p4 <- ggboxplot(mi_all %>% mutate(fold=paste0('fold ',fold)) %>%
   facet_wrap(~fold)+
   theme(text = element_text(family='Arial',size=20))
 print(p4)
-ggsave('../article_supplementary_info/empirical_mi_uniform_vs_normal.eps',
+ggsave('../article_supplementary_info/empirical_mi_uniform_vs_normal.png',
        plot = p4,
-       device=cairo_ps,
        height = 12,
        width = 16,
        units = 'in')
+postscript('../article_supplementary_info/empirical_mi_uniform_vs_normal.eps',width = 16,height = 12)
+print(p4)
+dev.off()
 
 ### Compare U2OS MI of embs with beta = 1.0 and beta = 10000 for uniform distribution-----------------------------------
 ### First for the strong mse-like loss
@@ -371,12 +382,15 @@ p4 <- ggboxplot(mi_u2os %>% mutate(fold=paste0('fold ',fold)),
   facet_wrap(~fold)+
   theme(text = element_text(family='Arial',size=20))
 print(p4)
-ggsave('../article_supplementary_info/empirical_mi_different_priors.eps',
+# saveRDS(mi_u2os,'../results/MI_results/mi_estimations/mi_u2os.rds')
+ggsave('../article_supplementary_info/empirical_mi_different_priors.png',
        plot = p4,
-       device=cairo_ps,
        height = 12,
        width = 16,
        units = 'in')
+postscript('../article_supplementary_info/empirical_mi_different_priors.eps',width = 16,height = 12)
+print(p4)
+dev.off()
 
 ### Find latent variable with most uniform like shape-------------------------------------------------------
 histograms_unif_state <- NULL

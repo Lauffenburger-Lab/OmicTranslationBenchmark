@@ -7,6 +7,7 @@ ARCHS4/mouse_immune_cells_archs4_gene_mouse_v212.tsv
 ARCHS4/mouse_immune_cells_metadata.tsv
 recount3/*
 serology/results/models/*
+serology/learning/CPA_predict.py
 serology/results/pretrained_models/*
 serology/serology.Rproj
 serology/.Rhistory
@@ -228,6 +229,7 @@ serology/learning/translate2human_intermediate_encoders.py
 serology/importance_results/human_important_features_and_expression_in_samples.csv
 serology/importance_results_cpa/human_important_features_and_expression_in_samples.csv
 figures/*.eps
+figures/*.pdf
 figures/*.ps
 figures/*.png
 figures/.Rhistory

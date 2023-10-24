@@ -64,15 +64,19 @@ p <- ggplot(data.frame(ranks=diag(df_ranked*100)),aes(x=ranks)) +
         axis.text = element_text(family = "Arial",size = 38))
 print(p)
 ggsave(
-  '../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',
+  '../figures/ranks_of_self_translate_pc3_ha1e_allgenes.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 6,
   units = "in",
   dpi = 600,
 )
+postscript('../figures/ranks_of_self_translate_pc3_ha1e_allgenes.eps',
+           width = 12,
+           height = 6)
+print(p)
+dev.off()
 #png('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.png',width=12,height=8,units = "in",res=300)
 # postscript('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',width=13,height=6,paper='letter')
 # hist(diag(df_ranked_lands*100),breaks = 40,
@@ -93,15 +97,19 @@ p <- ggplot(data.frame(ranks=diag(df_ranked_lands*100)),aes(x=ranks)) +
         axis.text = element_text(family = "Arial",size = 38))
 print(p)
 ggsave(
-  '../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',
+  '../figures/ranks_of_self_translate_pc3_ha1e_landmarks.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 6,
   units = "in",
   dpi = 600,
 )
+postscript('../figures/ranks_of_self_translate_pc3_ha1e_landmarks.eps',
+           width = 12,
+           height = 6)
+print(p)
+dev.off()
 #df_aggragated <- apply(df_ranked,1,median)
 #top1000 <- names(df_aggragated[order(df_aggragated)])[1:1000]
 
@@ -228,8 +236,8 @@ for (i in 1:nrow(cmap)){
   self_gene_corr[i] <- cor(gex$gex, df_self, method = "spearman")
   spearman_corr_abs_pca[i] <- cor(abs(gex$gex),rowMeans(abs(loadings_cmap)),method='spearman')
   spearman_corr_pca[i] <- cor(gex$gex,rowMeans(loadings_cmap),method='spearman')
-  spearman_corr_abs_recon[i] <- cor(abs(gex$gex),abs(reconstruction_importance$recon_score),method='spearman')
-  spearman_corr_recon[i] <- cor(gex$gex,reconstruction_importance$recon_score,method='spearman')
+  # spearman_corr_abs_recon[i] <- cor(abs(gex$gex),abs(reconstruction_importance$recon_score),method='spearman')
+  # spearman_corr_recon[i] <- cor(gex$gex,reconstruction_importance$recon_score,method='spearman')
   if (i %% 100 == 0 | i==1){
     print(paste0('Finished sample ',i))
   }
@@ -241,7 +249,7 @@ df_corr_rand <- data.frame(abs_spear = spearman_corr_abs_rand,spear = spearman_c
 df_corr_gex_lands <- data.frame(abs_spear=cmap_corr_mat_abs,spear=cmap_corr_mat)
 df_corr_self <- data.frame(abs_spear=self_gene_corr_abs,spear=self_gene_corr)
 df_corr_pca <- data.frame(abs_spear=spearman_corr_abs_pca,spear=spearman_corr_pca)
-df_corr_recon <- data.frame(abs_spear=spearman_corr_abs_recon,spear=spearman_corr_recon)
+# df_corr_recon <- data.frame(abs_spear=spearman_corr_abs_recon,spear=spearman_corr_recon)
 df_corr_all <- rbind(df_corr %>% mutate(type = 'model'),
                      #df_corr_self %>% mutate(type = 'same gene-to-gene'),
                      df_corr_pca %>% mutate(type='PCA importance'),
@@ -277,16 +285,27 @@ p <- ggplot(df_corr_all,aes(x=abs_spear,fill=type)) + geom_histogram(color='blac
         legend.position = 'top')
 print(p)
 ggsave(
-  '../figures/gex_vs_importance_spearman.eps',
+  '../figures/gex_vs_importance_spearman.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 6,
   units = "in",
   dpi = 600,
 )
-
+postscript('../figures/gex_vs_importance_spearman.eps',
+           width=12,
+           height=6)
+ggplot(df_corr_all,aes(x=abs_spear,fill=type)) + geom_histogram(color='black',bins = 50,lwd=1,position="identity") +
+  xlab('per sample Spearman`s correlation') + ylab('Counts') + 
+  ggtitle('Correlation between gene importance and expression')+
+  # geom_text(aes(x=abs_spear,y=count, label=effect_size),
+  #           data=cof_results ,inherit.aes = FALSE,size=5, hjust = 0)+
+  theme_minimal(base_family = "Arial",base_size = 36)+
+  theme(plot.title = element_text(size=33,hjust = 1),
+        axis.text = element_text(family = "Arial",size = 38),
+        legend.position = 'top')
+dev.off()
 # From the important genes how many are also highly regulated in the cell line we translate from
 FindPercentageIntersection <- function(grdRanks,DeXs,no_top=1000){
   #df_gene <- grdRanks
@@ -340,13 +359,19 @@ p_imp_gex_suppl <- ggplot(df_results, aes(x = mu, y = as.factor(top_number))) +
   theme_pubr(base_family = "Arial",base_size = 24) +
   theme(text = element_text(family = 'Arial'))
 print(p_imp_gex_suppl)
-ggsave('../figures/figure4C_suppl.eps',
-       device = cairo_ps,
+ggsave('../figures/figure4C_suppl.png',
        plot = p_imp_gex_suppl,
        height = 9,
        width = 9,
        units = 'in',
        dpi = 600)
+postscript('../figures/figure4C_suppl.eps',width = 9,height = 9)
+ggplot(df_results, aes(x = mu, y = as.factor(top_number))) +
+  geom_density_ridges(stat = "binline",bins = 50,fill = '#125b80',color='black') +
+  xlab('average overlap (%)') + ylab('# top genes')+
+  theme_pubr(base_family = "Arial",base_size = 24) +
+  theme(text = element_text(family = 'Arial'))
+dev.off()
 p_imp_gex <- ggplot(rbind(df_results %>% group_by(top_number) %>% mutate(avg = mean(mu)) %>% mutate(sigma = sd(mu)) %>% 
                     ungroup() %>% dplyr::select(avg,sigma,top_number) %>% unique() %>% mutate(metric = 'mean'),
                     df_results %>% group_by(top_number) %>% mutate(avg = mean(sd)) %>% mutate(sigma = sd(sd)) %>% 
@@ -362,13 +387,15 @@ p_imp_gex <- ggplot(rbind(df_results %>% group_by(top_number) %>% mutate(avg = m
   theme(text = element_text(family = 'Arial'),
         legend.position = 'top')
 print(p_imp_gex)
-ggsave('../figures/figure4C.eps',
-       device = cairo_ps,
+ggsave('../figures/figure4C.png',
        plot = p_imp_gex,
        height = 9,
        width = 9,
        units = 'in',
        dpi = 600)
+postscript('../figures/figure4C.eps',height = 9,width = 9)
+print(p_imp_gex)
+dev.off()
 
 ### Importance analysis----
 ## Per sample analysis in all
@@ -683,15 +710,17 @@ p <- ggplot(df1,aes(x=reorder(Genes1, -scores_1),y=scores_1)) + geom_bar(stat='i
         axis.text = element_text(family='Arial',size=27))
 print(p)
 ggsave(
-  '../figures/top_important_latent_variables_to_classify_pc3.eps',
+  '../figures/top_important_latent_variables_to_classify_pc3.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 9,
   units = "in",
   dpi = 600,
 )
+postscript('../figures/top_important_latent_variables_to_classify_pc3.eps',width = 12,height = 9)
+print(p)
+dev.off()
 ggplot(df2,aes(x=Genes2,y=scores_2)) + geom_bar(stat='identity')
 
 # var_1 <- names(importance_class_1)[top10_1[1:10]]
@@ -713,16 +742,17 @@ p <- ggplot(all_embs,aes(x=`z1009`,y=`z263`)) + geom_point(aes(color=cell)) +
   theme(plot.title = element_text(size=32,hjust = 0.5))
 print(p)
 ggsave(
-  '../figures/AE_with_class_pc3_ha1e_cellspecific_latent_vars.eps',
+  '../figures/AE_with_class_pc3_ha1e_cellspecific_latent_vars.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 9,
   units = "in",
   dpi = 600,
 )
-
+postscript('../figures/AE_with_class_pc3_ha1e_cellspecific_latent_vars.eps',width = 12,height = 9)
+print(p)
+dev.off()
 # Load importance to encode
 #important_scores_pc3_encode_allgenes_withclass_noabs.csv and var_x[1:2]
 
@@ -753,15 +783,26 @@ p <- ggscatter(df_corr_encode,
   theme(plot.title = element_text(size=28,hjust = 1))
 print(p)
 ggsave(
-  '../figures/scorePC3_vs_score_HA1E.eps',
+  '../figures/scorePC3_vs_score_HA1E.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 9,
   units = "in",
   dpi = 600,
 )
+postscript('../figures/scorePC3_vs_score_HA1E.eps',width = 12,height = 9)
+ggscatter(df_corr_encode,
+          x='cell1_corr',y='cell2_corr',rug = TRUE,
+          size=1,color = '#1f77b4') + 
+  geom_hline(yintercept = 0,color='black',lty=2,linewidth=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('average importance score for PC3') + ylab('average importance score for HA1E') + 
+  ggtitle('Gene importance score for each cell-line according to the model')+
+  annotate("text",x=-2e-04,y=4e-04,label=paste0('Spearman`s correlation ',round(spear,4)),size=10)+
+  theme_minimal(base_family = "Arial",base_size = 28)+
+  theme(plot.title = element_text(size=28,hjust = 1))
+dev.off()
 
 ## See for every z-latent
 df_corr_encode <- data.frame(cell1_corr=imp_enc_1$z1009,cell2_corr=imp_enc_2$z1009)
@@ -778,15 +819,27 @@ p <- ggscatter(df_corr_encode,
   theme(plot.title = element_text(size=20,hjust = 0.5))
 print(p)
 ggsave(
-  '../figures/z1009_scorePC3_vs_score_HA1E.eps',
+  '../figures/z1009_scorePC3_vs_score_HA1E.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 9,
   units = "in",
   dpi = 600,
 )
+postscript('../figures/z1009_scorePC3_vs_score_HA1E.eps',width = 12,height = 9)
+ggscatter(df_corr_encode,
+          x='cell1_corr',y='cell2_corr',rug = TRUE,
+          size=1,color = '#1f77b4') + 
+  geom_hline(yintercept = 0,color='black',lty=2,linewidth=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('z1009 importance score for PC3') + ylab('z1009 importance score for HA1E') + 
+  ggtitle('Gene importance score for each cell-line according to the model')+
+  annotate("text",x=-1e-03,y=2e-03,label=paste0('Spearman`s correlation ',round(spear,4)),size=5)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+dev.off()
+
 df_corr_encode <- data.frame(cell1_corr=imp_enc_1$z263,cell2_corr=imp_enc_2$z263)
 spear <- cor(df_corr_encode$cell1_corr,df_corr_encode$cell2_corr,method='spearman')
 p <- ggscatter(df_corr_encode,
@@ -801,16 +854,26 @@ p <- ggscatter(df_corr_encode,
   theme(plot.title = element_text(size=20,hjust = 0.5))
 print(p)
 ggsave(
-  '../figures/z263_scorePC3_vs_score_HA1E.eps',
+  '../figures/z263_scorePC3_vs_score_HA1E.png',
   plot = p,
-  device = cairo_ps,
   scale = 1,
   width = 12,
   height = 9,
   units = "in",
   dpi = 600,
 )
-
+postscript('../figures/z263_scorePC3_vs_score_HA1E.eps',width = 12,height = 9)
+ggscatter(df_corr_encode,
+          x='cell1_corr',y='cell2_corr',rug = TRUE,
+          size=1,color = '#1f77b4') + 
+  geom_hline(yintercept = 0,color='black',lty=2,linewidth=1) + geom_vline(xintercept = 0,color='black',lty=2,size=1)+
+  #geom_smooth(color='black',lty=2)+
+  xlab('z263 importance score for PC3') + ylab('z263 importance score for HA1E') + 
+  ggtitle('Gene importance score for each cell-line according to the model')+
+  annotate("text",x=-1.3e-03,y=2e-03,label=paste0('Spearman`s correlation ',round(spear,4)),size=5)+
+  theme_minimal(base_family = "Arial",base_size = 20)+
+  theme(plot.title = element_text(size=20,hjust = 0.5))
+dev.off()
 ### Perform GSEA in using the scores of latent z1-z3 (or all latents and plot average score)--------------
 library(fgsea)
 library(EGSEAdata)
@@ -980,15 +1043,6 @@ ggplot(gene_results %>% filter(!is.na(F1)),aes(x=genes_number,y=F1*100)) +
   ggtitle('GLM performance for classifying cell-line')+
   theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
         legend.text=element_text(size=32))
-ggsave(
-  '../figures/glm_performance_using_important_genes.eps',
-  device = cairo_ps,
-  scale = 1,
-  width = 12,
-  height = 9,
-  units = "in",
-  dpi = 600,
-)
 
 ## Random classifier with the same number of genes
 random_iter <- 100
@@ -1057,8 +1111,7 @@ ggplot(gene_random_results_combined,aes(x=genes_number,y=accuracy*100,color=sele
   theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
         legend.text=element_text(size=30),legend.position = 'bottom')
 ggsave(
-  '../figures/glm_performance_using_important_genes.eps',
-  device = cairo_ps,
+  '../figures/glm_performance_using_important_genes.png',
   scale = 1,
   width = 12,
   height = 9,
@@ -1066,7 +1119,22 @@ ggsave(
   dpi = 600,
 )
 #saveRDS(gene_results,'../results/Importance_results/glm_genenumber_vs_f1.rds')
-
+pdf('../figures/glm_performance_using_important_genes.pdf',width = 12,height = 9)
+ggplot(gene_random_results_combined,aes(x=genes_number,y=accuracy*100,color=selected)) + 
+  geom_point(size=3)+
+  geom_errorbar(data=gene_random_results_combined %>% filter(!is.na(F1_sds)),
+                aes(ymin = 100*(accuracy-accuracy_sd), ymax = 100*(accuracy+accuracy_sd)), 
+                width = 2,linewidth=1)+
+  geom_smooth(se=T) + ylim(c(0,100)) +
+  scale_color_manual(values = c('#4878CF','#d97b38'))+
+  scale_y_continuous(breaks=seq(0,100,20),limits = c(0,100))+
+  geom_hline(yintercept = 50,color='red',lty='dashed',linewidth=1) + 
+  annotate('text',x=105,y=46,label = "random cell classification threshold: accuracy=50%",size=10)+
+  xlab(paste0('number of genes used from each cell-line'))+ ylab(paste0('accuracy (%)'))+theme_minimal()+
+  ggtitle('GLM performance for classifying cell-line')+
+  theme(text = element_text(size=32),plot.title = element_text(hjust = 0.5),
+        legend.text=element_text(size=30),legend.position = 'bottom')
+dev.off()
 
 ### Seems like 25 to 40 genes from each cell-line are enough
 ### Get these and put them to gProfiler
@@ -1297,7 +1365,7 @@ fig
 ###
 
 ### Perform genesets functional analysis in important----------------------------------------------------------------------------
-importance_translation <- read.csv('../results/Importance_results/important_scores_ha1e_to_pc3_allgenes_withclass_noabs.csv')
+importance_translation <- read.csv('../results/Importance_results/important_scores_pc3_to_ha1e_allgenes_withclass_noabs.csv')
 importance_translation <- importance_translation %>% column_to_rownames('X')
 colnames(importance_translation) <- rownames(importance_translation)
 cmap <- data.table::fread('../preprocessing/preprocessed_data/cmap_HA1E_PC3.csv',header=T) %>% column_to_rownames('V1')
@@ -1326,26 +1394,33 @@ df_avg_keggs <- df_avg_keggs %>% unnest(`KEGG pathway`) %>% filter(!(`KEGG pathw
 df_avg_keggs <- df_avg_keggs %>% filter(p.adj<=0.05)
 df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=as.character(`KEGG pathway`))
 df_avg_keggs <- df_avg_keggs %>% mutate(`KEGG pathway`=substr(`KEGG pathway`, 9, nchar(`KEGG pathway`)))
-saveRDS(df_avg_keggs,'../results/Importance_results/keggs_enrich_HA1E_to_PC3.rds')
+# saveRDS(df_avg_keggs,'../results/Importance_results/keggs_enrich_HA1E_to_PC3.rds')
+df_avg_keggs <- readRDS('../results/Importance_results/keggs_enrich_PC3_to_HA1E.rds')
 top_keggs <-df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$p.adj)]
 top_keggs <- top_keggs[1:15]
 df_avg_keggs <- df_avg_keggs %>% filter(`KEGG pathway` %in% top_keggs)
 df_avg_keggs$`KEGG pathway` <- factor(df_avg_keggs$`KEGG pathway`,levels = df_avg_keggs$`KEGG pathway`[order(df_avg_keggs$NES)])
 ggplot(df_avg_keggs,aes(x=NES,y=`KEGG pathway`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.5) +
   scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_keggs$p.adj),0.05)) +
-  ggtitle('Top 15 significant KEGG pathways for translating HA1E to PC3')+
+  xlab('importance enrichment score') +
+  ggtitle('Top 15 significant KEGG pathways for translating PC3 to HA1E')+
   theme_pubr(base_family = 'Arial',base_size = 22)+
   theme(plot.title = element_text(hjust = 0.8),
         legend.key.size = unit(1.5, "lines"),
         legend.position = 'right',
         legend.justification = "center")
-ggsave('../figures/significant_KEGG_HA1E_to_PC3.eps',
-       device = cairo_ps,
-       height = 9,
-       width = 12,
-       units = 'in',
-       dpi=600) 
-ggsave('../figures/significant_KEGG_HA1E_to_PC3.png',
+postscript('../figures/significant_KEGG_PC3_to_HA1E.eps',width=12,height=9)
+ggplot(df_avg_keggs,aes(x=NES,y=`KEGG pathway`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.5) +
+  scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_keggs$p.adj),0.05)) +
+  xlab('importance enrichment score') +
+  ggtitle('Top 15 significant KEGG pathways for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 22)+
+  theme(plot.title = element_text(hjust = 0.8),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = 'right',
+        legend.justification = "center")
+dev.off()
+ggsave('../figures/significant_KEGG_PC3_to_HA1E.png',
        height = 9,
        width = 12,
        units = 'in',
@@ -1420,7 +1495,8 @@ df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=strsplit(`TF`,"_"))
 df_avg_tfs <- df_avg_tfs %>% unnest(`TF`) %>% filter(!(`TF` %in% c("TF","DOROTHEA","FL1000")))
 df_avg_tfs <- df_avg_tfs %>% filter(p.adj<0.05)
 df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=as.character(`TF`))
-saveRDS(df_avg_tfs,'../results/Importance_results/tfs_enrich_HA1E_to_PC3.rds')
+# saveRDS(df_avg_tfs,'../results/Importance_results/tfs_enrich_PC3_to_HA1E.rds')
+df_avg_tfs <- readRDS('../results/Importance_results/tfs_enrich_PC3_to_HA1E.rds')
 #df_avg_tfs <- df_avg_tfs %>% mutate(`TF`=substr(`TF`, 9, nchar(`TF`)))
 top_tfs <-df_avg_tfs$`TF`[order(df_avg_tfs$p.adj)]
 top_tfs <- top_tfs[1:16]
@@ -1428,20 +1504,27 @@ df_avg_tfs <- df_avg_tfs %>% filter(`TF` %in% top_tfs)
 df_avg_tfs$`TF` <- factor(df_avg_tfs$`TF`,levels = df_avg_tfs$`TF`[order(df_avg_tfs$NES)])
 ggplot(df_avg_tfs,aes(x=NES,y=`TF`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.2) +
   scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_tfs$p.adj),0.05)) +
-  ggtitle('Top 16 Significant TFs for translating HA1E to PC3')+
+  xlab('importance enrichment score') + ylab('transcription factor') +
+  ggtitle('Top 16 Significant TFs for translating PC3 to HA1E')+
   theme_pubr(base_family = 'Arial',base_size = 24)+
   theme(plot.title = element_text(hjust = 0.8),
         axis.text.y = element_text(size=14),
         legend.key.size = unit(1.5, "lines"),
         legend.position = 'right',
         legend.justification = "center")
-ggsave('../figures/significant_TF_HA1E_to_PC3.eps',
-       device = cairo_ps,
-       height = 9,
-       width = 12,
-       units = 'in',
-       dpi=600) 
-ggsave('../figures/significant_TF_HA1E_to_PC3.png',
+postscript('../figures/significant_TF_PC3_to_HA1E.eps',width=12,height=9)
+ggplot(df_avg_tfs,aes(x=NES,y=`TF`,fill=p.adj)) + geom_bar(stat = 'identity',color='black',size=1.2) +
+  scale_fill_gradient(low = "red",high = "white",limits = c(min(df_avg_tfs$p.adj),0.05)) +
+  xlab('importance enrichment score') + ylab('transcription factor') +
+  ggtitle('Top 16 Significant TFs for translating PC3 to HA1E')+
+  theme_pubr(base_family = 'Arial',base_size = 24)+
+  theme(plot.title = element_text(hjust = 0.8),
+        axis.text.y = element_text(size=14),
+        legend.key.size = unit(1.5, "lines"),
+        legend.position = 'right',
+        legend.justification = "center")
+dev.off()
+ggsave('../figures/significant_TF_PC3_to_HA1E.png',
        height = 9,
        width = 12,
        units = 'in',
@@ -1568,12 +1651,17 @@ ggVennDiagram(list("PC3 to HA1E" = tfs_pc3_2_ha1e$TF,
   theme(text = element_text(family = 'Arial',size = 20),
         plot.title = element_text(hjust = 0.5),
         legend.position = 'none')
-ggsave('../figures/significant_tfs_overlap_HA1E_PC3.eps',
-       device = cairo_ps,
-       height = 9,
-       width = 9,
-       units = 'in',
-       dpi=600) 
+postscript('../figures/significant_tfs_overlap_HA1E_PC3.eps',width = 9,height = 9) 
+ggVennDiagram(list("PC3 to HA1E" = tfs_pc3_2_ha1e$TF,
+                   "HA1E to PC3" = tfs_ha1e_2_pc3$TF),
+              label_alpha = 0) + 
+  scale_fill_gradient(low="white",high = "red",limits = c(0,42)) + 
+  scale_color_manual(values = c('black','black'))+
+  ggtitle('Overlap of enriched TFs') +
+  theme(text = element_text(family = 'Arial',size = 20),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'none')
+dev.off()
 ggsave('../figures/significant_tfs_overlap_HA1E_PC3.png',
        height = 9,
        width = 9,
@@ -1594,12 +1682,17 @@ ggVennDiagram(list("PC3 to HA1E" = keggs_pc3_2_ha1e$`KEGG pathway`,
   theme(text = element_text(family = 'Arial',size = 20),
         plot.title = element_text(hjust = 0.5),
         legend.position = 'none')
-ggsave('../figures/significant_KEGG_overlap_HA1E_PC3.eps',
-       device = cairo_ps,
-       height = 9,
-       width = 9,
-       units = 'in',
-       dpi=600) 
+postscript('../figures/significant_KEGG_overlap_HA1E_PC3.eps',width = 9,height = 9)
+ggVennDiagram(list("PC3 to HA1E" = keggs_pc3_2_ha1e$`KEGG pathway`,
+                   "HA1E to PC3" = keggs_ha1e_2_pc3$`KEGG pathway`),
+              label_alpha = 0) + 
+  scale_fill_gradient(low="white",high = "red",limits = c(0,15)) + 
+  scale_color_manual(values = c('black','black'))+
+  ggtitle('Overlap of enriched KEGG pathways') +
+  theme(text = element_text(family = 'Arial',size = 20),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'none')
+dev.off()
 ggsave('../figures/significant_KEGG_overlap_HA1E_PC3.png',
        height = 9,
        width = 9,

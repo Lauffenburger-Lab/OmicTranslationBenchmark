@@ -31,8 +31,8 @@ pca_visualize <- function(embbedings,
   }
   rownames(embs) <- NULL
   embs  <-  embs %>% column_to_rownames('sig_id')
-  pca_all <- prcomp(embs,center = T,scale = scale)
-  df_pca <- data.frame(pca$x[,1:dim])
+  pca_all <- prcomp(embs,scale = scale)
+  df_pca <- data.frame(pca_all$x[,1:dim])
   rownames(df_pca) <- rownames(embs)
   col_names <- paste0(rep('PC',dim),seq(1,dim))
   colnames(df_pca) <- col_names
@@ -361,23 +361,31 @@ p <- tsne_visualize(all_embs_proc,
               size_points = 2.5,
               alpha_points = 1,
               verbose = T)
-ggsave('../article_supplementary_info/drugs_pc3_ha1e_tsne_all.eps',
+ggsave('../article_supplementary_info/drugs_pc3_ha1e_tsne_all.png',
        plot=p,
-       device = cairo_ps,
        width = 9,
        height = 9,
        units = 'in',
        dpi=600)
+postscript('../article_supplementary_info/drugs_pc3_ha1e_tsne_all.eps',width = 9,height = 9)
+print(p)
+dev.off()
 
 ### Visualize tas---------------------------------------
 p_pca <- pca_visualize(all_embs_proc,
                    dim=2,
                    show_plot=T,
-                   scale = T,
+                   scale = F,
                    visualize = 'tas',
                    verbose = T)
 p_pca <- (p_pca[[1]] + xlim(c(-5,5))) + (p_pca[[2]]) #there are a few outliers making it hard to visualize
 print(p_pca)
+ggsave('../article_supplementary_info/tas_pc3_ha1e_pca_all.png',
+       plot=p_pca,
+       width = 9,
+       height = 9,
+       units = 'in',
+       dpi=600)
 ggsave('../article_supplementary_info/tas_pc3_ha1e_pca_all.eps',
        plot=p_pca,
        device = cairo_ps,
@@ -385,7 +393,6 @@ ggsave('../article_supplementary_info/tas_pc3_ha1e_pca_all.eps',
        height = 9,
        units = 'in',
        dpi=600)
-
 # p_tsne <- tsne_visualize(all_embs_proc,
 #                        dim=2,
 #                        show_plot=T,
@@ -393,13 +400,15 @@ ggsave('../article_supplementary_info/tas_pc3_ha1e_pca_all.eps',
 #                        visualize = 'tas',
 #                        verbose = T)
 # print(p_tsne)
-# ggsave('../article_supplementary_info/tas_pc3_ha1e_tsne_all.eps',
+# ggsave('../article_supplementary_info/tas_pc3_ha1e_tsne_all.png',
 #        plot=p_tsne,
-#        device = cairo_ps,
 #        width = 9,
 #        height = 9,
 #        units = 'in',
 #        dpi=600)
+# postscript('../article_supplementary_info/tas_pc3_ha1e_tsne_all.eps',width=9,height = 9)
+# print(p_tsne)
+# dev.off()
 
 ### Visualize time---------------------------------------
 p <- tsne_visualize(all_embs_proc,
@@ -408,13 +417,15 @@ p <- tsne_visualize(all_embs_proc,
                        scale = T,
                        visualize = 'pert_itime',
                        verbose = T)
-ggsave('../article_supplementary_info/time_pc3_ha1e_pca_all.eps',
+ggsave('../article_supplementary_info/time_pc3_ha1e_tsne_all.png',
        plot=p,
-       device = cairo_ps,
        width = 9,
        height = 9,
        units = 'in',
        dpi=600)
+postscript('../article_supplementary_info/time_pc3_ha1e_tsne_all.eps',width = 9,height = 9)
+print(p)
+dev.off()
 
 # ### Visualize moa-------------------------------
 # uniq_moas <- unique(all_embs_proc$moa)

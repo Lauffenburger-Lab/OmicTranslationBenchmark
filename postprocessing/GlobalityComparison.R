@@ -5,6 +5,7 @@ library(ggpattern)
 library(patchwork)
 library(lsa)
 library(rstatix)
+setEPS()
 
 process_embeddings <- function(embbedings,dataInfo,sampleInfo){
   dataInfo <- dataInfo %>% select(sig_id,cmap_name,duplIdentifier) %>% unique()
@@ -132,7 +133,7 @@ hist(effect_size)
 ### Visualize absolute effect size comparison and the latent variables with the largest effect-------------
 effect_sizes <- rbind(data.frame(d=abs(effect_size_dcs), model = rep('DCS',length(s_dcs))),
                       data.frame(d=abs(effect_size), model = rep('AutoTransOp v1',length(s_dcs))))
-p1 <- ggboxplot(effect_sizes,x='model',y='d',color='model',outlier.shape = NA) + geom_jitter(aes(color=model),width = 0.25,alpha=0.5,size=1)+
+p1 <- ggboxplot(effect_sizes,x='model',y='d',color='model',outlier.shape = NA) + geom_jitter(aes(color=model),width = 0.25,size=1)+
   ylab('absolute Cohen`s d') +
   ggtitle('Effect size comparison')+
   stat_compare_means(size=6,label.y = 0.47,label.x = 1.35,method = 'wilcox.test')+
@@ -152,7 +153,7 @@ latent_var <- latent_var %>% mutate(d=ifelse(model=='DCS',effect_size_dcs[larges
   mutate(d = paste0('Cohen`s D : ',round(d,digits = 2)))
 p2 <- ggboxplot(latent_var, x = "cell", y = "latent variable with larger effect size",
          color = "cell",outlier.shape = NA)+
-  geom_jitter(aes(color=cell),width = 0.25,alpha=0.5,size=1)+
+  geom_jitter(aes(color=cell),width = 0.25,size=1)+
   geom_text(aes(x=1.5,y=5, label=d),
             data=latent_var %>% select(model,d) %>% unique(),inherit.aes = FALSE,
             size=6)+
@@ -179,7 +180,7 @@ p2 <- ggboxplot(latent_var, x = "cell", y = "latent variable with larger effect 
 #   mutate(d = paste0('Cohen`s D : ',round(d,digits = 4)))
 # p3 <- ggboxplot(latent_var, x = "cell", y = "latent variable with larger effect size",
 #                 color = "cell",outlier.shape = NA)+
-#   geom_jitter(aes(color=cell),width = 0.25,alpha=0.5,size=1)+
+#   geom_jitter(aes(color=cell),width = 0.25,size=1)+
 #   geom_text(aes(x=1.5,y=3.2, label=d),
 #             data=latent_var %>% select(model,d) %>% unique(),inherit.aes = FALSE,
 #             size=6)+
@@ -194,13 +195,16 @@ p2 <- ggboxplot(latent_var, x = "cell", y = "latent variable with larger effect 
 
 p <- p1+p2
 print(p)
-ggsave('../figures/fig1_globality_comparison.eps',
+ggsave('../figures/fig1_globality_comparison.png',
        plot = p,
-       device = cairo_ps,
        width = 12,
        height = 9,
        units = 'in',
        dpi = 600)
+
+postscript('../figures/fig1_globality_comparison.eps',width = 12,height = 9)
+print(p)
+dev.off()
 
 ### Plot adjusted-Pvalues from univariate comparisons for DCS and AutoTransOp v1------------
 pairwise.dcs = rbind(emb_dcs_1 %>% gather('latent_var','value') %>% mutate(cell='A375'),
@@ -249,13 +253,16 @@ plots_list <- lapply(unique_models, function(model) {
 combined_plot <- wrap_plots(plots_list) + #plot_annotation(theme = theme(legend.position = 'top')) +
   plot_layout(guides = "auto") 
 print(combined_plot)
-ggsave('../figures/fig1_univariately_significant_dcs_vs_model.eps',
+ggsave('../figures/fig1_univariately_significant_dcs_vs_model.png',
        plot = combined_plot,
-       device = cairo_ps,
        width = 12,
        height = 9,
        units = 'in',
        dpi = 600)
+postscript('../figures/fig1_univariately_significant_dcs_vs_model.eps',width = 12,height = 9)
+print(combined_plot)
+dev.off()
+
 ### Compare distance distributions of embeddings within the same cell--------
 embs_proc <- process_embeddings(rbind(emb_1,emb_2),sigInfo,sigInfo %>%
                                   filter(cell_iname %in% c('A375','HT29')) %>% 
@@ -305,10 +312,14 @@ violin <- ggplot(violin_data, aes(x=model, y=value, fill = model)) +
                      label.y = 1.25)+
  annotate('text',x = 1.5,y=1.5,label=paste0('Cohen`s D : ',round(cohen,digits = 2)),size=6)
 print(violin)
-ggsave('../figures/fig1_dcs_vs_model_samecell_cosines.eps',
+ggsave('../figures/fig1_dcs_vs_model_samecell_cosines.png',
        plot = violin,
-       device = cairo_ps,
        width = 9,
        height = 9,
        units = 'in',
        dpi = 600)
+postscript('../figures/fig1_dcs_vs_model_samecell_cosines.eps',
+           width = 9,
+           height = 9)
+print(violin)
+dev.off()
