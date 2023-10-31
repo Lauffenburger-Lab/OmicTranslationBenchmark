@@ -365,7 +365,7 @@ ggsave('../figures/figure4C_suppl.png',
        width = 9,
        units = 'in',
        dpi = 600)
-postscript('../figures/figure4C_suppl.eps',width = 9,height = 9)
+postscript('../figures/figure4C_suppl.eps',width = 12,height = 8)
 ggplot(df_results, aes(x = mu, y = as.factor(top_number))) +
   geom_density_ridges(stat = "binline",bins = 50,fill = '#125b80',color='black') +
   xlab('average overlap (%)') + ylab('# top genes')+

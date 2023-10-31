@@ -346,6 +346,15 @@ ggboxplot(feats_primates %>% filter(mean_percentage_score>=20) %>%
                      label = "p.adj = {scales::pvalue(p.adj)}",
                      y.position = 1.25)
 dev.off()
+# ggsave(
+#   'importance_results_cpa/figures/importance_primates_features_greather_than_30perctranslation_goodhigh.eps', 
+#   device = cairo_ps,
+#   scale = 1,
+#   width = 18,
+#   height = 9,
+#   units = "in",
+#   dpi = 600,
+# )
 # compare importance score of primates for what is believed to be human protection
 # and the translation
 results <- left_join(translation_importance,features_results_primates,by='feature')

@@ -72,21 +72,36 @@ all_results$cell <- factor(all_results$cell, levels = median_cell_values$cell[or
 #   theme(text = element_text(size=24,family = 'Arial'),
 #         panel.grid.major.y = element_line(linewidth = 1,linetype = 'dashed'),
 #         legend.position = 'right')
-ggplot(all_results, aes(x = model, y = mean_r, color = cell)) +
-  geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.6,na.rm = T) + 
-  geom_jitter(position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.3), size = 1) +
-  ylab('Average Pearson`s Correlation for Translation') +
+p_trans <- ggplot(all_results, aes(x = model, y = mean_r, color = cell)) +
+  geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.3,na.rm = T) + 
+  geom_jitter(position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.1), size = 1) +
+  ylab('average pearson`s r') +
+  ggtitle('Translation')+
   scale_y_continuous(breaks = seq(0.0, 0.8, 0.1), limits = c(-0.1, 0.85)) +
-  #geom_hline(yintercept = 0, linewidth = 0.75, color = 'black', linetype = 'dashed') +
   theme_pubr(base_size = 24,base_family = 'Arial')+
   theme(text = element_text(size = 24, family = 'Arial'),
         panel.grid.major.y = element_line(linewidth = 1, linetype = 'dashed'),
-        legend.position = 'right') #+ scale_x_discrete(expand = c(0.2,0.2))
+        legend.position = 'bottom',
+        plot.title = element_text(hjust = 0.5)) + coord_flip()
 ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_v2.png',
        width = 16,
        height = 8,
        units = 'in',
        dpi = 600)
+setEPS()
+postscript('../results/SameCellimputationModel/fig1f_same_cell_imputation_v2.eps',width = 8,height = 8)
+ggplot(all_results, aes(x = model, y = mean_r, color = cell)) +
+  geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.3,na.rm = T) + 
+  geom_jitter(position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.1), size = 1) +
+  ylab('average pearson`s r') +
+  ggtitle('Translation')+
+  scale_y_continuous(breaks = seq(0.0, 0.8, 0.1), limits = c(-0.1, 0.85)) +
+  theme_pubr(base_size = 24,base_family = 'Arial')+
+  theme(text = element_text(size = 24, family = 'Arial'),
+        panel.grid.major.y = element_line(linewidth = 1, linetype = 'dashed'),
+        legend.position = 'none',
+        plot.title = element_text(hjust = 0.5)) + coord_flip()
+dev.off()
 
 ### All together
 ggboxplot(all_results,x='model',y='mean_r',color = 'model',add = 'jitter') +
@@ -102,6 +117,7 @@ ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_v0.png',
        height = 9,
        units = 'in',
        dpi = 600)
+res_trans <- all_results %>% mutate(type = 'Translation')
 
 ### Same for reconstruction------------------------------
 all_results <- rbind(results,results_cpa)
@@ -127,35 +143,56 @@ ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_recon_v1.p
 
 median_cell_values <- aggregate(mean_recon ~ cell, all_results, mean)
 all_results$cell <- factor(all_results$cell, levels = median_cell_values$cell[order(-median_cell_values$mean_recon)])
-ggplot(all_results, aes(x = model, y = mean_recon, color = cell)) +
-  geom_boxplot(position = position_dodge(width = 1), width = 0.9,size=0.6,na.rm = T) + 
+p_recon <- ggplot(all_results, aes(x = model, y = mean_recon, color = cell)) +
+  geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.6,na.rm = T) + 
   geom_jitter(data= all_results, aes(x = model, y = mean_recon, color = cell),
-              position = position_jitterdodge(dodge.width = 1, jitter.width = 0.3), size = 1) +
-  ylab('Average Pearson`s Correlation for Translation') +
+              position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.3), size = 1) +
+  ylab('average pearson`s r') +
+  xlab('')+
+  ggtitle('Reconstruction')+
   scale_y_continuous(breaks = seq(0.0, 1.0, 0.1), limits = c(0.0, 1.0)) +
-  #geom_hline(yintercept = 0, linewidth = 0.75, color = 'black', linetype = 'dashed') +
   theme_pubr(base_size = 24,base_family = 'Arial')+
   theme(text = element_text(size = 24, family = 'Arial'),
         panel.grid.major.y = element_line(linewidth = 1, linetype = 'dashed'),
-        legend.position = 'right') #+ scale_x_discrete(expand = c(0.2,0.2))
+        legend.position = 'bottom',
+        plot.title = element_text(hjust = 0.5)) + coord_flip()
 ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_recon_v2.png',
+       plot = p_recon,
        width = 16,
        height = 8,
        units = 'in',
        dpi = 600)
+setEPS()
+postscript('../results/SameCellimputationModel/fig1f_same_cell_imputation_recon_v2.eps',width = 8,height = 8)
+ggplot(all_results, aes(x = model, y = mean_recon, color = cell)) +
+  geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.6,na.rm = T) + 
+  geom_jitter(data= all_results, aes(x = model, y = mean_recon, color = cell),
+              position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.3), size = 1) +
+  ylab('average pearson`s r') +
+  xlab('')+
+  ggtitle('Reconstruction')+
+  scale_y_continuous(breaks = seq(0.0, 1.0, 0.1), limits = c(0.0, 1.0)) +
+  theme_pubr(base_size = 24,base_family = 'Arial')+
+  theme(text = element_text(size = 24, family = 'Arial'),
+        panel.grid.major.y = element_line(linewidth = 1, linetype = 'dashed'),
+        legend.position = 'right',
+        plot.title = element_text(hjust = 0.5)) + coord_flip()
+dev.off()
 
-### All together
-ggboxplot(all_results,x='model',y='mean_recon',color = 'model',add='jitter') +
-  ylab('Average pearson`s correlation for translation')+
-  scale_y_continuous(breaks = seq(0.0,1,0.1),limits = c(-0.1,1))+
-  geom_hline(yintercept = 0,linewidth=0.75,color='black',linetype = 'dashed')+
-  stat_compare_means(ref.group = 'shuffled v1',method = 'wilcox.test',size=6,label.y = 0.9)+
-  theme(text = element_text(size=24,family = 'Arial'),
-        panel.grid.major.y = element_line(linewidth = 1,linetype = 'dashed'),
-        legend.position = 'none')
-#comparisons =list(c('AutoTransOp v1','AutoTransOp v2'))
-ggsave('../results/SameCellimputationModel/fig1f_same_cell_imputation_recon_v0.png',
-       width = 12,
-       height = 9,
-       units = 'in',
-       dpi = 600)
+all_results <- rbind(all_results %>% mutate(type = 'Reconstruction') %>% mutate(r= mean_recon) %>% select(-mean_r,-mean_recon),
+                     res_trans %>% mutate(r= mean_r) %>% select(-mean_r,-mean_recon))
+setEPS()
+postscript('../results/SameCellimputationModel/fig1f.eps',width = 16,height = 8)
+ggplot(all_results, aes(x = model, y = r, color = cell)) +
+  geom_boxplot(position = position_dodge(width = 1.05), width = 0.95,size=0.6,na.rm = T) + 
+  geom_jitter(data= all_results, aes(x = model, y = r, color = cell),
+              position = position_jitterdodge(dodge.width = 1.05, jitter.width = 0.3), size = 1) +
+  ylab('average pearson`s r') +
+  xlab('model')+
+  scale_y_continuous(breaks = seq(0.0, 1.0, 0.1), limits = c(-0.1, 1.0)) +
+  facet_wrap(~type)+
+  theme_pubr(base_size = 24,base_family = 'Arial')+
+  theme(text = element_text(size = 24, family = 'Arial'),
+        panel.grid.major.y = element_line(linewidth = 1, linetype = 'dashed'),
+        legend.position = 'top') + coord_flip()
+dev.off()

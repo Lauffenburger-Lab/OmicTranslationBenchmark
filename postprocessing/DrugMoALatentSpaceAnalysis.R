@@ -20,7 +20,6 @@ pca_visualize <- function(embbedings,
                            colors=NULL,
                            col_breaks=NULL,
                            size_points = 2,
-                           alpha_points = 1,
                            verbose=F){
   if ('moa' %in% colnames(embbedings)){
     sample_info <- embbedings %>% select(sig_id,cmap_name,pert_id,cell,moa,drugs_per_moa,pert_dose,pert_itime,tas) %>% unique()
@@ -65,10 +64,9 @@ pca_visualize <- function(embbedings,
     embs_reduced <- embs_reduced %>% select(all_of(c(col_names,visualize)))
     colnames(embs_reduced)[dim+1] <- 'group'
     if (visualize %in% c('moa','target','cmap_name')){
-      tsne_plot <- ggplot(embs_reduced,aes(PC1,PC2)) +geom_point(aes(col=group,size=group,alpha=group))+
+      pca_plot <- ggplot(embs_reduced,aes(PC1,PC2)) +geom_point(aes(col=group,size=group))+
         scale_color_manual(values = colors,breaks = col_breaks)+
-        scale_size_manual(values = c(rep(size_points,length(colors)-1),1),breaks = col_breaks)+
-        scale_alpha_manual(values = c(rep(alpha_points,length(colors)-1),0.5),breaks = col_breaks)+
+        scale_size_manual(values = c(rep(size_points,length(colors)-1),0.25),breaks = col_breaks)+
         ggtitle(title) + 
         xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
         theme(text = element_text(family = 'Arial',size=14),plot.title = title_pos,
@@ -87,8 +85,7 @@ pca_visualize <- function(embbedings,
       pca_plot <- ggplot(embs_reduced,aes(x=PC1,y=PC2,z=PC3,col=group))+
         ggtitle(title) +
         scale_color_manual(values = colors,breaks = col_breaks)+
-        scale_size_manual(values = c(rep(size_points,length(colors)-1),0.5),breaks = col_breaks)+
-        scale_alpha_manual(values = c(rep(alpha_points,length(colors)-1),0.7),breaks = col_breaks)+
+        scale_size_manual(values = c(rep(size_points,length(colors)-1),0.25),breaks = col_breaks)+
         theme_void() +
         labs_3D(labs=c("PC1", "PC2", "PC3"),
                 angle=c(0,0,0),
@@ -121,8 +118,7 @@ pca_visualize <- function(embbedings,
                         aes(fill=cut(group,
                                      breaks = c(0.3,0.4,0.5,0.6,0.7,0.8,0.9,1),
                                      labels = c("0.3-0.4","0.4-0.5","0.5-0.6","0.6-0.7",
-                                                '0.7-0.8',"0.8-0.9","0.9-1"))),
-                        alpha = 0.25) + labs(fill='tas binned')+
+                                                '0.7-0.8',"0.8-0.9","0.9-1")))) + labs(fill='tas binned')+
       ggtitle(title) +
         xlab(paste0('PC1'))+ ylab(paste0('PC2'))+theme_minimal()+
         theme(text = element_text(family = 'Arial',size=14),plot.title = title_pos,
@@ -168,7 +164,6 @@ tsne_visualize <- function(embbedings,
                            colors=NULL,
                            col_breaks=NULL,
                            size_points = 2,
-                           alpha_points = 1,
                            verbose=F){
   if ('moa' %in% colnames(embbedings)){
     sample_info <- embbedings %>% select(sig_id,cmap_name,pert_id,cell,moa,drugs_per_moa,pert_dose,pert_itime,tas) %>% unique()
@@ -226,10 +221,9 @@ tsne_visualize <- function(embbedings,
     embs_reduced <- embs_reduced %>% select(all_of(c(col_names,visualize)))
     colnames(embs_reduced)[dim+1] <- 'group'
     if (visualize %in% c('moa','target','cmap_name')){
-      tsne_plot <- ggplot(embs_reduced,aes(`tSNE-1`,`tSNE-2`)) +geom_point(aes(col=group,size=group,alpha=group))+
+      tsne_plot <- ggplot(embs_reduced,aes(`tSNE-1`,`tSNE-2`)) +geom_point(aes(col=group,size=group))+
         scale_color_manual(values = colors,breaks = col_breaks)+
-        scale_size_manual(values = c(rep(size_points,length(colors)-1),1),breaks = col_breaks)+
-        scale_alpha_manual(values = c(rep(alpha_points,length(colors)-1),0.5),breaks = col_breaks)+
+        scale_size_manual(values = c(rep(size_points,length(colors)-1),0.25),breaks = col_breaks)+
         ggtitle(title) + 
         xlab(paste0('tSNE-1'))+ ylab(paste0('tSNE-2'))+theme_minimal()+
         theme(text = element_text(family = 'Arial',size=14),plot.title = title_pos,
@@ -249,8 +243,7 @@ tsne_visualize <- function(embbedings,
       tsne_plot <- ggplot(embs_reduced,aes(x=`tSNE-1`,y=`tSNE-2`,z=`tSNE-3`,col=group))+
         ggtitle(title) +
         scale_color_manual(values = colors,breaks = col_breaks)+
-        scale_size_manual(values = c(rep(size_points,length(colors)-1),0.5),breaks = col_breaks)+
-        scale_alpha_manual(values = c(rep(alpha_points,length(colors)-1),0.7),breaks = col_breaks)+
+        scale_size_manual(values = c(rep(size_points,length(colors)-1),0.25),breaks = col_breaks)+
         theme_void() +
         labs_3D(labs=c("tSNE-1", "tSNE-2", "tSNE-3"),
                 angle=c(0,0,0),
@@ -358,8 +351,7 @@ p <- tsne_visualize(all_embs_proc,
               col_breaks=uniq_moas,
               visualize = 'cmap_name',
               top_drugs = 12,
-              size_points = 2.5,
-              alpha_points = 1,
+              size_points = 2,
               verbose = T)
 ggsave('../article_supplementary_info/drugs_pc3_ha1e_tsne_all.png',
        plot=p,
