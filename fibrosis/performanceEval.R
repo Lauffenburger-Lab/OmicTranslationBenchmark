@@ -106,20 +106,20 @@ TransCompR_models <- TransCompR_models%>% gather('metric','value',-fold) %>%
   mutate(metric = ifelse(metric=='f1','F1',metric)) 
 
 # assign model-type label
-CPAbased_homologues_model <- CPAbased_homologues_model %>% mutate(genes = 'homologues') %>% mutate(model='CPA-based homologues')
-CPAbased_model <- CPAbased_model %>% mutate(genes = 'all genes') %>% mutate(model='CPA-based all genes')
+CPAbased_homologues_model <- CPAbased_homologues_model %>% mutate(genes = 'homologues') %>% mutate(model='AutoTransOP v2 homologues')
+CPAbased_model <- CPAbased_model %>% mutate(genes = 'all genes') %>% mutate(model='AutoTransOP v2 all genes')
 DCS_models <- DCS_models%>% mutate(genes = 'homologues') %>% mutate(model='DCS modified v2')
 TransCompR_models <- TransCompR_models %>% mutate(genes = 'homologues') %>% mutate(model='TransCompR')
   
 # Visualize------------
 results <- rbind(CPAbased_homologues_model,CPAbased_model,DCS_models,TransCompR_models)
-results$model <- factor(results$model,levels = c('CPA-based all genes','CPA-based homologues','DCS modified v2','TransCompR'))
+results$model <- factor(results$model,levels = c('AutoTransOP v2 all genes','AutoTransOP v2 homologues','DCS modified v2','TransCompR'))
 
 # Visualize performance for predicting counts
-my_comparisons <- list( c('CPA-based all genes', 'CPA-based homologues'),
-                        c('DCS modified v2', 'CPA-based homologues'),
-                        c('CPA-based all genes', 'DCS modified v2'),
-                        c('CPA-based all genes','TransCompR'))
+my_comparisons <- list( c('AutoTransOP v2 all genes', 'AutoTransOP v2 homologues'),
+                        c('DCS modified v2', 'AutoTransOP v2 homologues'),
+                        c('AutoTransOP v2 all genes', 'DCS modified v2'),
+                        c('AutoTransOP v2 all genes','TransCompR'))
 
 p1 <- ggboxplot(results %>% filter(grepl('R2 of mean',metric)) %>% mutate(metric=gsub('R2 of','counts',metric)),
           x='model',y='value',color = 'model')  + xlab('')+ ylab(expression('R'^2))+
@@ -181,9 +181,9 @@ classification_results$task <- factor(classification_results$task,
                                       levels = c('fibrosis','species translation','KNN translation',
                                                  'species','cell-type',
                                                  'basal species'))
-my_class_comparisons <- list( c('CPA-based all genes', 'CPA-based homologues'),
-                              c('CPA-based all genes','TransCompR'),
-                              c('CPA-based homologues','TransCompR'))
+my_class_comparisons <- list( c('AutoTransOP v2 all genes', 'AutoTransOP v2 homologues'),
+                              c('AutoTransOP v2 all genes','TransCompR'),
+                              c('AutoTransOP v2 homologues','TransCompR'))
 p3 <- ggboxplot(classification_results %>% filter(task!='basal species'),
                 x='model',y='value',color = 'model')  + xlab('')+ ylab('F1 score')+
   scale_y_continuous(breaks = seq(0.25,1,0.25),minor_breaks = waiver())+
@@ -199,13 +199,17 @@ p3 <- ggboxplot(classification_results %>% filter(task!='basal species'),
         axis.text.x = element_blank(),
         text = element_text(family = 'Arial',size=24))
 print(p3)
-ggsave('results/10fold_classification_performance_comparison.eps', 
-       device = cairo_ps,
+ggsave('results/10fold_classification_performance_comparison.png', 
        scale = 1,
        width = 12,
        height = 6,
        units = "in",
        dpi = 600)
+
+setEPS()
+postscript('results/10fold_classification_performance_comparison.eps',height = 6,width = 12)
+print(p3)
+dev.off()
 
 # p <- ggarrange(plotlist=list(p1,p2),ncol=1,nrow=2,common.legend = TRUE,legend = 'top')
 # annotate_figure(p, top = text_grob("10-fold cross validation performance", 

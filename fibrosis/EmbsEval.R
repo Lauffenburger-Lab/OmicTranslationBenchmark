@@ -487,14 +487,14 @@ for (i in 0:9){
   message(paste0('Done split ',i))
 }
 
-plotList <- readRDS('results/plotList_cell_checkpoint.rds')
-df_effsize <- readRDS('results/df_effsize_cell_checkpoint.rds')
+plotList <- readRDS('results/plotList_checkpoint.rds')
+df_effsize <- readRDS('results/df_effsize_checkpoint.rds')
 
 colnames(df_effsize)[4] <- 'value'
 df_effsize <- df_effsize %>% mutate(space=ifelse(space=='Basal latent','basal latent',space))
 df_effsize$space <- factor(df_effsize$space,levels = c("latent","basal latent"))
 p  <- ggplot(df_effsize ,aes(x=space,y=value,fill=space)) + 
-  geom_boxplot() + ggtitle('Cell-type embeddings separation')+
+  geom_boxplot() + ggtitle('Species embeddings separation')+
   ylab('Cohen`s d')+
   stat_compare_means(size=10) + #,label = "p.signif"
   theme(panel.background = element_rect(fill = "white",
@@ -512,7 +512,7 @@ p  <- ggplot(df_effsize ,aes(x=space,y=value,fill=space)) +
   facet_wrap(~ set)
 print(p)
 ggsave(
-  'results/cpa_compare_cohensd_basal_and_composed_space_celltypes.eps',
+  'results/cpa_compare_cohensd_basal_and_composed_space_species.eps',
   plot = p,
   device = cairo_ps,
   scale = 1,
@@ -521,7 +521,10 @@ ggsave(
   units = "in",
   dpi = 600,
 )
-
+setEPS()
+postscript('results/cpa_compare_cohensd_basal_and_composed_space_species.eps',width = 9,height = 9)
+print(p)
+dev.off()
 # png(file="results/samespecies_vs_random_cosine_embs_comparison_latent_celltypes.png",width=10,height=16,units = "in",res=600)
 # p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
 #                labels = paste0(rep('Split ',10),seq(1,10)),

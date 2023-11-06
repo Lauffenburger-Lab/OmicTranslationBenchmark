@@ -243,3 +243,5 @@ results/PriorLossAnalysis
 postprocessing/ccleGSEA.R
 fibrosis/data/10foldcrossval_lung/csvFiles
 fibrosis/results/preds
+fibrosis/results/*.eps
+fibrosis/results/*.png

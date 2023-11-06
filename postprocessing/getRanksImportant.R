@@ -11,6 +11,7 @@ library(umap)
 library(corrplot)
 library(reshape2)
 library(EGSEAdata)
+library(fgsea)
 library(topGO)
 library(AnnotationDbi)
 library(org.Hs.eg.db)
@@ -635,7 +636,7 @@ all_embs <- rbind(emb1,emb2)
 all_embs <- all_embs[sample(1:nrow(all_embs)),]
 all_embs <- all_embs %>% mutate(label=ifelse(cell=='PC3',1,0))
 all_embs$label <- factor(all_embs$label,levels=c(0,1))
-all_embs <- all_embs %>% select(-cell)
+all_embs <- all_embs %>% dplyr::select(-cell)
 
 library(caret)
 ctrl <- trainControl(method = "cv", number = 10)
@@ -874,6 +875,19 @@ ggscatter(df_corr_encode,
   theme_minimal(base_family = "Arial",base_size = 20)+
   theme(plot.title = element_text(size=20,hjust = 0.5))
 dev.off()
+
+### Perform GSEA for the important cell line specific genes
+df_corr_encode <- data.frame(PC3=imp_enc_1$mean_imp,HA1E=imp_enc_2$mean_imp)
+print(all(rownames(df_corr_encode)==geneInfo$gene_id))
+rownames(df_corr_encode) <- geneInfo$gene_symbol
+# Order the genes based on the importance
+ordered_1 <- rownames(df_corr_encode)[order(-df_corr_encode$PC3)]
+ordered_1 <- ordered_1[1:50]
+ordered_2 <- rownames(df_corr_encode)[order(df_corr_encode$HA1E)]
+ordered_2 <- ordered_2[1:50]
+
+
+
 ### Perform GSEA in using the scores of latent z1-z3 (or all latents and plot average score)--------------
 library(fgsea)
 library(EGSEAdata)

@@ -555,7 +555,7 @@ p_scatter_1 <- ggscatter(results_translation %>% filter(model=='CPA') %>% mutate
   # ylim(c(0,1))+
   geom_hline(yintercept = 1,color='black',linetype='dashed')+
   geom_hline(yintercept = 0,color='black',linetype='dashed')+
-  ggtitle('Reconstruction performance VS number of cells')+
+  ggtitle('Translation performance VS number of cells')+
   theme(text=element_text(family = 'Arial',size=20),
         plot.title = element_text(hjust = 0.5))
 print(p_scatter_1)

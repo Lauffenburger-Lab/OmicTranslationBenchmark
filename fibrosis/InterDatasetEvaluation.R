@@ -333,10 +333,13 @@ p <- ggboxplot(external_classification,
         panel.grid.minor =  element_line(color = "gray70", size = 0.5, linetype = "dashed"),
         text = element_text(family = 'Arial',size=24))
 print(p)
-ggsave('results/10fold_classification_external_datasets.eps', 
-       device = cairo_ps,
+ggsave('results/10fold_classification_external_datasets.png', 
        scale = 1,
        width = 12,
        height = 6,
        units = "in",
        dpi = 600)
+setEPS()
+postscript('results/10fold_classification_external_datasets.eps',width = 12,height = 6)
+print(p)
+dev.off()
