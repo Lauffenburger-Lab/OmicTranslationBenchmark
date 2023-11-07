@@ -15,6 +15,7 @@ library(fgsea)
 library(topGO)
 library(AnnotationDbi)
 library(org.Hs.eg.db)
+library(clusterProfiler)
 egsea.data(species = "human",returnInfo = TRUE)
 human_keggs <- kegg.pathways$human$kg.sets
 # setEPS(paper='a3',pointsize=3)
@@ -877,6 +878,7 @@ ggscatter(df_corr_encode,
 dev.off()
 
 ### Perform GSEA for the important cell line specific genes
+geneInfo <- geneInfo %>% filter(feature_space!='inferred') %>% filter(gene_type=='protein-coding')
 df_corr_encode <- data.frame(PC3=imp_enc_1$mean_imp,HA1E=imp_enc_2$mean_imp)
 print(all(rownames(df_corr_encode)==geneInfo$gene_id))
 rownames(df_corr_encode) <- geneInfo$gene_symbol
@@ -886,7 +888,40 @@ ordered_1 <- ordered_1[1:50]
 ordered_2 <- rownames(df_corr_encode)[order(df_corr_encode$HA1E)]
 ordered_2 <- ordered_2[1:50]
 
+all_genes <- rownames(df_corr_encode)
 
+# Custom fisher exact test function
+fisher_genesets <- function(gene_set,genes_of_interest,gene_space){
+  # Calculate the overlap
+  overlap <- length(intersect(genes_of_interest, gene_set))
+  not_in_geneset = sum(!(gene_space %in% gene_set))
+  
+  # Perform Fisher's exact test
+  m <- matrix(0,2,2)
+  m[1,1] <- overlap
+  m[1,2] <- length(genes_of_interest) - overlap
+  m[2,1] <- length(gene_set) - overlap
+  m[2,2] <- not_in_geneset - length(genes_of_interest) + overlap
+  result <- fisher.test(m)
+  p <- result$p.value
+  return(p)
+}
+# Create geneset list
+dorothera_regulon <- read.delim('../../../Artificial-Signaling-Network/TF activities/annotation/dorothea.tsv')
+dorothera_regulon <- dorothera_regulon %>% filter(confidence %in% c('A','B'))
+dorothera_regulon <- dorothera_regulon %>% dplyr::select(tf,target)
+dorothera_regulon <- distinct(dorothera_regulon)
+tf_list <- NULL
+for (ind in unique(dorothera_regulon$tf)){
+  tmp <- dorothera_regulon %>% filter(tf==ind)
+  tf_list[[ind]] <- tmp$target
+}
+fisher_results_1 <- unlist(lapply(tf_list,fisher_genesets,ordered_1,all_genes))
+tfs_1 <- fisher_results_1[which(fisher_results_1<0.01)]
+tfs_1 <- names(tfs_1)
+fisher_results_2 <- unlist(lapply(tf_list,fisher_genesets,ordered_2,all_genes))
+tfs_2 <- fisher_results_2[which(fisher_results_2<0.01)]
+tfs_2 <- names(tfs_2)
 
 ### Perform GSEA in using the scores of latent z1-z3 (or all latents and plot average score)--------------
 library(fgsea)
