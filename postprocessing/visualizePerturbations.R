@@ -79,7 +79,9 @@ tsne_plot <- ggplot(embs_reduced,aes(`tSNE-1`,`tSNE-2`)) +geom_point(aes(col=per
   scale_size_manual(values = c(rep(2,length(colors)-1),0.25),breaks = col_breaks)+
   xlab(paste0('tSNE-1'))+ ylab(paste0('tSNE-2'))+theme_minimal()+
   theme(text = element_text(family = 'Arial',size=14),plot.title = element_blank(),
-        legend.text=element_text(size=14),legend.position = 'top')
+        legend.text=element_text(size=10),
+        legend.title = element_text(size=11),
+        legend.position = 'top')
 print(tsne_plot)
 
 ggsave('../article_supplementary_info/conditionsID_pc3_ha1e_tsne_all.png',

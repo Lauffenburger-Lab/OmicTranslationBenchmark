@@ -336,21 +336,21 @@ for (i in 0:9){
   # dist_train_mi <- dist_train_mi %>% mutate(space='latent')
   # dist_train_mi <- dist_train_mi %>% mutate(set='Train')
   dist_test_mi <- samples_separation(embs_test_mi,
-                                     compare_level='cell',
+                                     compare_level='species',
                                      metric = 'cosine',
                                      show_plot = F)
   dist_test_mi <- dist_test_mi %>% mutate(space='latent')
   dist_test_mi <- dist_test_mi %>% mutate(set='Validation')
   
   # dist_train <- samples_separation(embs_train,
-  #                                 compare_level='cell',
+  #                                 compare_level='species',
   #                                 metric = 'cosine',
   #                                 show_plot = F)
   # dist_train <- dist_train %>% mutate(space='Basal latent')
   # dist_train <- dist_train %>% mutate(set='Train')
   
   dist_test <- samples_separation(embs_test,
-                                  compare_level='cell',
+                                  compare_level='species',
                                   metric = 'cosine',
                                   show_plot = F)
   dist_test <- dist_test %>% mutate(space='Basal latent')
@@ -360,24 +360,24 @@ for (i in 0:9){
   # all_dists <- bind_rows(dist_test_mi,dist_test,dist_train,dist_train_mi)
   
   d_val_basal = effectsize::cohens_d(as.matrix(all_dists %>% filter(space=='Basal latent') %>% filter(set!='Train') %>% 
-                                              filter(is_same=='Same cell type') %>% select(value)),
+                                              filter(is_same=='Same species') %>% select(value)),
                                   as.matrix(all_dists %>% filter(space=='Basal latent')%>% filter(set!='Train') %>%
-                                              filter(is_same!='Same cell type')%>% select(value)),
+                                              filter(is_same!='Same species')%>% select(value)),
                                   ci=0.95)
   d_val = effectsize::cohens_d(as.matrix(all_dists %>% filter(space!='Basal latent')%>% filter(set!='Train') %>%
-                                              filter(is_same=='Same cell type') %>% select(value)),
+                                              filter(is_same=='Same species') %>% select(value)),
                                   as.matrix(all_dists %>% filter(space!='Basal latent') %>% filter(set!='Train')%>%
-                                              filter(is_same!='Same cell type')%>% select(value)),
+                                              filter(is_same!='Same species')%>% select(value)),
                                   ci=0.95)
   # d_train_basal = effectsize::cohens_d(as.matrix(all_dists %>% filter(space=='Basal latent') %>% filter(set=='Train') %>% 
-  #                                           filter(is_same=='Same cell type') %>% select(value)),
+  #                                           filter(is_same=='Same species') %>% select(value)),
   #                               as.matrix(all_dists %>% filter(space=='Basal latent') %>% filter(set=='Train')%>%
-  #                                           filter(is_same!='Same cell type')%>% select(value)),
+  #                                           filter(is_same!='Same species')%>% select(value)),
   #                               ci=0.95)
   # d_train = effectsize::cohens_d(as.matrix(all_dists %>% filter(space!='Basal latent')%>% filter(set=='Train') %>%
-  #                                           filter(is_same=='Same cell type') %>% select(value)),
+  #                                           filter(is_same=='Same species') %>% select(value)),
   #                               as.matrix(all_dists %>% filter(space!='Basal latent') %>% filter(set=='Train')%>% 
-  #                                           filter(is_same!='Same cell type')%>% select(value)),
+  #                                           filter(is_same!='Same species')%>% select(value)),
   #                               ci=0.95)
   
   all_dists_val_basal <- all_dists %>% filter(set!='Train') %>%  filter(space!='latent') %>%
@@ -405,7 +405,7 @@ for (i in 0:9){
     geom_violin(position = position_dodge(width = 1),width = 1)+geom_boxplot(position = position_dodge(width = 1),width = 0.05,
                                                                              outlier.shape = NA)+
     scale_fill_discrete(name="Embedding distance distribution in the latent space",
-                        labels=c("Random Signatures","Same cell type"))+
+                        labels=c("Random Signatures","Same species"))+
     ylim(0,2)+
     xlab("")+ylab("Cosine Distance")+ 
     theme(axis.ticks.x=element_blank(),
@@ -499,10 +499,10 @@ p  <- ggplot(df_effsize ,aes(x=space,y=value,fill=space)) +
   stat_compare_means(size=10) + #,label = "p.signif"
   theme(panel.background = element_rect(fill = "white",
                                         colour = "white",
-                                        size = 0.5, linetype = "solid"),
-        panel.grid.major = element_line(size = 1, linetype = 'solid',
+                                        linewidth = 0.5, linetype = "solid"),
+        panel.grid.major = element_line(linewidth = 1, linetype = 'solid',
                                         colour = "#EEEDEF"), 
-        panel.grid.minor = element_line(size = 1, linetype = 'solid',
+        panel.grid.minor = element_line(linewidth = 1, linetype = 'solid',
                                         colour = "#EEEDEF"),
         axis.text = element_text(family='Arial',face='bold'),
         axis.title.x=element_blank(),
@@ -571,7 +571,7 @@ for (i in c(ind_min,ind_max)){
                                                             ifelse(cell_type==3,'epithelial',
                                                                    ifelse(cell_type==4,'endothelial','stem cell')))))
   dist_test_mi <- samples_separation(embs_test_mi,
-                                     compare_level='cell',
+                                     compare_level='species',
                                      metric = 'cosine',
                                      show_plot = F)
   dist_test_mi <- dist_test_mi %>% mutate(space='latent')
@@ -579,7 +579,7 @@ for (i in c(ind_min,ind_max)){
   
   
   dist_test <- samples_separation(embs_test,
-                                  compare_level='cell',
+                                  compare_level='species',
                                   metric = 'cosine',
                                   show_plot = F)
   dist_test <- dist_test %>% mutate(space='Basal latent')
@@ -588,14 +588,14 @@ for (i in c(ind_min,ind_max)){
   all_dists <- bind_rows(dist_test_mi,dist_test)
 
   d_val_basal = effectsize::cohens_d(as.matrix(all_dists %>% filter(space=='Basal latent') %>% filter(set!='Train') %>% 
-                                                 filter(is_same=='Same cell type') %>% select(value)),
+                                                 filter(is_same=='Same species') %>% select(value)),
                                      as.matrix(all_dists %>% filter(space=='Basal latent')%>% filter(set!='Train') %>%
-                                                 filter(is_same!='Same cell type')%>% select(value)),
+                                                 filter(is_same!='Same species')%>% select(value)),
                                      ci=0.95)
   d_val = effectsize::cohens_d(as.matrix(all_dists %>% filter(space!='Basal latent')%>% filter(set!='Train') %>%
-                                           filter(is_same=='Same cell type') %>% select(value)),
+                                           filter(is_same=='Same species') %>% select(value)),
                                as.matrix(all_dists %>% filter(space!='Basal latent') %>% filter(set!='Train')%>%
-                                           filter(is_same!='Same cell type')%>% select(value)),
+                                           filter(is_same!='Same species')%>% select(value)),
                                ci=0.95)
   
   all_dists_val_basal <- all_dists %>% filter(set!='Train') %>%  filter(space!='latent') %>%

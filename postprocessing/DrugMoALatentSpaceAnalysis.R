@@ -353,6 +353,8 @@ p <- tsne_visualize(all_embs_proc,
               top_drugs = 12,
               size_points = 2,
               verbose = T)
+p <- p + labs(color='drug')
+print(p)
 ggsave('../article_supplementary_info/drugs_pc3_ha1e_tsne_all.png',
        plot=p,
        width = 9,
