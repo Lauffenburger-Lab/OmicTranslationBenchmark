@@ -193,6 +193,12 @@ learning/PreTrainAdverseClass.py
 .Rproj.user
 .Rhistory
 article_supplementary_info/*.eps
+article_supplementary_info/*.png
+article_supplementary_info/*.pdf
+article_supplementary_info/suppl_fig11_eps/*.eps
+article_supplementary_info/suppl_fig11_eps/*.png
+article_supplementary_info/suppl_fig13_eps/*.eps
+article_supplementary_info/suppl_fig13_eps/*.eps
 article_supplementary_info/prior_analysis
 serology/.Rhistory
 serology/*.eps

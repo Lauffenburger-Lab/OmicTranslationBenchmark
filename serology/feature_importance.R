@@ -136,10 +136,10 @@ feats <- feats %>% mutate(protected=ifelse(protection==1,'protected','non-protec
 feats$protected <- factor(feats$protected,levels = c('non-protected','protected'))
 feats <- feats %>% gather('feature','value',-protection,-protected)
 feats <- left_join(feats,features_results)
-pairwise.test_human = feats %>% filter(mean_percentage_score>=50) %>% group_by(feature) %>%
+pairwise.test_human = feats %>% filter(mean_percentage_score>=20) %>% group_by(feature) %>%
   wilcox_test(value ~ protected) %>% 
-  adjust_pvalue(method = 'bonferroni') %>% ungroup()
-ggboxplot(feats %>% filter(mean_percentage_score>=50),
+  adjust_pvalue(method = 'bonferroni') %>% ungroup() %>% filter(p.adj<0.1)
+ggboxplot(feats %>% filter(mean_percentage_score>=20) %>% filter(feature %in% pairwise.test_human$feature),
           x='protected',y='value',color='protected',add='jitter')+
   xlab('')+
   facet_wrap(~feature) +
@@ -161,7 +161,21 @@ ggsave(
   units = "in",
   dpi = 600,
 )
-
+setEPS()
+postscript('importance_results_cpa/figures/importance_human_features_greather_than_20perc.eps',width = 19,height = 9)
+ggboxplot(feats %>% filter(mean_percentage_score>=20) %>% filter(feature %in% pairwise.test_human$feature),
+          x='protected',y='value',color='protected',add='jitter')+
+  xlab('')+
+  facet_wrap(~feature) +
+  stat_pvalue_manual(pairwise.test_human,
+                     label = "p.adj = {scales::pvalue(p.adj)}",
+                     y.position = 2,
+                     size=7)+
+  theme(axis.title = element_text(family = 'Arial',size=24),
+        axis.text = element_text(family = 'Arial',size=24),
+        text = element_text(family = 'Arial',size=24),
+        strip.text.x = element_text(size = 14))
+dev.off()
 # Repeat for primates
 features_results_primates <- data.frame()
 for (i in 1:10){
@@ -209,7 +223,6 @@ ggboxplot(feats_primates %>% filter(mean_percentage_score>=20),
   stat_pvalue_manual(pairwise.test_primates,
                      label = "p.adj = {scales::pvalue(p.adj)}",
                      y.position = 1.25)
-
 
 # filter human features not statistically significantly different between protected and non-protected
 pairwise.test_human = feats %>% filter(mean_percentage_score>=20) %>% group_by(feature) %>%
@@ -336,6 +349,18 @@ ggboxplot(feats_primates %>% filter(mean_percentage_score>=20) %>%
                      label = "p.adj = {scales::pvalue(p.adj)}",
                      y.position = 1.25)
 png('importance_results_cpa/figures/importance_primates_features_greather_than_30perctranslation_goodhigh.png',width=18,height=16,units = "in",res = 600)
+ggboxplot(feats_primates %>% filter(mean_percentage_score>=20) %>% 
+            filter(quality=='high' | quality=='good' )%>%
+            filter(feature %in% pairwise.test_primates$feature),
+          x='protected',y='value',color='protected',add='jitter')+
+  facet_wrap(~feature) +
+  #ylim(c(-3.7,3))+
+  stat_pvalue_manual(pairwise.test_primates,
+                     label = "p.adj = {scales::pvalue(p.adj)}",
+                     y.position = 1.25)
+dev.off()
+setEPS()
+postscript('importance_results_cpa/figures/importance_primates_features_greather_than_30perctranslation_goodhigh.eps',width=18,height=16)
 ggboxplot(feats_primates %>% filter(mean_percentage_score>=20) %>% 
             filter(quality=='high' | quality=='good' )%>%
             filter(feature %in% pairwise.test_primates$feature),
