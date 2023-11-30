@@ -27,6 +27,9 @@ for (i in 1:9){
   colnames(val)[1:(ncol(val)-2)] <- colnames(alldata)[2:(ncol(alldata)-3)]
   val <- left_join(val,alldata) %>% column_to_rownames('V1')
   val <- val %>% filter(!is.na(specific_cell))
+  # train <- alldata %>% filter(!(V1 %in% rownames(val)))
+  # train <- train %>% filter(specific_cell %in% c('Recruited macrophages','Resolution macrophages','M2 macrophages','Fn1+ macrophages'))
+  # train <- train %>% column_to_rownames('V1')
   data.table::fwrite(val,paste0('data/10foldcrossval_lung/csvFiles/labeled_val_mouse_',i,'.csv'))
   print(paste0('Finished fold ',i))
 }
