@@ -19,7 +19,7 @@ cells <- cells %>% mutate(cell_type=ifelse(cell_type==1,'immune',
                                                          ifelse(cell_type==4,'endothelial','stem cell')))))
 data.table::fwrite(cells,'data/mouse_cells_info.csv')
 
-for (i in 1:9){
+for (i in 0:9){
   ## Load validation fold
   val <- data.table::fread(paste0('data/10foldcrossval_lung/csvFiles/val_mouse_',i,'.csv'))
   val <- val %>% select(-V1)
