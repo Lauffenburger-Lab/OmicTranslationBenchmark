@@ -21,7 +21,7 @@ homologues_map = data.table::fread('results/HumanMouseHomologuesMap.csv')
 
 ### Reconstruction analysis--------------------
 all_species <- c('human','mouse')
-models <- c('','homologues_','DCS_','TransCompR_')
+models <- c('unloged_')#c('','homologues_','DCS_','TransCompR_')
 results_reconstruction <- data.frame()
 for (species in all_species){
   for (model in models){
@@ -38,7 +38,7 @@ for (species in all_species){
       pred <- data.table::fread(paste0('results/preds/validation/valPreds_',model,'reconstructed_',i,'_',species,'.csv'))
       pred <- pred %>% select(-V1,-cell_type)
       
-      if (model!=''){
+      if (model!='' & model!='unloged_'){
         if (species=='mouse'){
           val <- val %>% select(c(all_of(homologues_map$mouse_gene),"diagnosis","specific_cell",))
         }else{
@@ -264,7 +264,7 @@ dev.off()
 results_reconstruction <- results_reconstruction %>% group_by(predicting,species,model,fold) %>%
   mutate(averageCellr = mean(r,na.rm = T)) %>% mutate(sdCellr = sd(r,na.rm = T)) %>% ungroup()
 
-results <- results_reconstruction %>% mutate(model = ifelse(model=='CPA','CPA-based all genes',
+results <- results_reconstruction %>% filter(model!='unloged') %>% mutate(model = ifelse(model=='CPA','CPA-based all genes',
                                                             ifelse(model=='homologues','CPA-based homologues',
                                                                    ifelse(model=='DCS','DCS modified v2',
                                                                           'TransCompR'))))
@@ -339,6 +339,45 @@ postscript('../figures/fibrosis_performance_reconstruction_comparison_allgrouped
 print(p2)
 dev.off()
 
+### Compare CPA with log-transformed counts and CPA with no log-transformation
+results_log <- results_reconstruction %>% filter(model=='unloged' | model=='CPA') %>% mutate(model = ifelse(model=='CPA','log-transformed',
+                                                                                                        'not log-transformed'))
+results_log <- results_log %>% mutate(predicting = paste0('Predicting per cell type ',predicting))
+my_comparisons <- list( c('log-transformed', 'not log-transformed'))
+p_log <- ggboxplot(results_log %>% select(model,r,specific_cell,fold,predicting,species) %>% unique(),
+                x='model',y='r',color = 'model',
+                add = 'jitter')  + 
+  xlab('')+ 
+  ylab('pearson`s r')+
+  ggtitle("Performance across all cell types")+
+  scale_y_continuous(breaks = seq(0,1,0.2),minor_breaks = waiver(),limits = c(-0.001,1.35))+
+  facet_wrap(vars(species,predicting)) +
+  stat_compare_means(label = 'p.signif',
+                     method = 'wilcox.test',
+                     #step.increase = 0.02,
+                     label.y = 1.15,
+                     tip.length=0.05,
+                     size =6,
+                     aes(group=model),
+                     comparisons = my_comparisons) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)),
+               vjust = 0, size = 6, position = position_nudge(y = 0.4))+
+  theme(text = element_text(family = 'Arial',size=23),
+        plot.title = element_text(hjust = 0.5,size=23),
+        legend.title = element_blank(),
+        axis.text.x = element_blank())
+print(p_log)
+ggsave('../figures/fibrosis_performance_reconstruction_comparison_logtransformation.png', 
+       plot=p_log,
+       scale = 1,
+       width = 16,
+       height = 8,
+       units = "in",
+       dpi = 600)
+postscript('../figures/fibrosis_performance_reconstruction_comparison_logtransformation.eps',width = 16,height = 8)
+print(p_log)
+dev.off()
+
 #### Translation performance for specific cells-----------------------------------
 # First find equivalent cells to translate
 cells_mouse <- data.table::fread('data/mouse_cells_info.csv')
@@ -409,7 +448,7 @@ cells_all <- cells_all %>% filter(!is.na(`mouse cell`))
 
 all_species <- c('human','mouse')
 all_trans <- c('tohuman','tomouse')
-models <- c('','homologues_','DCS_','TransCompR_')
+models <- c('unloged_')#c('','homologues_','DCS_','TransCompR_')
 results_translation <- data.frame()
 for (trans in all_trans){
   if (grepl('human',trans)){
@@ -460,7 +499,7 @@ for (trans in all_trans){
       val <- val %>% select(-diagnosis,-cell_counts,-specific_cell)
       val <- distinct(val)
       
-      if (model!=''){
+      if (model!='' & model!='unloged_'){
         if (trans=='tomouse'){
           val <- val %>% select(c(all_of(homologues_map$mouse_gene),"specific_cell_mapped",))
         }else{
@@ -684,7 +723,7 @@ dev.off()
 results_translation <- results_translation %>% group_by(predicting,translation,model,fold) %>%
   mutate(averageCellr = mean(r,na.rm = T)) %>% mutate(sdCellr = sd(r,na.rm = T)) %>% ungroup()
 
-results <- results_translation %>% mutate(model = ifelse(model=='CPA','CPA-based all genes',
+results <- results_translation %>% filter(model!='unloged') %>% mutate(model = ifelse(model=='CPA','CPA-based all genes',
                                                             ifelse(model=='homologues','CPA-based homologues',
                                                                    ifelse(model=='DCS','DCS modified v2',
                                                                           'TransCompR'))))
@@ -805,3 +844,60 @@ ggsave('../figures/fibrosis_performance_translation_comparison_allgrouped.png',
 postscript('../figures/fibrosis_performance_translation_comparison_allgrouped.eps',width = 16,height = 8)
 print(p3)
 dev.off()
+
+### Compare log-transformed CPA and not log-transformed
+results_translation <- results_translation %>% group_by(predicting,translation,model,fold) %>%
+  mutate(averageCellr = mean(r,na.rm = T)) %>% mutate(sdCellr = sd(r,na.rm = T)) %>% ungroup()
+
+results_log <- results_translation  %>% filter(model=='unloged' | model=='CPA') %>% mutate(model = ifelse(model=='CPA','log-transformed',
+                                                                                                      'not log-transformed'))
+results_log <- results_log %>% mutate(predicting = paste0('Predicting per cell type ',predicting))
+my_comparisons <- list( c('log-transformed', 'not log-transformed'))
+
+results_log <- results_log %>% mutate(translation = ifelse(translation=='tohuman','mouse to human','human to mouse'))
+
+mean_cell_values <- aggregate(r ~ specific_cell_mapped, results_log, mean)
+results_log$specific_cell_mapped <- factor(results_log$specific_cell_mapped, levels = mean_cell_values$specific_cell_mapped[order(-mean_cell_values$r)])
+
+p_translate_log <- ggboxplot(results_log %>% select(model,r,fold,predicting,translation,specific_cell_mapped) %>% unique(),
+                x='model',y='r',color = 'model',
+                size=1,add='jitter',add.params = list(size=1))  + 
+  xlab('')+ 
+  ylab('pearson`s r')+
+  ggtitle("Performance in translating between species")+
+  scale_y_continuous(breaks = seq(0.0,1,0.2),minor_breaks = waiver(),limits = c(0.0,1.3))+
+  facet_wrap(vars(translation,predicting)) +
+  stat_compare_means(label = 'p.signif',
+                     method = 'wilcox.test',
+                     #step.increase = 0.02,
+                     label.y = 1.15,
+                     tip.length=0.05,
+                     size =6,
+                     aes(group=model),
+                     comparisons = my_comparisons) +
+  stat_compare_means(label = 'p.signif',
+                     method = 'wilcox.test',
+                     #step.increase = 0.02,
+                     label.y = 1.15,
+                     tip.length=0.05,
+                     size =6,
+                     aes(group=model),
+                     comparisons = my_comparisons) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)),
+               vjust = 0, size = 6, position = position_nudge(y = 0.4))+
+  theme(text = element_text(family = 'Arial',size=24),
+        plot.title = element_text(hjust = 0.5,size=24),
+        legend.title = element_blank(),
+        axis.text.x = element_blank())
+print(p_translate_log)
+ggsave('../figures/fibrosis_performance_translation_comparison_allgrouped_logtransformation.png', 
+       plot=p_translate_log,
+       scale = 1,
+       width = 16,
+       height = 8,
+       units = "in",
+       dpi = 600)
+postscript('../figures/fibrosis_performance_translation_comparison_allgrouped_logtransformation.eps',width = 16,height = 8)
+print(p_translate_log)
+dev.off()
+

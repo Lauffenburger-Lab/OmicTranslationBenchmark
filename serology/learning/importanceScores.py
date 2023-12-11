@@ -65,7 +65,7 @@ primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
 primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
 Xh = torch.tensor(human_exprs.values).double()
 Xm = torch.tensor(primates_exprs.values).double()
-Yh = torch.tensor(human_metadata.loc[:,['trt','infect']].values).long()
+Yh = torch.tensor(human_metadata.loc[:,['trt','protected']].values).long()
 Ym = torch.tensor(primates_metadata.loc[:,['Vaccine','ProtectBinary']].values).long()
 
 gene_size_human = len(human_exprs.columns)
@@ -280,7 +280,7 @@ interesting_primates_feats_inds = [primates_exprs.columns.get_loc(feat) for feat
 primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
 Xh = torch.tensor(human_exprs.values).double()
 Xm = torch.tensor(primates_exprs.values).double()
-Yh = torch.tensor(human_metadata.loc[:,['trt','infect']].values).long()
+Yh = torch.tensor(human_metadata.loc[:,['trt','protected']].values).long()
 Ym = torch.tensor(primates_metadata.loc[:,['Vaccine','ProtectBinary']].values).long()
 
 # Define translator model

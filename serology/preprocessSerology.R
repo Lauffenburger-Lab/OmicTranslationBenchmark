@@ -16,6 +16,8 @@ cols <- colnames(human_expr)
 human_expr <- scale(human_expr)
 hist(human_expr,100)
 data.table::fwrite(human_expr,'data/human_exprs.csv',row.names = T)
+ind <- which(colnames(human_hiv)=='infect')
+colnames(human_hiv)[ind] <- 'protected'
 data.table::fwrite(human_hiv,'data/human_metadata.csv',row.names = T)
 
 primates_nhp <- read_excel('data/NHP_trial_1319.xlsx',sheet=1)

@@ -68,7 +68,7 @@ primates_exprs = pd.read_csv('../data/primates_exprs.csv',index_col=0)
 primates_metadata = pd.read_csv('../data/primates_metadata.csv',index_col=0)
 Xh = torch.tensor(human_exprs.values).float().to(device)
 Xp = torch.tensor(primates_exprs.values).float().to(device)
-Yh = torch.tensor(human_metadata.loc[:,['trt','infect']].values).long()
+Yh = torch.tensor(human_metadata.loc[:,['trt','protected']].values).long()
 Yp = torch.tensor(primates_metadata.loc[:,['Vaccine','ProtectBinary']].values).long()
 
 gene_size_human = len(human_exprs.columns)

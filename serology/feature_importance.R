@@ -131,7 +131,7 @@ features_results <- features_results %>% select(-Fold,-mean_score,-percentage_sc
 # Load features
 feats <- data.table::fread('data/human_exprs.csv') %>% select(-V1)
 labels <- data.table::fread('data/human_metadata.csv') %>% select(-V1)
-feats$protection <- labels$infect
+feats$protection <- labels$protected
 feats <- feats %>% mutate(protected=ifelse(protection==1,'protected','non-protected'))
 feats$protected <- factor(feats$protected,levels = c('non-protected','protected'))
 feats <- feats %>% gather('feature','value',-protection,-protected)
