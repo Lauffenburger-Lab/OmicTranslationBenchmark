@@ -348,7 +348,7 @@ for (i in 0:9){
                         ncol=2,nrow=1,common.legend = TRUE,legend = 'right')
   pcaList[[i+1]] <- pca_plot
   ggsave(
-    paste0('suppl_fig4_eps/suppl_fig4_pca_split',i+1,'.eps'), 
+    paste0('suppl_fig11_eps/suppl_fig11_pca_split',i+1,'.eps'), 
     plot = pca_plot,
     device = cairo_ps,
     scale = 1,
@@ -368,7 +368,7 @@ for (i in 0:9){
                          ncol=2,nrow=1,common.legend = TRUE,legend = 'right')
   tsneList[[i+1]] <- tsne_plot
   ggsave(
-    paste0('suppl_fig4_eps/suppl_fig4_tsne_split',i+1,'.eps'), 
+    paste0('suppl_fig11_eps/suppl_fig11_tsne_split',i+1,'.eps'), 
     plot = tsne_plot,
     device = cairo_ps,
     scale = 1,
@@ -380,7 +380,7 @@ for (i in 0:9){
   message(paste0('Done split ',i))
 }
 
-png(file="suppl_fig4_eps/allgenes_similarity_trained_autoencoders_with_class_cell_separation.png",width=16,height=16,units = "in",res=600)
+png(file="suppl_fig11_eps/allgenes_similarity_trained_autoencoders_with_class_cell_separation.png",width=16,height=16,units = "in",res=600)
 p <- ggarrange(plotlist=plotList,ncol=2,nrow=5,common.legend = TRUE,legend = 'bottom',
                labels = paste0(rep('Split ',2),seq(1,10)),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),

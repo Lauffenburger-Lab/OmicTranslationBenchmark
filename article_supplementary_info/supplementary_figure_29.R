@@ -53,6 +53,6 @@ p <-  ggboxplot(all_results,
                      aes(group=model),
                      comparisons = my_comparisons)
 print(p)
-png('../article_supplementary_info/suppl_fig13.png',width = 16,height = 12,units = 'in',res = 600)
+png('../article_supplementary_info/suppl_fig29.png',width = 16,height = 12,units = 'in',res = 600)
 print(p)
 dev.off()

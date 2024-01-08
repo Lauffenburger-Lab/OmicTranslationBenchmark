@@ -8,7 +8,7 @@ library(patchwork)
 # Load results--------
 cpa_intermediate <- data.table::fread('../serology/results_intermediate_encoders/10foldvalidation_wholeModel_32dim2000ep_serology.csv')
 colnames(cpa_intermediate)[1] <- 'fold'
-cpa_intermediate <- cpa_intermediate[,1:17]
+# cpa_intermediate <- cpa_intermediate[,1:17]
 cpa_intermediate <- cpa_intermediate %>% mutate(model='CPA with intermediate encoders')
 
 cpa <- data.table::fread('../serology/results/10foldvalidation_wholeModel_32dim2000ep_serology.csv')
@@ -86,7 +86,7 @@ p1b <-  ggboxplot(all_results_recon %>% filter(metric!='per feature pearson'),
 p1 <- p1a/p1b
 print(p1)
 ggsave(
-  'suppl_fig12_1.eps', 
+  'suppl_fig28_1.eps', 
   plot=p1,
   device = cairo_ps,
   scale = 1,
@@ -129,7 +129,7 @@ p2b <-  ggboxplot(all_results_class %>% filter(metric!='F1'),
 
 p2 <- p2a/p2b
 ggsave(
-  'suppl_fig12_2.eps', 
+  'suppl_fig28_2.eps', 
   plot=p2,
   device = cairo_ps,
   scale = 1,
