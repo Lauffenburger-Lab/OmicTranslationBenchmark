@@ -1,11 +1,11 @@
-# AutoTransOP: Autoencoder Model for Translating Omics Signatures
+# AutoTransOP: Translating Omics Signatures without Orthologue Requirements using Deep Learning
 Github repository of the study:
-> Autoencoder Model for Translating Omics Signatures <br>
-> Meimetis, N., Pullen, K. M., Zhu, D. Y., Nilsson, A., Hoang, T. N., Magliacane, S., & Lauffenburger, D. A. (2023). Autoencoder Model for Translating Omics Signatures. bioRxiv, 2023-06.</sup>
+> AutoTransOP: Translating Omics Signatures without Orthologue Requirements using Deep Learning <br>
+> Meimetis, N., Pullen, K. M., Zhu, D. Y., Nilsson, A., Hoang, T. N., Magliacane, S., & Lauffenburger, D. A.</sup>
 
-doi: https://doi.org/10.1101/2023.06.08.544243
+Pre-print doi: https://doi.org/10.1101/2023.06.08.544243
 
-This repository is administered by @NickMeim. For questions contact meimetis@mit.edu
+This repository is administered by Lauffenburger Lab and @NickMeim. For questions contact meimetis@mit.edu
 
 **Trained models of this study are too big to be uploaded here and are available upon reasonable request.**
 
