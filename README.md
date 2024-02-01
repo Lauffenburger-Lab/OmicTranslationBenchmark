@@ -1,11 +1,10 @@
-# AutoTransOP: Translating Omics Signatures without Orthologue Requirements using Deep Learning
+# AutoTransOP: translating omics signatures without orthologue requirements using deep learning
 Github repository of the study:
 > AutoTransOP: Translating Omics Signatures without Orthologue Requirements using Deep Learning <br>
 > Meimetis, N., Pullen, K. M., Zhu, D. Y., Nilsson, A., Hoang, T. N., Magliacane, S., & Lauffenburger, D. A.</sup>
 
-Pre-print doi: https://doi.org/10.1101/2023.06.08.544243
-
-This repository is administered by Lauffenburger Lab and @NickMeim. For questions contact meimetis@mit.edu
+Published in NPJ Systems Biology and Applications: https://doi.org/10.1038/s41540-024-00341-9
+This repository is administered by the Lauffenburger Lab and @NickMeim. For questions contact meimetis@mit.edu
 
 **Trained models of this study are too big to be uploaded here and are available upon reasonable request.**
 
