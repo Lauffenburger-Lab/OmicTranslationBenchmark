@@ -256,3 +256,5 @@ fibrosis/results/preds/validation/*.csv
 fibrosis/results/preds/validation/*.zip
 fibrosis/results/*.eps
 fibrosis/results/*.png
+fibrosis/models/models.zip
+data/human_gene_v2.2.h5
