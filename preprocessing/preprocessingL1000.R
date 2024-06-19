@@ -108,6 +108,11 @@ gc()
 cmap <-do.call(cbind,cmap_gctx)
 #cmap_cor_all <- cor(cmap)
 
+### Save subset of landmark gene expression
+cmap_lands <- cmap[as.character(geneInfo$gene_id[geneInfo$feature_space=='landmark']),]
+cmap_lands <- t(cmap_lands)
+data.table::fwrite(cmap_lands,'../preprocessing/preprocessed_data/all_cmap_landmarks.csv')
+
 #Cell-line based similarity----
 #common <- common %>% filter(Var1 %in% rownames(ccle) & Var2 %in% rownames(ccle))
 ccle_cor  <- cor(t(ccle))
