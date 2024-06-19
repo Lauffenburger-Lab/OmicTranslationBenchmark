@@ -257,4 +257,5 @@ fibrosis/results/preds/validation/*.zip
 fibrosis/results/*.eps
 fibrosis/results/*.png
 fibrosis/models/models.zip
+fibrosis/importanceScores_fibrosis.py
 data/human_gene_v2.2.h5
