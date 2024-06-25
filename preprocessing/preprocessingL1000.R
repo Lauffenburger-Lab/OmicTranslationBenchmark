@@ -40,6 +40,7 @@ sigInfo <- sigInfo %>%
   mutate(duplIdentifier = paste0(cmap_name,"_",pert_idose,"_",pert_itime,"_",cell_iname))
 sigInfo <- sigInfo %>% group_by(duplIdentifier) %>%
   mutate(dupl_counts = n()) %>% ungroup()
+duplicateSigs <- sigInfo %>% filter(dupl_counts>1)
 
 # Drug condition information
 sigInfo <- sigInfo  %>% mutate(conditionId = paste0(cmap_name,"_",pert_idose,"_",pert_itime))
