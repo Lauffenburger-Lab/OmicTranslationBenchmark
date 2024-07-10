@@ -96,8 +96,8 @@ dist <- dist %>% mutate(is_duplicate = (duplIdentifier.x==duplIdentifier.y))
 # the quality of the data. The higher it is
 # the higher the quality of the data.
 
-tas_thresholds_lower <- c(0.0,0.2,0.25,0.3,0.35,0.4,0.45,0.5)
-tas_thresholds_upper <- c(0.99,0.25,0.3,0.35,0.4,0.45,0.5,0.55)
+tas_thresholds_lower <- c(0.0,0.1,0.15,0.2,0.25,0.3,0.35)
+tas_thresholds_upper <- c(0.99,0.9,0.8,0.7,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1)
 
 # Initialize empty lists to store plots
 # and number of data after filtering 
@@ -105,13 +105,14 @@ tas_thresholds_upper <- c(0.99,0.25,0.3,0.35,0.4,0.45,0.5,0.55)
 plotList <- NULL
 num_of_sigs <- NULL
 p_vals <- NULL
-for (i in 1:length(tas_thresholds_upper)){
+for (i in 1:length(tas_thresholds_lower)){
   
   # Calculate number of data remaining
+  # print(tas_thresholds_upper[i])
   num_of_sigs[i] <- nrow(sigInfo %>% filter(tas>=tas_thresholds_lower[i]))
   
   # Get the distances for these TAS numbers
-  df_dist <- dist %>%  
+  df_dist <- dist %>%  filter(Var1 %in% sigInfo$sig_id & Var2 %in% sigInfo$sig_id) %>%
     filter((tas.x>=tas_thresholds_lower[i] & tas.y>=tas_thresholds_lower[i])) %>%
     mutate(is_duplicate=ifelse(is_duplicate==T,
                                'Duplicate Signatures','Random Signatures')) %>%
@@ -138,9 +139,8 @@ for (i in 1:length(tas_thresholds_upper)){
 # Save all subplots/distributions into one common figure
 png(file="duplicate_vs_random_distribution_untreated.png",width=16,height=8,units = "in",res=300)
 
-p <- ggarrange(plotlist=plotList,ncol=4,nrow=2,common.legend = TRUE,legend = 'right',
-               labels = paste0(c('TAS>=0.15','TAS>=0.2','TAS>=0.25','TAS>=0.3','TAS>=0.35',
-                                 'TAS>=0.4','TAS>=0.45','TAS>=0.5'),',Number of signatures:',num_of_sigs),
+p <- ggarrange(plotlist=plotList,ncol=3,nrow=3,common.legend = TRUE,legend = 'right',
+               labels = paste0(paste0('TAS>=',tas_thresholds_lower),',Number of signatures:',num_of_sigs),
                font.label = list(size = 10, color = "black", face = "plain", family = NULL),
                hjust=-0.15)
 
@@ -156,7 +156,7 @@ df = data.frame(tas_thresholds_lower,num_of_sigs)
 
 # Plot the decrease of aavailable data
 # as we become more strict in their quality
-png(file="numberOfSignatures_vs_TASthresholf.png",width=9,height=6,units = "in",res=300)
+png(file="numberOfSignatures_vs_TASthreshold_untreated.png",width=9,height=6,units = "in",res=300)
 ggplot(df,aes(x=tas_thresholds_lower,y=num_of_sigs)) +
   labs(x="TAS number threshold", y = "Number of data points")+
   geom_point() +geom_line(linetype='dashed')

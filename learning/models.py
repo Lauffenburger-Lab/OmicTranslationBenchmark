@@ -452,7 +452,7 @@ class CellStateEncoder(torch.nn.Module):
         #z_log_var = self.linear_latent_var(x2)
         #z_latent = self.reparameterize(z_mu, z_log_var)
         z_latent = self.linear_latent(x2)
-        return z_latent,xd
+        return z_latent # ,xd #add xd this to get the original DCS approach. Now this is modified v1
 
 
 
@@ -468,7 +468,7 @@ class CellStateDecoder(torch.nn.Module):
             self.linear_layers.append(torch.nn.Linear(hidden_layers[i-1], hidden_layers[i], bias=bias))
 
         self.output_linear = torch.nn.Linear(hidden_layers[-1], out_dim,bias=bias)
-        self.final_dense = torch.nn.Linear(2, 1,bias=bias)
+        # self.final_dense = torch.nn.Linear(2, 1,bias=bias) # add this to get the original DCS approach. Now this is modified v1
         self.activation = activation
         self.dropout = torch.nn.Dropout(dropRate)
         #self.activation_output = torch.nn.Sigmoid()
@@ -482,13 +482,13 @@ class CellStateDecoder(torch.nn.Module):
                 if m.bias is not None:
                     m.bias.data.fill_(0.0)
 
-    def forward(self, z,x_noisy):
+    def forward(self, z): #,x_noisy add this argument to get the original DCS approach. Now this is modified v1
         for i in range(len(self.linear_layers)):
             z = self.linear_layers[i](z)
             z = self.activation(z)
         z = self.dropout(self.output_linear(z))
-        z2 = torch.cat([z.unsqueeze(-1),x_noisy.unsqueeze(-1)],axis=-1)
-        output = self.final_dense(z2).squeeze()
+        # z2 = torch.cat([z.unsqueeze(-1),x_noisy.unsqueeze(-1)],axis=-1) # add this to get the original DCS approach. Now this is modified v1
+        # output = self.final_dense(z2).squeeze() # add this to get the original DCS approach. Now this is modified v1
         return z.squeeze()
 
 class CellStateVAE(torch.nn.Module):
@@ -500,8 +500,10 @@ class CellStateVAE(torch.nn.Module):
         self.decoder = decoder
 
     def forward(self, x):
-        z_latent,x_noisy = self.encoder(x)
-        predicted = self.decoder(z_latent,x_noisy)
+        # z_latent,x_noisy = self.encoder(x) # add this to get the original DCS approach. Now this is modified v1
+        # predicted = self.decoder(z_latent,x_noisy) # add this to get the original DCS approach. Now this is modified v1
+        z_latent = self.encoder(x)
+        predicted = self.decoder(z_latent)
 
         return z_latent, predicted
 

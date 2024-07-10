@@ -112,7 +112,10 @@ cmap <-do.call(cbind,cmap_gctx)
 ### Save subset of landmark gene expression
 cmap_lands <- cmap[as.character(geneInfo$gene_id[geneInfo$feature_space=='landmark']),]
 cmap_lands <- t(cmap_lands)
-data.table::fwrite(cmap_lands,'../preprocessing/preprocessed_data/all_cmap_landmarks.csv')
+data.table::fwrite(as.data.frame(cmap_lands),
+                   '../preprocessing/preprocessed_data/all_cmap_landmarks.csv',
+                   row.names = TRUE,
+                   quote = TRUE)
 
 #Cell-line based similarity----
 #common <- common %>% filter(Var1 %in% rownames(ccle) & Var2 %in% rownames(ccle))
@@ -403,12 +406,12 @@ ht29 <- sigInfo %>% filter(cell_iname=='HT29') %>% filter(!(sig_id %in% paired$s
 ### Load gene expression data -----------------------------------------------------------------------------------
 
 # Split sigs to run in parallel
-#sigInfo <- sigInfo %>% filter(cell_iname=='PC3' | cell_iname=='HA1E')
+# sigInfo <- sigInfo %>% filter(cell_iname=='A375' | cell_iname=='HT29')
 sigIds <- unique(sigInfo$sig_id)
 sigList <-  split(sigIds, ceiling(seq_along(sigIds)/ceiling(length(sigIds)/cores)))
 
 # Parallelize parse_gctx
-ds_path <- '../L1000_2021_11_23/level5_beta_trt_cp_n720216x12328.gctx'
+ds_path <- '../../../L1000_2021_11_23/level5_beta_trt_cp_n720216x12328.gctx'
 parse_gctx_parallel <- function(path ,rid,cid){
   gctx_file <- parse_gctx(path ,rid = rid,cid = cid)
   return(gctx_file@mat)
