@@ -21,7 +21,7 @@ homologues_map = data.table::fread('results/HumanMouseHomologuesMap.csv')
 
 ### Reconstruction analysis--------------------
 all_species <- c('human','mouse')
-models <- c('unloged_')#c('','homologues_','DCS_','TransCompR_')
+models <- c('','homologues_','DCS_','TransCompR_','unloged_')
 results_reconstruction <- data.frame()
 for (species in all_species){
   for (model in models){
@@ -83,7 +83,7 @@ for (species in all_species){
         ytrue <- val_variances %>% filter(Group.1==cell)
         ytrue <- ytrue[1,2:num_genes]
         ytrue <- as.matrix(ytrue)[1,]
-        yhat <- pred_means %>% filter(Group.1==cell)
+        yhat <- pred_variances %>% filter(Group.1==cell)
         yhat <- yhat[1,2:num_genes]
         yhat <- as.matrix(yhat)[1,]
         cor(ytrue ,
@@ -448,7 +448,7 @@ cells_all <- cells_all %>% filter(!is.na(`mouse cell`))
 
 all_species <- c('human','mouse')
 all_trans <- c('tohuman','tomouse')
-models <- c('unloged_')#c('','homologues_','DCS_','TransCompR_')
+models <- c('','homologues_','DCS_','TransCompR_','unloged_')
 results_translation <- data.frame()
 for (trans in all_trans){
   if (grepl('human',trans)){
@@ -540,7 +540,7 @@ for (trans in all_trans){
         ytrue <- val_variances %>% filter(Group.1==cell)
         ytrue <- ytrue[1,2:num_genes]
         ytrue <- as.matrix(ytrue)[1,]
-        yhat <- pred_means %>% filter(Group.1==cell)
+        yhat <- pred_variances %>% filter(Group.1==cell)
         yhat <- yhat[1,2:num_genes]
         yhat <- as.matrix(yhat)[1,]
         cor(ytrue ,
@@ -786,7 +786,7 @@ p2 <- ggboxplot(results %>% select(model,averageCellr,fold,predicting,translatio
   # ylab(expression('average R'^2))+
   ylab('pearson`s r')+
   ggtitle("Performance in translating between species")+
-  scale_y_continuous(breaks = seq(0.4,1,0.1),minor_breaks = waiver(),limits = c(0.4,1.1))+
+  scale_y_continuous(breaks = seq(0.4,1,0.1),minor_breaks = waiver(),limits = c(0,1.1))+
   # geom_hline(yintercept = 0,lty='dashed',linewidth=1)+
   facet_wrap(vars(translation,predicting)) +
   stat_compare_means(label = 'p.signif',
