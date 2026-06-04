@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autotransop"
+version = "0.1.0"
+description = "Configurable PyTorch package for AutoTransOP omics translation."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "torch",
+]
+
+[project.optional-dependencies]
+plotting = ["matplotlib", "seaborn"]
+dev = ["pytest"]
+
+[project.scripts]
+autotransop = "autotransop.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

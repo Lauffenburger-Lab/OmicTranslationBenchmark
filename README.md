@@ -18,6 +18,99 @@ The current repository contains code for:
 4. Importance estimation of each feature for specific tasks.
 5. Code to re-create the results of the research article.
 
+## Installable package interface
+
+The original manuscript implementation remains in the analysis folders listed
+below. A reusable package scaffold has also been added under `src/autotransop/`
+so new projects can configure AutoTransOP without editing the original scripts.
+
+```bash
+python -m pip install -e .
+autotransop --version
+```
+
+The package exposes:
+
+1. `AutoTransOPConfig` for choosing AutoTransOP `v1`, `v2`, or `v3`.
+2. Any number of domain-specific encoders and decoders.
+3. Optional v2 domain effects as trainable vectors or small neural networks.
+4. Any number of task heads, including classifiers and regressors in the global
+   or composed latent space.
+5. Any number of adversarial classifiers/discriminators in the global or
+   composed latent space.
+6. Optional latent regularization using Euclidean distance, cosine distance,
+   mutual information, and an optional prior discriminator.
+7. Reconstruction and translation evaluation helpers, including per-feature
+   Pearson performance and the HIV-style per-feature scatterplot against a
+   shuffled/reference model.
+
+By default, the package does not enforce a latent prior. If a prior is enabled,
+`PriorConfig()` defaults to a normal prior and uses an adversarial prior
+discriminator.
+
+Minimal example:
+
+```python
+from autotransop import (
+    AdversaryConfig,
+    AutoTransOP,
+    AutoTransOPConfig,
+    AutoTransOPTrainer,
+    DomainConfig,
+    DomainEffectConfig,
+    DomainTensorData,
+    HeadConfig,
+    MLPConfig,
+    MutualInformationConfig,
+    PairRegularizerConfig,
+    TrainingConfig,
+)
+
+config = AutoTransOPConfig(
+    version="v2",
+    latent_dim=32,
+    domains=[
+        DomainConfig("human", input_dim=128, encoder=MLPConfig([128, 64]), decoder=MLPConfig([64, 128])),
+        DomainConfig("nhp", input_dim=64, encoder=MLPConfig([64]), decoder=MLPConfig([64])),
+    ],
+    domain_effect=DomainEffectConfig(mode="vector", dropout=0.5),
+    pair_regularizers=[
+        PairRegularizerConfig("protection", label_key="protection", metrics=("euclidean", "cosine"), weight=4.0),
+    ],
+    mutual_information=MutualInformationConfig(enabled=True, label_key="protection", weight=10.0),
+    heads=[
+        HeadConfig("species_composed", target_key="species", latent_space="composed", num_outputs=2, weight=10.0),
+    ],
+    adversaries=[
+        AdversaryConfig("species_global", target_key="species", latent_space="global", num_classes=2, weight=50.0),
+    ],
+)
+
+model = AutoTransOP(config)
+trainer = AutoTransOPTrainer(model, TrainingConfig(epochs=10, batch_size=64))
+history = trainer.fit({
+    "human": DomainTensorData.from_arrays(X_human, labels={"protection": y_human, "species": species_human}),
+    "nhp": DomainTensorData.from_arrays(X_nhp, labels={"protection": y_nhp, "species": species_nhp}),
+})
+```
+
+For per-feature evaluation:
+
+```python
+import pandas as pd
+
+from autotransop.evaluation import (
+    compare_per_feature_to_reference,
+    per_feature_performance,
+    plot_per_feature_performance_scatter,
+)
+
+validation = per_feature_performance(y_true, y_pred, feature_names=features, set_name="validation")
+shuffled = per_feature_performance(y_true, y_pred_shuffled, feature_names=features, set_name="shuffled")
+comparison = compare_per_feature_to_reference(pd.concat([validation, shuffled], ignore_index=True))
+plot_per_feature_performance_scatter(comparison, "per_feature_scatter.png")
+```
+
 ## Data
 The transcriptomic signatures (level 5 profiles) of the L1000 CMap resource[^1] are used for this study, together with data from the Bioconductor resource[^2].
 
