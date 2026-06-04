@@ -7,7 +7,7 @@ Published in NPJ Systems Biology and Applications: https://doi.org/10.1038/s4154
 
 A newer companion method, FlowTransOP, is also available in package format. FlowTransOP uses constrained deep flow matching for distributional omics translation and is designed for settings where paired information is not available or should not be required. See the FlowTransOP GitHub repository (https://github.com/NickMeim/FlowTransOP) and bioRxiv preprint.[^3]
 
-This repository is administered by the Lauffenburger Lab and @NickMeim. For questions contact meimetis@mit.edu
+This repository is administered by the Lauffenburger Lab and @NickMeim. For questions contact meimetis@mit.edu or nmeimetis97@gmail.com. Corresponding author: lauffen@mit.edu.
 
 **Trained models of this study are too big to be uploaded here and are available upon reasonable request.**
 
