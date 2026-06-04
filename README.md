@@ -5,6 +5,8 @@ Github repository of the study:
 
 Published in NPJ Systems Biology and Applications: https://doi.org/10.1038/s41540-024-00341-9
 
+A newer companion method, FlowTransOP, is also available in package format. FlowTransOP uses constrained deep flow matching for distributional omics translation and is designed for settings where paired information is not available or should not be required. See the FlowTransOP GitHub repository (https://github.com/NickMeim/FlowTransOP) and bioRxiv preprint.[^3]
+
 This repository is administered by the Lauffenburger Lab and @NickMeim. For questions contact meimetis@mit.edu
 
 **Trained models of this study are too big to be uploaded here and are available upon reasonable request.**
@@ -24,10 +26,22 @@ The original manuscript implementation remains in the analysis folders listed
 below. A reusable package scaffold has also been added under `src/autotransop/`
 so new projects can configure AutoTransOP without editing the original scripts.
 
+Create an isolated environment first. The example below uses Miniforge,
+Mambaforge, or Anaconda and names the environment `AutoTransOP`:
+
 ```bash
-python -m pip install -e .
-autotransop --version
+mamba create -n AutoTransOP python=3.10
+mamba activate AutoTransOP
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -e ".[plotting]"
+autotransop --help
 ```
+
+If `mamba` is not available, replace `mamba` with `conda`. The final `.` in
+`python -m pip install -e ".[plotting]"` is required; it tells `pip` to install
+the current repository in editable mode. For GPU training, install the PyTorch
+build that matches your CUDA environment before the editable install, following
+the official PyTorch installation selector.
 
 The package exposes:
 
@@ -93,6 +107,36 @@ history = trainer.fit({
     "nhp": DomainTensorData.from_arrays(X_nhp, labels={"protection": y_nhp, "species": species_nhp}),
 })
 ```
+
+### Example runs
+
+Runnable package examples are available under `examples/`. These commands assume the `AutoTransOP` environment is active and the package has already been installed with `python -m pip install -e ".[plotting]"`.
+
+HIV serology example using the local `../../HIV_translation` side project:
+
+```powershell
+python examples\run_hiv_autotransop_example.py --hiv-root ..\..\HIV_translation --epochs 20 --batch-size 64 --device cuda --plot
+```
+
+Quick CPU smoke run:
+
+```powershell
+python examples\run_hiv_autotransop_example.py --hiv-root ..\..\HIV_translation --epochs 2 --batch-size 32 --device cpu
+```
+
+A375/HT29 L1000 landmark-gene example using fold 0 of the existing 10-fold split:
+
+```powershell
+python examples\run_l1000_a375_ht29_landmarks_autotransop_example.py --repo-root . --fold 0 --epochs 20 --batch-size 128 --device cuda --plot
+```
+
+Quick CPU smoke run:
+
+```powershell
+python examples\run_l1000_a375_ht29_landmarks_autotransop_example.py --repo-root . --fold 0 --epochs 2 --batch-size 64 --device cpu
+```
+
+Both scripts save training histories, per-feature Pearson tables, shuffled-reference comparisons, and optional scatterplots under `results/package_examples/`. Add `--prior-weight 0.1` to enable the normal latent prior discriminator, or change regularization with options such as `--mi-weight`, `--distance-weight`, and `--metrics euclidean,cosine`.
 
 For per-feature evaluation:
 
@@ -205,3 +249,4 @@ conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 ## References
 [^1]: Subramanian, Aravind, et al. "A next generation connectivity map: L1000 platform and the first 1,000,000 profiles." Cell 171.6 (2017): 1437-1452.
 [^2]: Gentleman, Robert C., et al. "Bioconductor: open software development for computational biology and bioinformatics." Genome biology 5.10 (2004): 1-16.
+[^3]: Meimetis, N. FlowTransOP: Distributional Translation of Omics Signatures via Constrained Deep Flow Matching. bioRxiv. https://doi.org/10.64898/2026.05.27.728305
